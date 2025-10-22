@@ -1,0 +1,33 @@
+_schema-version: '3.1'
+ID: vector
+version: 1.0.1
+description: "Vector - React + Node.js + SAP Datasphere"
+
+modules:
+  - name: vector-backend
+    type: nodejs
+    path: vector-backend
+    requires:
+      - name: destination-service
+    parameters:
+      memory: 256M
+      instances: 1
+      disk-quota: 512M
+      routes:
+        - route: dpfna-sbx-sbx-vector-backend.cfapps.us10-001.hana.ondemand.com
+
+  - name: vector
+    type: html5
+    path: vector
+    parameters:
+      memory: 1024M
+      instances: 1
+      routes:
+        - route: dpfna-sbx-sbx-vector.cfapps.us10-001.hana.ondemand.com
+
+resources:
+  - name: destination-service
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite

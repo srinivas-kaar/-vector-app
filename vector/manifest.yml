@@ -1,0 +1,10 @@
+applications:
+  - name: mui_vector
+    memory: 256M
+    disk_quota: 1024M
+    instances: 1
+    env:
+      NODE_ENV: production
+      PORT: 5003
+    routes:
+      - route: mui_vector.cfapps.us10.hana.ondemand.com
