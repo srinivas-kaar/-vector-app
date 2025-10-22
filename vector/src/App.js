@@ -609,6 +609,7 @@ async function apiFetchApprovals() {
       dateApproved: null,
       status: "Pending",
       overridePrice: 10,
+      BussinessJustification: "Approve raised from sales",
       currentPrice: 12,
     },
     {
@@ -2495,7 +2496,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
             Opportunity_ID: row.id,
             CurrentPrice: row.currentPrice,
             OverridePrice: row.overridePrice,
-            BussinessJustification: "Approve raised from sales",
+            BussinessJustification: row.BussinessJustification,
             DateOfRequest: row.dateRaised,
             DateOfApproval: new Date().toISOString().split("T")[0],
             BussinessJusti: "",
@@ -2564,7 +2565,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
               } backdrop-blur-md`}
             >
               <tr>
-                <th className="py-2 px-3 w-40">Opportunity ID</th>
+                {/* <th className="py-2 px-3 w-40">Opportunity ID</th> */}
                 <th className="py-2 px-3 w-40">Product Category</th>
                 <th className="py-2 px-3 w-48">Customer Name</th>
                 <th className="py-2 px-3 w-48">Approver Name</th>
@@ -2572,7 +2573,8 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                 <th className="py-2 px-3 w-36">Curent Price</th>
                 <th className="py-2 px-3 w-36">Override Price </th>
                 <th className="py-2 px-3 w-32">Status</th>
-                <th className="py-2 px-3 w-48">Actions</th>
+                <th className="py-2 px-3 w-48">Bussiness Justification</th>
+                <th className="py-2 px-3 w-40">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -2606,7 +2608,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                         isNight ? "border-white/10" : "border-white/60"
                       }`}
                     >
-                      <td className="py-2 px-3">{row.id}</td>
+                      {/* <td className="py-2 px-3">{row.id}</td> */}
                       <td className="py-2 px-3">{row.productCategory}</td>
                       <td className="py-2 px-3">{row.customerName}</td>
                       <td className="py-2 px-3">{row.approverName}</td>
@@ -2624,7 +2626,20 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                           {row.status}
                         </span>
                       </td>
-                      <td></td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            rows={3}
+                            value={row.BussinessJustification}
+                            placeholder="Enter your comments..."
+                            className={`w-full p-2 rounded-lg border ${
+                              isNight
+                                ? "bg-black/20 border-white/20 text-white"
+                                : "bg-white border-gray-300 text-gray-700"
+                            }`}
+                          />
+                        </div>
+                      </td>
                       <td className="py-2 px-3">
                         <div className="flex gap-2">
                           <Button
@@ -4530,30 +4545,30 @@ export default function App() {
                                 Opportunity ID
                               </th> */}
                               {visibleColumns.salesLead && (
-                                <th className="py-2 pr-4 text-left">
-                                  Sales Lead
-                                </th>
+                              <th className="py-2 pr-4 text-left">
+                                Sales Lead
+                              </th>
                               )}
                               {visibleColumns.customerName && (
-                                <th className="py-2 pr-4 text-left">
-                                  Customer Name
-                                </th>
+                              <th className="py-2 pr-4 text-left">
+                                Customer Name
+                              </th>
                               )}
                               {visibleColumns.product && (
-                                <th className="py-2 pr-4 text-left">Product</th>
+                              <th className="py-2 pr-4 text-left">Product</th>
                               )}
                               {visibleColumns.status && (
-                                <th className="py-2 pr-4 text-left">Status</th>
+                              <th className="py-2 pr-4 text-left">Status</th>
                               )}
                               {visibleColumns.estimatedVolume && (
-                                <th className="py-2 pr-4 text-left">
-                                  Estimated Volume
-                                </th>
+                              <th className="py-2 pr-4 text-left">
+                                Estimated Volume
+                              </th>
                               )}
                               {visibleColumns.likelyStartDate && (
-                                <th className="py-2 text-left">
-                                  Likely Start Date
-                                </th>
+                              <th className="py-2 text-left">
+                                Likely Start Date
+                              </th>
                               )}
                             </tr>
                           </thead>
@@ -4594,57 +4609,57 @@ export default function App() {
                                     </button>
                                   </td> */}
                                   {visibleColumns.salesLead && (
-                                    <td className="py-2 pr-4">
-                                      {o.doleSalesLead || o.sales_Lead || "-"}
-                                    </td>
+                                  <td className="py-2 pr-4">
+                                    {o.doleSalesLead || o.sales_Lead || "-"}
+                                  </td>
                                   )}
                                   {visibleColumns.customerName && (
-                                    <td className="py-2 pr-4 font-medium">
-                                      {o.customerName || o.customer_Name || "-"}
-                                    </td>
+                                  <td className="py-2 pr-4 font-medium">
+                                    {o.customerName || o.customer_Name || "-"}
+                                  </td>
                                   )}
                                   {visibleColumns.product && (
-                                    <td className="py-2 pr-4">
-                                      {o.product || "-"}
-                                    </td>
+                                  <td className="py-2 pr-4">
+                                    {o.product || "-"}
+                                  </td>
                                   )}
                                   {visibleColumns.status && (
-                                    <td className="py-2 pr-4">
-                                      <span
-                                        className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
-                                        style={{
-                                          background: `${
-                                            STATUS_COLORS[o.status] || "#999"
-                                          }22`,
-                                          color:
-                                            STATUS_COLORS[o.status] || "#999",
-                                        }}
-                                      >
-                                        {o.status || o.salesStage || "-"}
-                                      </span>
-                                    </td>
+                                  <td className="py-2 pr-4">
+                                    <span
+                                      className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
+                                      style={{
+                                        background: `${
+                                          STATUS_COLORS[o.status] || "#999"
+                                        }22`,
+                                        color:
+                                          STATUS_COLORS[o.status] || "#999",
+                                      }}
+                                    >
+                                      {o.status || o.salesStage || "-"}
+                                    </span>
+                                  </td>
                                   )}
                                   {visibleColumns.estimatedVolume && (
-                                    <td className="py-2 pr-4">
-                                      {o.estimatedVolume ||
-                                        o.estimated_Volume ||
-                                        "-"}
-                                    </td>
+                                  <td className="py-2 pr-4">
+                                    {o.estimatedVolume ||
+                                      o.estimated_Volume ||
+                                      "-"}
+                                  </td>
                                   )}
                                   {visibleColumns.likelyStartDate && (
-                                    <td className="py-2">
-                                      {o.likely_Start_Date
-                                        ? new Date(
-                                            o.likely_Start_Date
-                                          ).toLocaleDateString()
-                                        : o.likelyStartDate
-                                        ? new Date(
-                                            o.likelyStartDate
-                                          ).toLocaleDateString()
-                                        : new Date(
-                                            o.createdAt
-                                          ).toLocaleDateString()}
-                                    </td>
+                                  <td className="py-2">
+                                    {o.likely_Start_Date
+                                      ? new Date(
+                                          o.likely_Start_Date
+                                        ).toLocaleDateString()
+                                      : o.likelyStartDate
+                                      ? new Date(
+                                          o.likelyStartDate
+                                        ).toLocaleDateString()
+                                      : new Date(
+                                          o.createdAt
+                                        ).toLocaleDateString()}
+                                  </td>
                                   )}
                                 </tr>
                               ))}
@@ -4721,21 +4736,22 @@ export default function App() {
                 </div>
               ))}
             {route === "approvals" &&
-              (isAdminUser ? (
+              // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
                   <OverridePriceApprovalRequestsTable
                     currentUser={currentUser}
                   />
                 </main>
-              ) : (
-                <div
-                  className={`${
-                    isNight ? "text-white/70" : "text-gray-600"
-                  } p-6`}
-                >
-                  Not authorized
-                </div>
-              ))}
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+              }
 
             {route === "analytics" && (
               <main className="max-w-7xl mx-auto">
