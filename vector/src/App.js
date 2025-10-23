@@ -597,6 +597,22 @@ async function apiUpdateUser(email, user) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+async function apiFetchOverridePrice() {
+  const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `GET /overrideprice failed: ${res.status} ${await res.text()}`
+    );
+  }
+
+  return res.json();
+}
 
 async function apiFetchApprovals() {
   return [

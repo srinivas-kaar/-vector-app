@@ -637,5 +637,102 @@ router.post('/users/pending/approve', withConnection, (req, res) => {
         });
     });
 }, cleanupConnection);
+router.get('/overrideprice', withConnection, (req, res) => {
+    console.log('Fetching override price data from SAP Datasphere');
+
+    try {
+        const sql = `
+            SELECT
+                "Oppertunity_ID"        AS "OPPORTUNITY_ID",
+                "CurrentPrice"          AS "CURRENT_PRICE",
+                "OverridePrice"         AS "OVERRIDE_PRICE",
+                "BusinessJustification" AS "BUSINESS_JUSTIFICATION",
+                "DateOfRequest"         AS "DATE_OF_REQUEST",
+                "DateOfApproval"        AS "DATE_OF_APPROVAL",
+                "ApprovalNote"          AS "APPROVAL_NOTE"
+            FROM "BTP_INTERFACE#BTP"."OverridePrice_Tracker"
+            
+        `;
+
+
+        req.hanaConn.exec(sql, [], (err, result) => {
+            if (err) {
+                console.error('HANA query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch override price data from SAP Datasphere',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully fetched override price data from SAP Datasphere');
+            res.json(result || []);
+        });
+    } catch (error) {
+        console.error('Error processing override price request:', error);
+        return res.status(500).json({
+            error: 'Failed to process override price request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+
+router.post('/overrideprice', withConnection, (req, res) => {
+    console.log('Inserting override price data into SAP Datasphere');
+
+    try {
+        const {
+            Oppertunity_ID,
+            CurrentPrice,
+            OverridePrice,
+            BusinessJustification,
+            DateOfRequest,
+            DateOfApproval,
+            ApprovalNote
+        } = req.body;
+
+        // Basic validation
+        if (!Oppertunity_ID) {
+            return res.status(400).json({ error: 'Oppertunity_ID is required' });
+        }
+
+        const sql = `
+            INSERT INTO "BTP_INTERFACE#BTP"."OverridePrice_Tracker"
+                ("Oppertunity_ID", "CurrentPrice", "OverridePrice", "BusinessJustification", "DateOfRequest", "DateOfApproval", "ApprovalNote")
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const values = [
+            Oppertunity_ID,
+            CurrentPrice || null,
+            OverridePrice || null,
+            BusinessJustification || null,
+            DateOfRequest || null,
+            DateOfApproval || null,
+            ApprovalNote || null
+        ];
+
+        req.hanaConn.exec(sql, values, (err, result) => {
+            if (err) {
+                console.error('HANA insert error:', err);
+                return res.status(500).json({
+                    error: 'Failed to insert override price data into SAP Datasphere',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully inserted override price data into SAP Datasphere');
+            res.status(201).json({
+                message: 'Override price data inserted successfully',
+                data: { Oppertunity_ID }
+            });
+        });
+    } catch (error) {
+        console.error('Error processing override price insert:', error);
+        return res.status(500).json({
+            error: 'Failed to process override price insert',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
 
 module.exports = router;
