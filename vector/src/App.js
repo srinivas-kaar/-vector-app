@@ -48,6 +48,8 @@ import {
   ScatterChart,
   Scatter,
   Settings,
+  ChevronsUpDown,
+  ChevronUp,
 } from "lucide-react";
 
 import ReactDOM from "react-dom";
@@ -601,16 +603,40 @@ async function apiUpdateUser(email, user) {
 async function apiFetchApprovals() {
   return [
     {
-      id: "OPP-12345",
+      id: "OPP-12342",
       productCategory: "Electronics",
       customerName: "Acme Corp",
       approverName: "John Doe",
-      dateRaised: "2025-10-07",
+      dateRaised: "2025-10-10",
       dateApproved: null,
       status: "Pending",
       overridePrice: 10,
       BussinessJustification: "Approve raised from sales",
       currentPrice: 12,
+    },
+    {
+      id: "OPP-12341",
+      productCategory: "Ships",
+      customerName: "Bcme Corp",
+      approverName: "Nithin Doe",
+      dateRaised: "2025-10-12",
+      dateApproved: null,
+      status: "Pending",
+      overridePrice: 10,
+      BussinessJustification: "Approve raised from sales",
+      currentPrice: 10,
+    },
+    {
+      id: "OPP-12345",
+      productCategory: "Electronics",
+      customerName: "Acme Corp",
+      approverName: "John Doe",
+      dateRaised: "2025-10-16",
+      dateApproved: null,
+      status: "Pending",
+      overridePrice: 12,
+      BussinessJustification: "Approve raised from sales",
+      currentPrice: 14,
     },
     {
       id: "OPP-12346",
@@ -2465,6 +2491,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
   const [error, setError] = useState("");
   const [activeRow, setActiveRow] = useState(null);
   const [comment, setComment] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   // Fetch only Pending approvals
   async function refresh() {
@@ -2530,11 +2557,57 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
     }
   }
 
+  const requestSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedApprovals = useMemo(() => {
+    if (!sortConfig.key) return approvals;
+
+    return [...approvals].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      // Handle numbers
+      if (!isNaN(aValue) && !isNaN(bValue)) {
+        return sortConfig.direction === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+
+      // Handle dates
+      if (
+        /^\d{4}-\d{2}-\d{2}$/.test(aValue) ||
+        /^\d{4}-\d{2}-\d{2}$/.test(bValue)
+      ) {
+        const aDate = new Date(aValue);
+        const bDate = new Date(bValue);
+        return sortConfig.direction === "asc" ? aDate - bDate : bDate - aDate;
+      }
+
+      // Handle text
+      return sortConfig.direction === "asc"
+        ? String(aValue || "").localeCompare(String(bValue || ""))
+        : String(bValue || "").localeCompare(String(aValue || ""));
+    });
+  }, [approvals, sortConfig]);
+
   const tableShell =
     (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
     " bg-clip-padding backdrop-blur-sm";
 
-  const rows = useMemo(() => approvals, [approvals]);
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <ChevronsUpDown size={14} />;
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
+  };
 
   return (
     <Card>
@@ -2556,7 +2629,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
         <div
           className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
         >
-          <table className="min-w-full text-sm">
+          <table className="min-w-full">
             <thead
               className={`sticky top-0 z-10 ${
                 isNight
@@ -2565,15 +2638,30 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
               } backdrop-blur-md`}
             >
               <tr>
-                {/* <th className="py-2 px-3 w-40">Opportunity ID</th> */}
-                <th className="py-2 px-3 w-40">Product Category</th>
-                <th className="py-2 px-3 w-48">Customer Name</th>
-                <th className="py-2 px-3 w-48">Approver Name</th>
-                <th className="py-2 px-3 w-36">Date Raised</th>
-                <th className="py-2 px-3 w-36">Curent Price</th>
-                <th className="py-2 px-3 w-36">Override Price </th>
-                <th className="py-2 px-3 w-32">Status</th>
-                <th className="py-2 px-3 w-48">Bussiness Justification</th>
+                {[
+                  { key: "productCategory", label: "Product Category" },
+                  { key: "customerName", label: "Customer Name" },
+                  { key: "approverName", label: "Approver Name" },
+                  { key: "dateRaised", label: "Date Raised" },
+                  { key: "currentPrice", label: "Current Price" },
+                  { key: "overridePrice", label: "Override Price" },
+                  { key: "status", label: "Status" },
+                  {
+                    key: "BussinessJustification",
+                    label: "Business Justification",
+                  },
+                ].map((col) => (
+                  <th
+                    key={col.key}
+                    className="py-2 px-3 cursor-pointer select-none"
+                    onClick={() => requestSort(col.key)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {col.label}{" "}
+                      <span className="text-xs">{getSortIcon(col.key)}</span>
+                    </div>
+                  </th>
+                ))}
                 <th className="py-2 px-3 w-40">Actions</th>
               </tr>
             </thead>
@@ -2581,7 +2669,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className={`${
                       isNight ? "text-white/70" : "text-gray-600"
                     } py-6 px-3`}
@@ -2589,10 +2677,10 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                     Loading…
                   </td>
                 </tr>
-              ) : rows.length === 0 ? (
+              ) : sortedApprovals.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className={`${
                       isNight ? "text-white/60" : "text-gray-500"
                     } py-6 px-3`}
@@ -2601,7 +2689,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
+                sortedApprovals.map((row) => (
                   <React.Fragment key={row.id}>
                     <tr
                       className={`border-t ${
@@ -2627,18 +2715,16 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                         </span>
                       </td>
                       <td className="p-3">
-                        <div className="flex flex-col gap-2">
-                          <textarea
-                            rows={3}
-                            value={row.BussinessJustification}
-                            placeholder="Enter your comments..."
-                            className={`w-full p-2 rounded-lg border ${
-                              isNight
-                                ? "bg-black/20 border-white/20 text-white"
-                                : "bg-white border-gray-300 text-gray-700"
-                            }`}
-                          />
-                        </div>
+                        <textarea
+                          rows={3}
+                          value={row.BussinessJustification}
+                          className={`w-full p-2 rounded-lg border ${
+                            isNight
+                              ? "bg-black/20 border-white/20 text-white"
+                              : "bg-white border-gray-300 text-gray-700"
+                          }`}
+                          readOnly
+                        />
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex gap-2">
@@ -2666,7 +2752,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
 
                     {activeRow?.id === row.id && (
                       <tr>
-                        <td colSpan={7} className="p-3">
+                        <td colSpan={9} className="p-3">
                           <div className="flex flex-col gap-2">
                             <textarea
                               rows={2}
@@ -3326,6 +3412,26 @@ export default function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
   const [showModal, setShowModal] = useState(false);
+  const [sortConfig, setSortConfig] = useState({
+    key: "customerName",
+    direction: "asc",
+  });
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <ChevronsUpDown size={14} />;
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
+  };
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
 
   async function handleSignup(user) {
     try {
@@ -3514,6 +3620,73 @@ export default function App() {
       ownerScope === "me" ? opps.filter((o) => o.owner === currentUser) : opps,
     [opps, ownerScope, currentUser]
   );
+
+  const sortedOpportunities = useMemo(() => {
+    if (!sortConfig.key) return scopedOpps;
+
+    const normalizeValue = (item, key) => {
+      switch (key) {
+        case "salesLead":
+          return item.doleSalesLead || item.sales_Lead || "";
+        case "customerName":
+          return item.customerName || item.customer_Name || "";
+        case "estimatedVolume":
+          return item.estimatedVolume || item.estimated_Volume || "";
+        case "likelyStartDate":
+          return (
+            item.likelyStartDate ||
+            item.likely_Start_Date ||
+            item.createdAt ||
+            ""
+          );
+        default:
+          return item[key] || "";
+      }
+    };
+
+    return [...scopedOpps].sort((a, b) => {
+      const aValue = normalizeValue(a, sortConfig.key);
+      const bValue = normalizeValue(b, sortConfig.key);
+
+      // Handle numbers
+      if (!isNaN(aValue) && !isNaN(bValue)) {
+        return sortConfig.direction === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+
+      // Handle dates
+      const dateFormats = [
+        "YYYY-MM-DD",
+        "DD-MM-YYYY",
+        "YYYY/MM/DD",
+        "DD/MM/YYYY",
+        "MM/DD/YYYY",
+      ];
+
+      if (
+        dayjs(aValue, dateFormats, true).isValid() &&
+        dayjs(bValue, dateFormats, true).isValid()
+      ) {
+        const aDate = dayjs(aValue, dateFormats, true);
+        const bDate = dayjs(bValue, dateFormats, true);
+
+        return sortConfig.direction === "asc"
+          ? aDate.diff(bDate)
+          : bDate.diff(aDate);
+      }
+
+      // Handle text (case-insensitive)
+      return sortConfig.direction === "asc"
+        ? String(aValue)
+            .toLowerCase()
+            .localeCompare(String(bValue).toLowerCase())
+        : String(bValue)
+            .toLowerCase()
+            .localeCompare(String(aValue).toLowerCase());
+    });
+  }, [scopedOpps, sortConfig]);
+
   const myOppsOnly = useMemo(
     () => opps.filter((o) => o.owner === currentUser),
     [opps, currentUser]
@@ -4545,47 +4718,66 @@ export default function App() {
                                 Opportunity ID
                               </th> */}
                               {visibleColumns.salesLead && (
-                              <th className="py-2 pr-4 text-left">
-                                Sales Lead
-                              </th>
+                                <th onClick={() => handleSort("salesLead")}>
+                                  <div className="flex items-center gap-1">
+                                    Sales Leads {getSortIcon("salesLead")}
+                                  </div>
+                                </th>
                               )}
                               {visibleColumns.customerName && (
-                              <th className="py-2 pr-4 text-left">
-                                Customer Name
-                              </th>
+                                <th onClick={() => handleSort("customerName")}>
+                                  <div className="flex items-center gap-1">
+                                    Customer Name {getSortIcon("customerName")}
+                                  </div>
+                                </th>
                               )}
                               {visibleColumns.product && (
-                              <th className="py-2 pr-4 text-left">Product</th>
+                                <th onClick={() => handleSort("product")}>
+                                  <div className="flex items-center gap-1">
+                                    Product {getSortIcon("product")}
+                                  </div>
+                                </th>
                               )}
                               {visibleColumns.status && (
-                              <th className="py-2 pr-4 text-left">Status</th>
+                                <th onClick={() => handleSort("status")}>
+                                  <div className="flex items-center gap-1">
+                                    Status {getSortIcon("status")}
+                                  </div>
+                                </th>
                               )}
                               {visibleColumns.estimatedVolume && (
-                              <th className="py-2 pr-4 text-left">
-                                Estimated Volume
-                              </th>
+                                <th
+                                  onClick={() => handleSort("estimatedVolume")}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    Estimated Volume{" "}
+                                    {getSortIcon("estimatedVolume")}
+                                  </div>
+                                </th>
                               )}
                               {visibleColumns.likelyStartDate && (
-                              <th className="py-2 text-left">
-                                Likely Start Date
-                              </th>
+                                <th
+                                  onClick={() => handleSort("likelyStartDate")}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    Likely Start Date{" "}
+                                    {getSortIcon("likelyStartDate")}
+                                  </div>
+                                </th>
                               )}
                             </tr>
                           </thead>
                           <tbody>
-                            {scopedOpps
-                              .slice()
-                              .sort((a, b) => b.createdAt - a.createdAt)
-                              .map((o) => (
-                                <tr
-                                  key={o.id}
-                                  className={`border-t ${
-                                    isNight
-                                      ? "border-white/10 hover:bg-white/5"
-                                      : "hover:bg.black/5"
-                                  }`}
-                                >
-                                  {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
+                            {sortedOpportunities.map((o) => (
+                              <tr
+                                key={o.id}
+                                className={`border-t ${
+                                  isNight
+                                    ? "border-white/10 hover:bg-white/5"
+                                    : "hover:bg.black/5"
+                                }`}
+                              >
+                                {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
                                   <td className="py-2 pr-3 w-8">
                                     <input
                                       type="checkbox"
@@ -4593,7 +4785,7 @@ export default function App() {
                                       onChange={() => toggleSelect(o.id)}
                                     />
                                   </td> */}
-                                  {/* <td className="py-2 pr-4">
+                                {/* <td className="py-2 pr-4">
                                     <button
                                       onClick={() => {
                                         setDetailId(o.id);
@@ -4608,22 +4800,22 @@ export default function App() {
                                       #{o.id}
                                     </button>
                                   </td> */}
-                                  {visibleColumns.salesLead && (
+                                {visibleColumns.salesLead && (
                                   <td className="py-2 pr-4">
                                     {o.doleSalesLead || o.sales_Lead || "-"}
                                   </td>
-                                  )}
-                                  {visibleColumns.customerName && (
+                                )}
+                                {visibleColumns.customerName && (
                                   <td className="py-2 pr-4 font-medium">
                                     {o.customerName || o.customer_Name || "-"}
                                   </td>
-                                  )}
-                                  {visibleColumns.product && (
+                                )}
+                                {visibleColumns.product && (
                                   <td className="py-2 pr-4">
                                     {o.product || "-"}
                                   </td>
-                                  )}
-                                  {visibleColumns.status && (
+                                )}
+                                {visibleColumns.status && (
                                   <td className="py-2 pr-4">
                                     <span
                                       className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
@@ -4638,15 +4830,15 @@ export default function App() {
                                       {o.status || o.salesStage || "-"}
                                     </span>
                                   </td>
-                                  )}
-                                  {visibleColumns.estimatedVolume && (
+                                )}
+                                {visibleColumns.estimatedVolume && (
                                   <td className="py-2 pr-4">
                                     {o.estimatedVolume ||
                                       o.estimated_Volume ||
                                       "-"}
                                   </td>
-                                  )}
-                                  {visibleColumns.likelyStartDate && (
+                                )}
+                                {visibleColumns.likelyStartDate && (
                                   <td className="py-2">
                                     {o.likely_Start_Date
                                       ? new Date(
@@ -4660,9 +4852,9 @@ export default function App() {
                                           o.createdAt
                                         ).toLocaleDateString()}
                                   </td>
-                                  )}
-                                </tr>
-                              ))}
+                                )}
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                         {showModal && (
@@ -4735,13 +4927,15 @@ export default function App() {
                   Not authorized
                 </div>
               ))}
-            {route === "approvals" &&
-              // (isAdminUser ? (
+            {
+              route === "approvals" && (
+                // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
                   <OverridePriceApprovalRequestsTable
                     currentUser={currentUser}
                   />
                 </main>
+              )
               // ) : (
               //   <div
               //     className={`${
@@ -4751,7 +4945,7 @@ export default function App() {
               //     Not authorized
               //   </div>
               // ))
-              }
+            }
 
             {route === "analytics" && (
               <main className="max-w-7xl mx-auto">
