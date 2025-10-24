@@ -638,33 +638,32 @@ router.post('/users/pending/approve', withConnection, (req, res) => {
     });
 }, cleanupConnection);
 router.get('/overrideprice', withConnection, (req, res) => {
-    console.log('Fetching override price data from SAP Datasphere');
+    console.log('Fetching override price data from override_price_tracker');
 
     try {
         const sql = `
             SELECT
-                "Oppertunity_ID"        AS "OPPORTUNITY_ID",
-                "CurrentPrice"          AS "CURRENT_PRICE",
-                "OverridePrice"         AS "OVERRIDE_PRICE",
-                "BusinessJustification" AS "BUSINESS_JUSTIFICATION",
-                "DateOfRequest"         AS "DATE_OF_REQUEST",
-                "DateOfApproval"        AS "DATE_OF_APPROVAL",
-                "ApprovalNote"          AS "APPROVAL_NOTE"
-            FROM "BTP_INTERFACE#BTP"."OverridePrice_Tracker"
-            
+                OPPORTUNITY_ID,
+                CURRENT_PRICE,
+                OVERRIDE_PRICE,
+                BUSINESS_JUSTIFICATION,
+                DATE_OF_REQUEST,
+                DATE_OF_APPROVAL,
+                APPROVAL_NOTE,
+                REQUESTOR
+            FROM "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
         `;
-
 
         req.hanaConn.exec(sql, [], (err, result) => {
             if (err) {
-                console.error('HANA query error:', err);
+                console.error('Query error:', err);
                 return res.status(500).json({
-                    error: 'Failed to fetch override price data from SAP Datasphere',
+                    error: 'Failed to fetch override price data',
                     details: err.message
                 });
             }
 
-            console.log('Successfully fetched override price data from SAP Datasphere');
+            console.log('Successfully fetched override price data');
             res.json(result || []);
         });
     } catch (error) {
@@ -677,7 +676,7 @@ router.get('/overrideprice', withConnection, (req, res) => {
 }, cleanupConnection);
 
 router.post('/overrideprice', withConnection, (req, res) => {
-    console.log('Inserting override price data into SAP Datasphere');
+    console.log('Inserting override price data into override_price_tracker');
 
     try {
         const {
@@ -687,7 +686,8 @@ router.post('/overrideprice', withConnection, (req, res) => {
             BusinessJustification,
             DateOfRequest,
             DateOfApproval,
-            ApprovalNote
+            ApprovalNote,
+            Requestor
         } = req.body;
 
         // Basic validation
@@ -696,9 +696,9 @@ router.post('/overrideprice', withConnection, (req, res) => {
         }
 
         const sql = `
-            INSERT INTO "BTP_INTERFACE#BTP"."OverridePrice_Tracker"
-                ("Oppertunity_ID", "CurrentPrice", "OverridePrice", "BusinessJustification", "DateOfRequest", "DateOfApproval", "ApprovalNote")
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
+                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
@@ -708,19 +708,20 @@ router.post('/overrideprice', withConnection, (req, res) => {
             BusinessJustification || null,
             DateOfRequest || null,
             DateOfApproval || null,
-            ApprovalNote || null
+            ApprovalNote || null,
+            Requestor || null
         ];
 
         req.hanaConn.exec(sql, values, (err, result) => {
             if (err) {
-                console.error('HANA insert error:', err);
+                console.error('Insert error:', err);
                 return res.status(500).json({
-                    error: 'Failed to insert override price data into SAP Datasphere',
+                    error: 'Failed to insert override price data',
                     details: err.message
                 });
             }
 
-            console.log('Successfully inserted override price data into SAP Datasphere');
+            console.log('Successfully inserted override price data');
             res.status(201).json({
                 message: 'Override price data inserted successfully',
                 data: { Oppertunity_ID }
@@ -734,5 +735,6 @@ router.post('/overrideprice', withConnection, (req, res) => {
         });
     }
 }, cleanupConnection);
+
 
 module.exports = router;
