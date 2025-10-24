@@ -637,5 +637,104 @@ router.post('/users/pending/approve', withConnection, (req, res) => {
         });
     });
 }, cleanupConnection);
+router.get('/overrideprice', withConnection, (req, res) => {
+    console.log('Fetching override price data from override_price_tracker');
+
+    try {
+        const sql = `
+            SELECT
+                OPPORTUNITY_ID,
+                CURRENT_PRICE,
+                OVERRIDE_PRICE,
+                BUSINESS_JUSTIFICATION,
+                DATE_OF_REQUEST,
+                DATE_OF_APPROVAL,
+                APPROVAL_NOTE,
+                REQUESTOR
+            FROM "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
+        `;
+
+        req.hanaConn.exec(sql, [], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch override price data',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully fetched override price data');
+            res.json(result || []);
+        });
+    } catch (error) {
+        console.error('Error processing override price request:', error);
+        return res.status(500).json({
+            error: 'Failed to process override price request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+
+router.post('/overrideprice', withConnection, (req, res) => {
+    console.log('Inserting override price data into override_price_tracker');
+
+    try {
+        const {
+            Oppertunity_ID,
+            CurrentPrice,
+            OverridePrice,
+            BusinessJustification,
+            DateOfRequest,
+            DateOfApproval,
+            ApprovalNote,
+            Requestor
+        } = req.body;
+
+        // Basic validation
+        if (!Oppertunity_ID) {
+            return res.status(400).json({ error: 'Oppertunity_ID is required' });
+        }
+
+        const sql = `
+            INSERT INTO "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
+                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const values = [
+            Oppertunity_ID,
+            CurrentPrice || null,
+            OverridePrice || null,
+            BusinessJustification || null,
+            DateOfRequest || null,
+            DateOfApproval || null,
+            ApprovalNote || null,
+            Requestor || null
+        ];
+
+        req.hanaConn.exec(sql, values, (err, result) => {
+            if (err) {
+                console.error('Insert error:', err);
+                return res.status(500).json({
+                    error: 'Failed to insert override price data',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully inserted override price data');
+            res.status(201).json({
+                message: 'Override price data inserted successfully',
+                data: { Oppertunity_ID }
+            });
+        });
+    } catch (error) {
+        console.error('Error processing override price insert:', error);
+        return res.status(500).json({
+            error: 'Failed to process override price insert',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+
 
 module.exports = router;
