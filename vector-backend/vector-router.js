@@ -643,14 +643,7 @@ router.get('/overrideprice', withConnection, (req, res) => {
     try {
         const sql = `
             SELECT
-                OPPORTUNITY_ID,
-                CURRENT_PRICE,
-                OVERRIDE_PRICE,
-                BUSINESS_JUSTIFICATION,
-                DATE_OF_REQUEST,
-                DATE_OF_APPROVAL,
-                APPROVAL_NOTE,
-                REQUESTOR
+               *
             FROM "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
         `;
 
@@ -674,42 +667,46 @@ router.get('/overrideprice', withConnection, (req, res) => {
         });
     }
 }, cleanupConnection);
-
 router.post('/overrideprice', withConnection, (req, res) => {
     console.log('Inserting override price data into override_price_tracker');
 
     try {
+        // Destructure lowercase payload fields
         const {
-            Oppertunity_ID,
-            CurrentPrice,
-            OverridePrice,
-            BusinessJustification,
-            DateOfRequest,
-            DateOfApproval,
-            ApprovalNote,
-            Requestor
+            opportunity_id,
+            currentprice,
+            overrideprice,
+            businessjustification,
+            dateofrequest,
+            dateofapproval,
+            approvalnote,
+            requestor,
+            product_category,
+            customer_name
         } = req.body;
 
-        // Basic validation
-        if (!Oppertunity_ID) {
-            return res.status(400).json({ error: 'Oppertunity_ID is required' });
+        // Validation
+        if (!opportunity_id) {
+            return res.status(400).json({ error: 'opportunity_id is required' });
         }
 
         const sql = `
             INSERT INTO "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
-                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR, PRODUCT_CATEGORY, CUSTOMER_NAME)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
-            Oppertunity_ID,
-            CurrentPrice || null,
-            OverridePrice || null,
-            BusinessJustification || null,
-            DateOfRequest || null,
-            DateOfApproval || null,
-            ApprovalNote || null,
-            Requestor || null
+            opportunity_id,
+            currentprice || null,
+            overrideprice || null,
+            businessjustification || null,
+            dateofrequest || null,
+            dateofapproval || null,
+            approvalnote || null,
+            requestor || null,
+            product_category || null,
+            customer_name || null
         ];
 
         req.hanaConn.exec(sql, values, (err, result) => {
@@ -724,7 +721,7 @@ router.post('/overrideprice', withConnection, (req, res) => {
             console.log('Successfully inserted override price data');
             res.status(201).json({
                 message: 'Override price data inserted successfully',
-                data: { Oppertunity_ID }
+                data: { opportunity_id }
             });
         });
     } catch (error) {
@@ -736,5 +733,47 @@ router.post('/overrideprice', withConnection, (req, res) => {
     }
 }, cleanupConnection);
 
+
+router.get('/getItochuperiod/:date', withConnection, (req, res) => {
+    console.log('Fetching ITOCHU period details');
+
+    const inputDate = req.params.date; // e.g. 2025-10-24
+
+    try {
+        const sql = `
+            SELECT 
+                "ZIFISYR",
+                "ZIFISPER",
+                "DATE"
+            FROM "BTP_INTERFACE#BTP"."ZDATE"
+            WHERE "BTP#ZDATE" = ?
+        `;
+
+        req.hanaConn.exec(sql, [inputDate], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch Itochu period data',
+                    details: err.message
+                });
+            }
+
+            if (!result || result.length === 0) {
+                return res.status(404).json({
+                    message: 'No data found for the given date'
+                });
+            }
+
+            console.log('Successfully fetched Itochu period data');
+            res.json(result[0]); // return first row
+        });
+    } catch (error) {
+        console.error('Error processing request:', error);
+        return res.status(500).json({
+            error: 'Failed to process Itochu period request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
 
 module.exports = router;
