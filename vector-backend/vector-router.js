@@ -682,7 +682,8 @@ router.post('/overrideprice', withConnection, (req, res) => {
             approvalnote,
             requestor,
             product_category,
-            customer_name
+            customer_name,
+            status
         } = req.body;
 
         // Validation
@@ -692,8 +693,8 @@ router.post('/overrideprice', withConnection, (req, res) => {
 
         const sql = `
             INSERT INTO "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
-                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR, PRODUCT_CATEGORY, CUSTOMER_NAME)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (OPPORTUNITY_ID, CURRENT_PRICE, OVERRIDE_PRICE, BUSINESS_JUSTIFICATION, DATE_OF_REQUEST, DATE_OF_APPROVAL, APPROVAL_NOTE, REQUESTOR, PRODUCT_CATEGORY, CUSTOMER_NAME, STATUS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const values = [
@@ -706,10 +707,11 @@ router.post('/overrideprice', withConnection, (req, res) => {
             approvalnote || null,
             requestor || null,
             product_category || null,
-            customer_name || null
+            customer_name || null,
+            status || null
         ];
 
-        req.hanaConn.exec(sql, values, (err, result) => {
+        req.hanaConn.exec(sql, values, (err) => {
             if (err) {
                 console.error('Insert error:', err);
                 return res.status(500).json({
@@ -733,6 +735,58 @@ router.post('/overrideprice', withConnection, (req, res) => {
     }
 }, cleanupConnection);
 
+router.put('/overrideprice', withConnection, (req, res) => {
+    console.log('Updating status and approval note in override_price_tracker');
+
+    try {
+        const { opportunity_id, status, approvalnote } = req.body;
+
+  
+        if (!opportunity_id) {
+            return res.status(400).json({ error: 'opportunity_id is required' });
+        }
+        if (!status) {
+            return res.status(400).json({ error: 'status is required' });
+        }
+
+        const sql = `
+            UPDATE "BTP_INTERFACE#BTP"."OVERRIDEPRICE_TRACKER"
+            SET STATUS = ?,
+                APPROVAL_NOTE = ?,
+                DATE_OF_APPROVAL = CURRENT_DATE
+            WHERE OPPORTUNITY_ID = ?
+        `;
+
+        const values = [
+            status || null,
+            approvalnote || null,
+            opportunity_id
+        ];
+
+        req.hanaConn.exec(sql, values, (err, result) => {
+            if (err) {
+                console.error('Update error:', err);
+                return res.status(500).json({
+                    error: 'Failed to update status',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully updated status');
+            return res.status(200).json({
+                message: 'Status updated successfully',
+                data: { opportunity_id, status }
+            });
+        });
+
+    } catch (error) {
+        console.error('Error updating status:', error);
+        return res.status(500).json({
+            error: 'Failed to process status update',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
 
 router.get('/getItochuperiod/:date', withConnection, (req, res) => {
     console.log('Fetching ITOCHU period details');
