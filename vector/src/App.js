@@ -418,7 +418,7 @@ async function apiCreateOpp(body) {
           payload.opportunity_ID,
         currentprice: payload.MATERIAL_PROJECTED_PRICE,
         overrideprice: payload.OVERRIDE_PRICE,
-        businessjustification:body.businessJustification,
+        businessjustification: body.businessJustification,
         dateofrequest: new Date().toISOString().split("T")[0],
         dateofapproval: "",
         approvalnote: "",
@@ -427,7 +427,6 @@ async function apiCreateOpp(body) {
         customer_name: payload.CUSTOMER_NAME,
         status: "Pending",
       };
-
 
       const res = await fetch(`${API_BASE_URL}/overrideprice`, {
         method: "POST",
@@ -2502,8 +2501,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
       setLoading(true);
       const data = await apiFetchOverridePrice();
       const pendingOnly = Array.isArray(data)
-        ? data.filter((r) => r.STATUS
- === "Pending")
+        ? data.filter((r) => r.STATUS === "Pending")
         : [];
       setApprovals(pendingOnly);
       setError("");
@@ -2520,25 +2518,27 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
   }, []);
 
   async function handleSubmit(row, action, comment) {
-  try {
-    const status = action === "approve" ? "Approved" : "Rejected";
+    try {
+      const status = action === "approve" ? "Approved" : "Rejected";
 
-    await apiUpdateOverridePrice({
-      opportunity_id: row.OPPORTUNITY_ID,
-      dateofapproval: new Date().toISOString().split("T")[0],
-      approvalnote: comment,
-      status,
-    });
+      await apiUpdateOverridePrice({
+        opportunity_id: row.OPPORTUNITY_ID,
+        dateofapproval: new Date().toISOString().split("T")[0],
+        approvalnote: comment,
+        status,
+      });
 
-    // Update local state
-    setApprovals((prev) => prev.filter((r) => r.OPPORTUNITY_ID !== row.OPPORTUNITY_ID));
-    setActiveRow(null);
-    setComment("");
-  } catch (error) {
-    console.error(error);
-    alert("Failed to update request.");
+      // Update local state
+      setApprovals((prev) =>
+        prev.filter((r) => r.OPPORTUNITY_ID !== row.OPPORTUNITY_ID)
+      );
+      setActiveRow(null);
+      setComment("");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update request.");
+    }
   }
-}
 
   const requestSort = (key) => {
     let direction = "asc";
@@ -2681,7 +2681,9 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                       {/* <td className="py-2 px-3">{row.id}</td> */}
                       <td className="py-2 px-3">{row.PRODUCT_CATEGORY}</td>
                       <td className="py-2 px-3">{row.CUSTOMER_NAME}</td>
-                      <td className="py-2 px-3">{row.DATE_OF_REQUEST.split(" ")[0]}</td>
+                      <td className="py-2 px-3">
+                        {row.DATE_OF_REQUEST.split(" ")[0]}
+                      </td>
                       <td className="py-2 px-3">{row.CURRENT_PRICE}</td>
                       <td className="py-2 px-3">{row.OVERRIDE_PRICE}</td>
                       <td className="py-2 px-3">
@@ -5243,7 +5245,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
     const projected = parseFloat(form.material_Projected_Price);
     setPendingValue(override);
 
-    if (override < projected) {
+    if (override < projected && form.business_justification) {
       setShowModal((prev) => !prev);
     }
   };
@@ -5301,7 +5303,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
     { key: "timing", label: "Timing", icon: "📅" },
     { key: "outcome", label: "Outcome", icon: "📝" },
     { key: "support", label: "Culinary", icon: "🤝" },
-    { key: "voumeAllocation", label: "Volume Allocation", icon: "🤝" },
+    // { key: "voumeAllocation", label: "Volume Allocation", icon: "🤝" },
   ];
 
   const getSectionIndex = (key) => sections.findIndex((s) => s.key === key);
@@ -5910,22 +5912,23 @@ function AddOpportunityPage({ onCancel, onSave }) {
                   />
                 </div>
               </label>
-              {form.material_Projected_Price > form.override_Price && form.override_Price && (
-                <label className="grid gap-1 md:col-span-2">
-                  <Label>Business Justification</Label>
-                  <Textarea
-                    value={form.business_justification}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        business_justification: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter your reason"
-                    rows={3}
-                  />
-                </label>
-              )}
+              {form.material_Projected_Price > form.override_Price &&
+                form.override_Price && (
+                  <label className="grid gap-1 md:col-span-2">
+                    <Label>Business Justification</Label>
+                    <Textarea
+                      value={form.business_justification}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          business_justification: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your reason"
+                      rows={3}
+                    />
+                  </label>
+                )}
             </div>
           )}
 
@@ -6132,15 +6135,32 @@ function AddOpportunityPage({ onCancel, onSave }) {
 
                 const newErrors = {};
 
+                // Validate End Date if LTO selected
                 if (form.annual_Or_LTO === "LTO" && !form.end_Date) {
                   newErrors.end_Date = "End Date is required";
                 }
 
                 setErrors(newErrors);
 
+                // Stop if there are any validation errors
                 if (Object.keys(newErrors).length > 0) return;
-                currentSection === "pricing" && handleOverrideChange(e);
-                goToNextSection();
+
+                if (currentSection === "pricing") {
+                  if (
+                    form.business_justification &&
+                    form.business_justification.trim() !== ""
+                  ) {
+                    handleOverrideChange(e);
+                    goToNextSection();
+                  } else {
+                    alert(
+                      "Please provide a business justification before proceeding."
+                    );
+                    return;
+                  }
+                } else {
+                  goToNextSection();
+                }
               }}
             >
               Next
