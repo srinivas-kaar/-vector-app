@@ -59,673 +59,691 @@ import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { CardHeader } from "./ui/CardHeader";
+import { Button } from "./ui/Button";
+import { CardBody } from "./ui/common/CardBody";
+import { Card } from "./ui/Card";
+import { Input } from "./ui/common/Input";
+import { Label } from "./ui/common/Label";
+import FrostedSelect from "./ui/FrostedSelect";
+import { Textarea } from "./ui/common/Textarea";
+import { BRAND, CHART_COLORS, OPPORTUNITIES, STATUS_COLORS, STATUSES } from "./metadata";
+import { formatMonthDisplay, isSameDay, monthKey, pickLatestByCreated, toISODate } from "./utils";
+import { SearchModal } from "./components/SearchModal";
+import { Badge } from "./ui/Badge";
+import { CardContent } from "./ui/common/CardContent";
+import { FloatingNav } from "./components/FloatingNav";
+import { LoginPage } from "./components/LoginPage";
+import { GanttMonth } from "./ui/GanttMonth";
+import { pieColors } from "./ui/common/colors";
+import { apiApprovePendingUser, apiCreateOpp, apiCreatePendingUser, apiDeleteOpps, apiFetchMaterials, apiFetchOpps, apiFetchOverridePrice, apiFetchPendingUsers, apiFetchUsers, apiGetUserByEmail, apiRejectPendingUser, apiUpdateOverridePrice, apiUpdateUser } from "../api";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 // ---------------- Dole Brand ----------------
-const BRAND = {
-  yellow: "#F6E500",
-  blue: "#39B4E8",
-  navy: "#00205C",
-  deepBlue: "#001489",
-  green: "#78BE20",
-  red: "#C8102E",
-};
-const ThemeContext = React.createContext("sunrise");
+// const BRAND = {
+//   yellow: "#F6E500",
+//   blue: "#39B4E8",
+//   navy: "#00205C",
+//   deepBlue: "#001489",
+//   green: "#78BE20",
+//   red: "#C8102E",
+// };
+export const ThemeContext = React.createContext("sunrise");
 
 // ---------------- Frosted UI ----------------
-const Card = ({ children, className = "", noClip = false }) => {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const frostBg = isNight ? "bg-white/10" : "bg-white/20";
-  const borderClr = isNight ? "border-white/20" : "border-white/40";
-  const shadow = "shadow-[0_6px_24px_rgba(0,0,0,0.08)]";
-  const overflowCls = noClip ? "overflow-visible" : "overflow-hidden";
-  return (
-    <div
-      className={`relative rounded-3xl border ${borderClr} ${frostBg} bg-clip-padding backdrop-blur-xl backdrop-saturate-150 ${shadow} ${overflowCls} ${className}`}
-    >
-      {children}
-    </div>
-  );
-};
+// const Card = ({ children, className = "", noClip = false }) => {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   const frostBg = isNight ? "bg-white/10" : "bg-white/20";
+//   const borderClr = isNight ? "border-white/20" : "border-white/40";
+//   const shadow = "shadow-[0_6px_24px_rgba(0,0,0,0.08)]";
+//   const overflowCls = noClip ? "overflow-visible" : "overflow-hidden";
+//   return (
+//     <div
+//       className={`relative rounded-3xl border ${borderClr} ${frostBg} bg-clip-padding backdrop-blur-xl backdrop-saturate-150 ${shadow} ${overflowCls} ${className}`}
+//     >
+//       {children}
+//     </div>
+//   );
+// };
 
-const Badge = ({ children, variant = "default", className = "" }) => {
-  const baseClasses =
-    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium";
+// const Badge = ({ children, variant = "default", className = "" }) => {
+//   const baseClasses =
+//     "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium";
 
-  const variants = {
-    default: "bg-blue-100 text-blue-800",
-    secondary: "bg-gray-200 text-gray-800",
-    success: "bg-green-100 text-green-800",
-  };
+//   const variants = {
+//     default: "bg-blue-100 text-blue-800",
+//     secondary: "bg-gray-200 text-gray-800",
+//     success: "bg-green-100 text-green-800",
+//   };
 
-  return (
-    <span className={clsx(baseClasses, variants[variant], className)}>
-      {children}
-    </span>
-  );
-};
+//   return (
+//     <span className={clsx(baseClasses, variants[variant], className)}>
+//       {children}
+//     </span>
+//   );
+// };
 
-const CardHeader = ({ title, subtitle, right, dragHandle }) => {
-  const theme = useContext(ThemeContext);
-  const border = theme === "sunset" ? "border-white/15" : "border-white/45";
-  const textMuted = theme === "sunset" ? "text-white/70" : "text-gray-600";
-  return (
-    <div className={`flex items-center justify-between p-4 border-b ${border}`}>
-      <div className="flex items-center gap-3">
-        {dragHandle}
-        <div>
-          {title && (
-            <h3
-              className={`text-lg font-semibold leading-tight ${
-                theme === "sunset" ? "text-white" : ""
-              }`}
-            >
-              {title}
-            </h3>
-          )}
-          {subtitle && (
-            <p className={`text-xs ${textMuted} mt-1`}>{subtitle}</p>
-          )}
-        </div>
-      </div>
-      {right}
-    </div>
-  );
-};
+// const CardHeader = ({ title, subtitle, right, dragHandle }) => {
+//   const theme = useContext(ThemeContext);
+//   const border = theme === "sunset" ? "border-white/15" : "border-white/45";
+//   const textMuted = theme === "sunset" ? "text-white/70" : "text-gray-600";
+//   return (
+//     <div className={`flex items-center justify-between p-4 border-b ${border}`}>
+//       <div className="flex items-center gap-3">
+//         {dragHandle}
+//         <div>
+//           {title && (
+//             <h3
+//               className={`text-lg font-semibold leading-tight ${
+//                 theme === "sunset" ? "text-white" : ""
+//               }`}
+//             >
+//               {title}
+//             </h3>
+//           )}
+//           {subtitle && (
+//             <p className={`text-xs ${textMuted} mt-1`}>{subtitle}</p>
+//           )}
+//         </div>
+//       </div>
+//       {right}
+//     </div>
+//   );
+// };
 
-const CardBody = ({ children, className = "" }) => (
-  <div className={`p-4 ${className}`}>{children}</div>
-);
+// const CardBody = ({ children, className = "" }) => (
+//   <div className={`p-4 ${className}`}>{children}</div>
+// );
 
-const CardContent = ({ children, className = "" }) => {
-  return <div className={`p-4 ${className}`}>{children}</div>;
-};
+// const CardContent = ({ children, className = "" }) => {
+//   return <div className={`p-4 ${className}`}>{children}</div>;
+// };
 
-const Button = ({
-  children,
-  onClick,
-  className = "",
-  variant = "primary",
-  type = "button",
-  disabled = false,
-}) => {
-  const theme = useContext(ThemeContext);
-  const primaryGradient =
-    theme === "sunset"
-      ? `bg-gradient-to-r from-[${BRAND.red}] to-[${BRAND.deepBlue}] text-white`
-      : `bg-gradient-to-r from-[rgba(246,229,0,0.6)] to-[rgba(57,180,232,0.6)] text-gray-900`;
-  const ghostBg =
-    theme === "sunset"
-      ? "bg-transparent hover:bg-white/15 text-white"
-      : "bg-transparent hover:bg-white/50";
-  const neutralBg =
-    theme === "sunset"
-      ? "bg-white/10 border border-white/20 hover:bg-white/15 text-white"
-      : "bg-white/60 hover:bg-white";
-  const dangerBg =
-    theme === "sunset"
-      ? "bg-red-600/80 text-white hover:bg-red-600 border border-red-500/20"
-      : "bg-red-600 text-white hover:bg-red-700";
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all active:scale-[.99] ${
-        variant === "primary"
-          ? primaryGradient
-          : variant === "ghost"
-          ? ghostBg
-          : variant === "danger"
-          ? dangerBg
-          : neutralBg
-      } ${disabled ? "opacity-50 pointer-events-none" : ""} ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
+// const Button = ({
+//   children,
+//   onClick,
+//   className = "",
+//   variant = "primary",
+//   type = "button",
+//   disabled = false,
+// }) => {
+//   const theme = useContext(ThemeContext);
+//   const primaryGradient =
+//     theme === "sunset"
+//       ? `bg-gradient-to-r from-[${BRAND.red}] to-[${BRAND.deepBlue}] text-white`
+//       : `bg-gradient-to-r from-[rgba(246,229,0,0.6)] to-[rgba(57,180,232,0.6)] text-gray-900`;
+//   const ghostBg =
+//     theme === "sunset"
+//       ? "bg-transparent hover:bg-white/15 text-white"
+//       : "bg-transparent hover:bg-white/50";
+//   const neutralBg =
+//     theme === "sunset"
+//       ? "bg-white/10 border border-white/20 hover:bg-white/15 text-white"
+//       : "bg-white/60 hover:bg-white";
+//   const dangerBg =
+//     theme === "sunset"
+//       ? "bg-red-600/80 text-white hover:bg-red-600 border border-red-500/20"
+//       : "bg-red-600 text-white hover:bg-red-700";
+//   return (
+//     <button
+//       type={type}
+//       onClick={onClick}
+//       disabled={disabled}
+//       className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all active:scale-[.99] ${
+//         variant === "primary"
+//           ? primaryGradient
+//           : variant === "ghost"
+//           ? ghostBg
+//           : variant === "danger"
+//           ? dangerBg
+//           : neutralBg
+//       } ${disabled ? "opacity-50 pointer-events-none" : ""} ${className}`}
+//     >
+//       {children}
+//     </button>
+//   );
+// };
 
-// ---------------- Config ----------------
-const STATUSES = [
-  "Lead: Deprioritized Account",
-  "Lead: No Current Product Solution",
-  "Target Account",
-  "Customer Engaged",
-  "Proposal Submitted",
-  "Win - Customer Verbal",
-  "Post-pipeline: Win (order shipped)",
-  "Post-pipeline: Loss",
-  "Post-pipeline: On-hold",
-];
+// // ---------------- Config ----------------
+// const STATUSES = [
+//   "Lead: Deprioritized Account",
+//   "Lead: No Current Product Solution",
+//   "Target Account",
+//   "Customer Engaged",
+//   "Proposal Submitted",
+//   "Win - Customer Verbal",
+//   "Post-pipeline: Win (order shipped)",
+//   "Post-pipeline: Loss",
+//   "Post-pipeline: On-hold",
+// ];
 
-const STATUS_COLORS = {
-  "Lead: Deprioritized Account": "#6B7280",
-  "Lead: No Current Product Solution": "#93C5FD",
-  "Target Account": "#FCD34D",
-  "Customer Engaged": "#39B4E8",
-  "Proposal Submitted": "#FB923C",
-  "Win - Customer Verbal": "#78BE20",
-  "Post-pipeline: Win (order shipped)": "#16A34A",
-  "Post-pipeline: Loss": "#C8102E",
-  "Post-pipeline: On-hold": "#8B5CF6",
-};
+// const STATUS_COLORS = {
+//   "Lead: Deprioritized Account": "#6B7280",
+//   "Lead: No Current Product Solution": "#93C5FD",
+//   "Target Account": "#FCD34D",
+//   "Customer Engaged": "#39B4E8",
+//   "Proposal Submitted": "#FB923C",
+//   "Win - Customer Verbal": "#78BE20",
+//   "Post-pipeline: Win (order shipped)": "#16A34A",
+//   "Post-pipeline: Loss": "#C8102E",
+//   "Post-pipeline: On-hold": "#8B5CF6",
+// };
 
-const CHART_COLORS = {
-  teal: "#14B8A6",
-  purple: "#A78BFA",
-  cyan: "#22D3EE",
-  grayAxis: "#64748B",
-  blue: "#3B82F6",
-};
+// const CHART_COLORS = {
+//   teal: "#14B8A6",
+//   purple: "#A78BFA",
+//   cyan: "#22D3EE",
+//   grayAxis: "#64748B",
+//   blue: "#3B82F6",
+// };
 
 // ---------------- API ----------------
-async function apiFetchOpps() {
-  const url = `${API_BASE_URL}/opportunities`;
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      mode: "cors",
-    });
-    if (!res.ok)
-      throw new Error(`GET ${url} failed: ${res.status} ${await res.text()}`);
-    const data = await res.json();
-    return data.map((record) => ({
-      id: record.OPPORTUNITY_ID || record.id,
-      title: record.CUSTOMER_NAME
-        ? `${record.CUSTOMER_NAME} - ${record.PRODUCT}`
-        : record.title,
-      amount: Number(record.PIPELINE_PROJECTED_REVENUE || record.amount || 0),
-      status:
-        record.SALES_STAGE ||
-        record.status ||
-        "Lead: No Current Product Solution",
-      owner: record.SALES_LEAD || record.owner || "system@doleintl.com",
-      createdAt: record.LIKELY_START_DATE
-        ? new Date(record.LIKELY_START_DATE)
-        : new Date(),
-      closeDate: record.END_DATE ? new Date(record.END_DATE) : new Date(),
-      customerName: record.CUSTOMER_NAME,
-      product: record.PRODUCT,
-      doleSalesLead: record.SALES_LEAD,
-      salesTeam: record.SALES_TEAM,
-      industrySegment: record.INDUSTRY_SEGMENT,
-      salesStage: record.SALES_STAGE,
-      opportunityType: record.OPPORTUNITY_TYPE,
-      materialId: record.MATERIAL_ID,
-      estimatedVolume: record.ESTIMATED_VOLUME,
-      pipelineProjectedRevenue: record.PIPELINE_PROJECTED_REVENUE,
-      ...record,
-    }));
-  } catch (e) {
-    console.error("Failed to fetch opportunities:", e);
-    throw e;
-  }
-}
+// async function apiFetchOpps() {
+//   const url = `${API_BASE_URL}/opportunities`;
+//   try {
+//     const res = await fetch(url, {
+//       method: "GET",
+//       headers: {
+//         Accept: "application/json",
+//         "Content-Type": "application/json",
+//       },
+//       credentials: "include",
+//       mode: "cors",
+//     });
+//     if (!res.ok)
+//       throw new Error(`GET ${url} failed: ${res.status} ${await res.text()}`);
+//     const data = await res.json();
+//     return data.map((record) => ({
+//       id: record.OPPORTUNITY_ID || record.id,
+//       title: record.CUSTOMER_NAME
+//         ? `${record.CUSTOMER_NAME} - ${record.PRODUCT}`
+//         : record.title,
+//       amount: Number(record.PIPELINE_PROJECTED_REVENUE || record.amount || 0),
+//       status:
+//         record.SALES_STAGE ||
+//         record.status ||
+//         "Lead: No Current Product Solution",
+//       owner: record.SALES_LEAD || record.owner || "system@doleintl.com",
+//       createdAt: record.LIKELY_START_DATE
+//         ? new Date(record.LIKELY_START_DATE)
+//         : new Date(),
+//       closeDate: record.END_DATE ? new Date(record.END_DATE) : new Date(),
+//       customerName: record.CUSTOMER_NAME,
+//       product: record.PRODUCT,
+//       doleSalesLead: record.SALES_LEAD,
+//       salesTeam: record.SALES_TEAM,
+//       industrySegment: record.INDUSTRY_SEGMENT,
+//       salesStage: record.SALES_STAGE,
+//       opportunityType: record.OPPORTUNITY_TYPE,
+//       materialId: record.MATERIAL_ID,
+//       estimatedVolume: record.ESTIMATED_VOLUME,
+//       pipelineProjectedRevenue: record.PIPELINE_PROJECTED_REVENUE,
+//       ...record,
+//     }));
+//   } catch (e) {
+//     console.error("Failed to fetch opportunities:", e);
+//     throw e;
+//   }
+// }
 
-async function apiFetchMaterials() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/materials`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching materials:", error);
-    throw error;
-  }
-}
+// async function apiFetchMaterials() {
+//   try {
+//     const response = await fetch(`${API_BASE_URL}/materials`);
+//     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+//     return await response.json();
+//   } catch (error) {
+//     console.error("Error fetching materials:", error);
+//     throw error;
+//   }
+// }
 
-async function apiCreateOpp(body) {
-  try {
-    const payload = {
-      TITLE:
-        body.title ||
-        `${body.customer_Name || body.customerName} - ${body.product}`,
-      AMOUNT: Number(
-        body.pipeline_Projected_Revenue ||
-          body.pipelineProjectedRevenue ||
-          body.amount ||
-          0
-      ),
-      STATUS:
-        body.sales_Stage ||
-        body.salesStage ||
-        body.status ||
-        "Lead: No Current Product Solution",
-      OWNER: body.owner || "system@doleintl.com",
-      CREATED_AT: body.createdAt || new Date().toISOString(),
-      CLOSE_DATE:
-        body.closeDate ||
-        body.end_Date ||
-        body.endDate ||
-        new Date().toISOString(),
-      CUSTOMER_NAME: body.customer_Name || body.customerName || "",
-      SALES_LEAD: body.sales_Lead || body.doleSalesLead || body.salesLead || "",
-      SALES_TEAM: body.sales_Team || body.salesTeam || "",
-      INDUSTRY_SEGMENT: body.industry_Segment || body.industrySegment || "",
-      OTHER_SEGMENT: body.other_Segment || body.otherSegment || "",
-      SALES_STAGE:
-        body.sales_Stage ||
-        body.salesStage ||
-        body.status ||
-        "Lead: No Current Product Solution",
-      OPPORTUNITY_TYPE:
-        body.opportunity_Type || body.opportunityType || "New Business",
-      OPPORTUNITY_SUMMARY:
-        body.opportunity_Summary || body.opportunitySummary || "",
-      PRODUCT: body.product || "",
-      LIKE_PRODUCT: body.like_Product || body.likeProduct || "",
-      MATERIAL_ID: body.material_ID || body.materialId || "",
-      PRODUCT_CATEGORY: body.product_Category || body.productCategory || "",
-      BASE_UOM:
-        body.base_UoM || body.baseUoM || body.materialBaseUnit || "Case",
-      MATERIAL_WEIGHT:
-        body.material_Weight ||
-        body.materialWeight ||
-        body.materialNetWeightLbs ||
-        "",
-      PRODUCT_SOURCE_LOCATION:
-        body.product_Source_Location || body.productSourceLocation || "",
-      LIKELY_DISTRIBUTORS:
-        body.likely_Distributors || body.likelyDistributors || "",
-      ESTIMATED_VOLUME: body.estimated_Volume || body.estimatedVolume || "",
-      UOM: body.uoM || body.uom || "Case",
-      CASE_VOLUME_CONVERTED:
-        body.case_Volume_Converted ||
-        body.caseVolumeConverted ||
-        body.caseVolume ||
-        "",
-      OPPORTUNITY_VOLUME_INPUT:
-        body.opportunity_Volume_Input || body.opportunityVolumeInput || "",
-      DAYS_30_SHIP: body.days_30_Ship || body.days30Ship || "N",
-      MATERIAL_PROJECTED_PRICE:
-        body.material_Projected_Price || body.materialProjectedPrice || "",
-      OVERRIDE_PRICE: body.override_Price || body.overridePrice || "",
-      EQUIVALIZED_PIPELINE_LBS:
-        body.equivalized_Pipeline_LBS || body.equalizedPipelineLbs || "",
-      PIPELINE_PROJECTED_REVENUE:
-        body.pipeline_Projected_Revenue ||
-        body.pipelineProjectedRevenue ||
-        body.amount ||
-        "",
-      LIKELY_START_DATE:
-        body.likely_Start_Date ||
-        body.likelyStartDate ||
-        body.createdAt ||
-        new Date().toISOString(),
-      ANNUAL_OR_LTO: body.annual_Or_LTO || body.annualOrLTO || "Annual",
-      END_DATE:
-        body.end_Date ||
-        body.endDate ||
-        body.closeDate ||
-        new Date().toISOString(),
-      LAST_MEETING_DATE: body.last_Meeting_Date || body.lastMeetingDate || "",
-      NEXT_STEP_DESCRIPTION:
-        body.next_Step_Description || body.nextStepDescription || "",
-      WIN_LOSS_REASON_CODE:
-        body.win_Loss_Reason_Code || body.winLossReasonCode || "",
-      WIN_LOSS_COMMENTS: body.win_Loss_Comments || body.winLossComments || "",
-      SAMPLES_NEEDED: body.samples_Needed || body.samplesNeeded || "N",
-      SAMPLES_SUPPORT_STATUS:
-        body.samples_Support_Status || body.samplesSupportStatus || "",
-      CULINARY_SUPPORT_NEEDED:
-        body.culinary_Support_Needed || body.culinarySupportNeeded || "N",
-      CULINARY_SUPPORT_DESCRIPTION:
-        body.culinary_Support_Description ||
-        body.culinarySupportDescription ||
-        "",
-      CULINARY_SUPPORT_STATUS:
-        body.culinary_Support_Status || body.culinarySupportStatus || "",
-      INNOVATION_SUPPORT_NEEDED:
-        body.innovation_Support_Needed || body.innovationSupportNeeded || "N",
-      INNOVATION_NEED_DESCRIPTION:
-        body.innovation_Need_Description ||
-        body.innovationNeedDescription ||
-        "",
-      INNOVATION_SUPPORT_STATUS:
-        body.innovation_Support_Status || body.innovationSupportStatus || "",
-      TOTAL_UNITS: body.total_Units || body.units2023 || "",
-    };
+// async function apiCreateOpp(body) {
+//   try {
+//     const payload = {
+//       TITLE:
+//         body.title ||
+//         `${body.customer_Name || body.customerName} - ${body.product}`,
+//       AMOUNT: Number(
+//         body.pipeline_Projected_Revenue ||
+//           body.pipelineProjectedRevenue ||
+//           body.amount ||
+//           0
+//       ),
+//       STATUS:
+//         body.sales_Stage ||
+//         body.salesStage ||
+//         body.status ||
+//         "Lead: No Current Product Solution",
+//       OWNER: body.owner || "system@doleintl.com",
+//       CREATED_AT: body.createdAt || new Date().toISOString(),
+//       CLOSE_DATE:
+//         body.closeDate ||
+//         body.end_Date ||
+//         body.endDate ||
+//         new Date().toISOString(),
+//       CUSTOMER_NAME: body.customer_Name || body.customerName || "",
+//       SALES_LEAD: body.sales_Lead || body.doleSalesLead || body.salesLead || "",
+//       SALES_TEAM: body.sales_Team || body.salesTeam || "",
+//       INDUSTRY_SEGMENT: body.industry_Segment || body.industrySegment || "",
+//       OTHER_SEGMENT: body.other_Segment || body.otherSegment || "",
+//       SALES_STAGE:
+//         body.sales_Stage ||
+//         body.salesStage ||
+//         body.status ||
+//         "Lead: No Current Product Solution",
+//       OPPORTUNITY_TYPE:
+//         body.opportunity_Type || body.opportunityType || "New Business",
+//       OPPORTUNITY_SUMMARY:
+//         body.opportunity_Summary || body.opportunitySummary || "",
+//       PRODUCT: body.product || "",
+//       LIKE_PRODUCT: body.like_Product || body.likeProduct || "",
+//       MATERIAL_ID: body.material_ID || body.materialId || "",
+//       PRODUCT_CATEGORY: body.product_Category || body.productCategory || "",
+//       BASE_UOM:
+//         body.base_UoM || body.baseUoM || body.materialBaseUnit || "Case",
+//       MATERIAL_WEIGHT:
+//         body.material_Weight ||
+//         body.materialWeight ||
+//         body.materialNetWeightLbs ||
+//         "",
+//       PRODUCT_SOURCE_LOCATION:
+//         body.product_Source_Location || body.productSourceLocation || "",
+//       LIKELY_DISTRIBUTORS:
+//         body.likely_Distributors || body.likelyDistributors || "",
+//       ESTIMATED_VOLUME: body.estimated_Volume || body.estimatedVolume || "",
+//       UOM: body.uoM || body.uom || "Case",
+//       CASE_VOLUME_CONVERTED:
+//         body.case_Volume_Converted ||
+//         body.caseVolumeConverted ||
+//         body.caseVolume ||
+//         "",
+//       OPPORTUNITY_VOLUME_INPUT:
+//         body.opportunity_Volume_Input || body.opportunityVolumeInput || "",
+//       DAYS_30_SHIP: body.days_30_Ship || body.days30Ship || "N",
+//       MATERIAL_PROJECTED_PRICE:
+//         body.material_Projected_Price || body.materialProjectedPrice || "",
+//       OVERRIDE_PRICE: body.override_Price || body.overridePrice || "",
+//       EQUIVALIZED_PIPELINE_LBS:
+//         body.equivalized_Pipeline_LBS || body.equalizedPipelineLbs || "",
+//       PIPELINE_PROJECTED_REVENUE:
+//         body.pipeline_Projected_Revenue ||
+//         body.pipelineProjectedRevenue ||
+//         body.amount ||
+//         "",
+//       LIKELY_START_DATE:
+//         body.likely_Start_Date ||
+//         body.likelyStartDate ||
+//         body.createdAt ||
+//         new Date().toISOString(),
+//       ANNUAL_OR_LTO: body.annual_Or_LTO || body.annualOrLTO || "Annual",
+//       END_DATE:
+//         body.end_Date ||
+//         body.endDate ||
+//         body.closeDate ||
+//         new Date().toISOString(),
+//       LAST_MEETING_DATE: body.last_Meeting_Date || body.lastMeetingDate || "",
+//       NEXT_STEP_DESCRIPTION:
+//         body.next_Step_Description || body.nextStepDescription || "",
+//       WIN_LOSS_REASON_CODE:
+//         body.win_Loss_Reason_Code || body.winLossReasonCode || "",
+//       WIN_LOSS_COMMENTS: body.win_Loss_Comments || body.winLossComments || "",
+//       SAMPLES_NEEDED: body.samples_Needed || body.samplesNeeded || "N",
+//       SAMPLES_SUPPORT_STATUS:
+//         body.samples_Support_Status || body.samplesSupportStatus || "",
+//       CULINARY_SUPPORT_NEEDED:
+//         body.culinary_Support_Needed || body.culinarySupportNeeded || "N",
+//       CULINARY_SUPPORT_DESCRIPTION:
+//         body.culinary_Support_Description ||
+//         body.culinarySupportDescription ||
+//         "",
+//       CULINARY_SUPPORT_STATUS:
+//         body.culinary_Support_Status || body.culinarySupportStatus || "",
+//       INNOVATION_SUPPORT_NEEDED:
+//         body.innovation_Support_Needed || body.innovationSupportNeeded || "N",
+//       INNOVATION_NEED_DESCRIPTION:
+//         body.innovation_Need_Description ||
+//         body.innovationNeedDescription ||
+//         "",
+//       INNOVATION_SUPPORT_STATUS:
+//         body.innovation_Support_Status || body.innovationSupportStatus || "",
+//       TOTAL_UNITS: body.total_Units || body.units2023 || "",
+//     };
 
-    const res = await fetch(`${API_BASE_URL}/opportunities`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "include",
-      mode: "cors",
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok)
-      throw new Error(
-        `Failed to create opportunity: ${res.status} ${await res.text()}`
-      );
-    const created = await res.json();
+//     const res = await fetch(`${API_BASE_URL}/opportunities`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Accept: "application/json",
+//       },
+//       credentials: "include",
+//       mode: "cors",
+//       body: JSON.stringify(payload),
+//     });
+//     if (!res.ok)
+//       throw new Error(
+//         `Failed to create opportunity: ${res.status} ${await res.text()}`
+//       );
+//     const created = await res.json();
 
-    if (payload.MATERIAL_PROJECTED_PRICE > payload.OVERRIDE_PRICE) {
-      const overridePricepayload = {
-        opportunity_id:
-          body.opportunity_ID ||
-          payload.opportunity_ID ||
-          payload.opportunity_ID,
-        currentprice: payload.MATERIAL_PROJECTED_PRICE,
-        overrideprice: payload.OVERRIDE_PRICE,
-        businessjustification: body.businessJustification,
-        dateofrequest: new Date().toISOString().split("T")[0],
-        dateofapproval: "",
-        approvalnote: "",
-        requestor: payload.SALES_LEAD,
-        product_category: payload.PRODUCT_CATEGORY,
-        customer_name: payload.CUSTOMER_NAME,
-        status: "Pending",
-      };
+//     if (payload.MATERIAL_PROJECTED_PRICE > payload.OVERRIDE_PRICE) {
+//       const overridePricepayload = {
+//         opportunity_id:
+//           body.opportunity_ID ||
+//           payload.opportunity_ID ||
+//           payload.opportunity_ID,
+//         currentprice: payload.MATERIAL_PROJECTED_PRICE,
+//         overrideprice: payload.OVERRIDE_PRICE,
+//         businessjustification: body.businessJustification,
+//         dateofrequest: new Date().toISOString().split("T")[0],
+//         dateofapproval: "",
+//         approvalnote: "",
+//         requestor: payload.SALES_LEAD,
+//         product_category: payload.PRODUCT_CATEGORY,
+//         customer_name: payload.CUSTOMER_NAME,
+//         status: "Pending",
+//       };
 
-      const res = await fetch(`${API_BASE_URL}/overrideprice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include",
-        mode: "cors",
-        body: JSON.stringify(overridePricepayload),
-      });
-      if (!res.ok)
-        throw new Error(
-          `Failed to create opportunity: ${res.status} ${await res.text()}`
-        );
-    }
+//       const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Accept: "application/json",
+//         },
+//         credentials: "include",
+//         mode: "cors",
+//         body: JSON.stringify(overridePricepayload),
+//       });
+//       if (!res.ok)
+//         throw new Error(
+//           `Failed to create opportunity: ${res.status} ${await res.text()}`
+//         );
+//     }
 
-    return {
-      id: created.OPPORTUNITY_ID || created.id || created.opportunity_ID,
-      title: created.TITLE || created.title || payload.TITLE,
-      amount: Number(
-        created.AMOUNT ||
-          created.PIPELINE_PROJECTED_REVENUE ||
-          payload.PIPELINE_PROJECTED_REVENUE
-      ),
-      status: created.STATUS || created.SALES_STAGE || payload.SALES_STAGE,
-      owner: created.OWNER || created.SALES_LEAD || payload.SALES_LEAD,
-      createdAt: new Date(
-        created.CREATED_AT || created.createdAt || payload.CREATED_AT
-      ),
-      closeDate: new Date(
-        created.CLOSE_DATE || created.END_DATE || payload.END_DATE
-      ),
-      customerName: created.CUSTOMER_NAME || payload.CUSTOMER_NAME,
-      product: created.PRODUCT || payload.PRODUCT,
-      doleSalesLead: created.SALES_LEAD || payload.SALES_LEAD,
-      salesTeam: created.SALES_TEAM || payload.SALES_TEAM,
-      industrySegment: created.INDUSTRY_SEGMENT || payload.INDUSTRY_SEGMENT,
-      salesStage: created.SALES_STAGE || payload.SALES_STAGE,
-      opportunityType: created.OPPORTUNITY_TYPE || payload.OPPORTUNITY_TYPE,
-      materialId: created.MATERIAL_ID || payload.MATERIAL_ID,
-      estimatedVolume: created.ESTIMATED_VOLUME || payload.ESTIMATED_VOLUME,
-      pipelineProjectedRevenue:
-        created.PIPELINE_PROJECTED_REVENUE ||
-        payload.PIPELINE_PROJECTED_REVENUE,
-      overridePrice: created.OVERRIDE_PRICE || payload.OVERRIDE_PRICE,
-      ...created,
-    };
-  } catch (error) {
-    console.error("Failed to create opportunity in SAP Datasphere:", error);
-    const fallbackId = Math.floor(Math.random() * 10000) + 1;
-    return {
-      id: fallbackId,
-      title: body.title || `${body.customer_Name} - ${body.product}`,
-      amount: Number(body.pipeline_Projected_Revenue || body.amount || 0),
-      status:
-        body.sales_Stage || body.status || "Lead: No Current Product Solution",
-      owner: body.owner || "system@doleintl.com",
-      createdAt: new Date(),
-      closeDate: body.end_Date ? new Date(body.end_Date) : new Date(),
-      ...body,
-    };
-  }
-}
+//     return {
+//       id: created.OPPORTUNITY_ID || created.id || created.opportunity_ID,
+//       title: created.TITLE || created.title || payload.TITLE,
+//       amount: Number(
+//         created.AMOUNT ||
+//           created.PIPELINE_PROJECTED_REVENUE ||
+//           payload.PIPELINE_PROJECTED_REVENUE
+//       ),
+//       status: created.STATUS || created.SALES_STAGE || payload.SALES_STAGE,
+//       owner: created.OWNER || created.SALES_LEAD || payload.SALES_LEAD,
+//       createdAt: new Date(
+//         created.CREATED_AT || created.createdAt || payload.CREATED_AT
+//       ),
+//       closeDate: new Date(
+//         created.CLOSE_DATE || created.END_DATE || payload.END_DATE
+//       ),
+//       customerName: created.CUSTOMER_NAME || payload.CUSTOMER_NAME,
+//       product: created.PRODUCT || payload.PRODUCT,
+//       doleSalesLead: created.SALES_LEAD || payload.SALES_LEAD,
+//       salesTeam: created.SALES_TEAM || payload.SALES_TEAM,
+//       industrySegment: created.INDUSTRY_SEGMENT || payload.INDUSTRY_SEGMENT,
+//       salesStage: created.SALES_STAGE || payload.SALES_STAGE,
+//       opportunityType: created.OPPORTUNITY_TYPE || payload.OPPORTUNITY_TYPE,
+//       materialId: created.MATERIAL_ID || payload.MATERIAL_ID,
+//       estimatedVolume: created.ESTIMATED_VOLUME || payload.ESTIMATED_VOLUME,
+//       pipelineProjectedRevenue:
+//         created.PIPELINE_PROJECTED_REVENUE ||
+//         payload.PIPELINE_PROJECTED_REVENUE,
+//       overridePrice: created.OVERRIDE_PRICE || payload.OVERRIDE_PRICE,
+//       ...created,
+//     };
+//   } catch (error) {
+//     console.error("Failed to create opportunity in SAP Datasphere:", error);
+//     const fallbackId = Math.floor(Math.random() * 10000) + 1;
+//     return {
+//       id: fallbackId,
+//       title: body.title || `${body.customer_Name} - ${body.product}`,
+//       amount: Number(body.pipeline_Projected_Revenue || body.amount || 0),
+//       status:
+//         body.sales_Stage || body.status || "Lead: No Current Product Solution",
+//       owner: body.owner || "system@doleintl.com",
+//       createdAt: new Date(),
+//       closeDate: body.end_Date ? new Date(body.end_Date) : new Date(),
+//       ...body,
+//     };
+//   }
+// }
 
-async function apiDeleteOpps(ids = []) {
-  try {
-    const res = await fetch(`${API_BASE_URL}/opportunities/bulk-delete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      mode: "cors",
-      body: JSON.stringify({ ids }),
-    });
-    if (res.ok) return true;
-  } catch (error) {
-    console.error("Bulk delete error:", error);
-  }
-  try {
-    await Promise.all(
-      ids.map((id) =>
-        fetch(`${API_BASE_URL}/opportunities/${id}`, {
-          method: "DELETE",
-          credentials: "include",
-          mode: "cors",
-        })
-      )
-    );
-    return true;
-  } catch (e) {
-    console.warn("Delete fallback failed", e);
-    return false;
-  }
-}
+// async function apiDeleteOpps(ids = []) {
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/opportunities/bulk-delete`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       credentials: "include",
+//       mode: "cors",
+//       body: JSON.stringify({ ids }),
+//     });
+//     if (res.ok) return true;
+//   } catch (error) {
+//     console.error("Bulk delete error:", error);
+//   }
+//   try {
+//     await Promise.all(
+//       ids.map((id) =>
+//         fetch(`${API_BASE_URL}/opportunities/${id}`, {
+//           method: "DELETE",
+//           credentials: "include",
+//           mode: "cors",
+//         })
+//       )
+//     );
+//     return true;
+//   } catch (e) {
+//     console.warn("Delete fallback failed", e);
+//     return false;
+//   }
+// }
 
-async function apiFetchUsers() {
-  const res = await fetch(`${API_BASE_URL}/users`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    credentials: "include",
-    mode: "cors",
-  });
-  if (!res.ok)
-    throw new Error(`GET /users failed: ${res.status} ${await res.text()}`);
-  return res.json();
-}
+// async function apiFetchUsers() {
+//   const res = await fetch(`${API_BASE_URL}/users`, {
+//     method: "GET",
+//     headers: { Accept: "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//   });
+//   if (!res.ok)
+//     throw new Error(`GET /users failed: ${res.status} ${await res.text()}`);
+//   return res.json();
+// }
 
-async function apiFetchPendingUsers() {
-  const res = await fetch(`${API_BASE_URL}/users/pending`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    credentials: "include",
-    mode: "cors",
-  });
-  if (!res.ok)
-    throw new Error(
-      `GET /users/pending failed: ${res.status} ${await res.text()}`
-    );
-  return res.json(); // expect array from USER_ACCOUNTS_PENDING
-}
+// async function apiFetchPendingUsers() {
+//   const res = await fetch(`${API_BASE_URL}/users/pending`, {
+//     method: "GET",
+//     headers: { Accept: "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//   });
+//   if (!res.ok)
+//     throw new Error(
+//       `GET /users/pending failed: ${res.status} ${await res.text()}`
+//     );
+//   return res.json(); // expect array from USER_ACCOUNTS_PENDING
+// }
 
-async function apiCreatePendingUser(user) {
-  const res = await fetch(`${API_BASE_URL}/users/pending`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    mode: "cors",
-    body: JSON.stringify({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      preferredName: user.preferredName || "",
-      email: user.email,
-      isRsm: !!user.isRsm,
-      isAll: !!user.isAll,
-      isAdmin: !!user.isAdmin,
-    }),
-  });
-  const text = await res.text().catch(() => "");
-  if (!res.ok) throw new Error(`POST /users/pending ${res.status}: ${text}`);
-  return text ? JSON.parse(text) : {};
-}
+// async function apiCreatePendingUser(user) {
+//   const res = await fetch(`${API_BASE_URL}/users/pending`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//     body: JSON.stringify({
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       preferredName: user.preferredName || "",
+//       email: user.email,
+//       isRsm: !!user.isRsm,
+//       isAll: !!user.isAll,
+//       isAdmin: !!user.isAdmin,
+//     }),
+//   });
+//   const text = await res.text().catch(() => "");
+//   if (!res.ok) throw new Error(`POST /users/pending ${res.status}: ${text}`);
+//   return text ? JSON.parse(text) : {};
+// }
 
-async function apiCreateUser(user) {
-  const res = await fetch(`${API_BASE_URL}/users`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    mode: "cors",
-    body: JSON.stringify(user),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
+// async function apiCreateUser(user) {
+//   const res = await fetch(`${API_BASE_URL}/users`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//     body: JSON.stringify(user),
+//   });
+//   if (!res.ok) throw new Error(await res.text());
+//   return res.json();
+// }
 
-async function apiApprovePendingUser(email, roles) {
-  const res = await fetch(`${API_BASE_URL}/users/pending/approve`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    mode: "cors",
-    body: JSON.stringify({ email, ...roles }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
+// async function apiApprovePendingUser(email, roles) {
+//   const res = await fetch(`${API_BASE_URL}/users/pending/approve`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//     body: JSON.stringify({ email, ...roles }),
+//   });
+//   if (!res.ok) throw new Error(await res.text());
+//   return res.json();
+// }
 
-async function apiRejectPendingUser(email) {
-  const res = await fetch(
-    `${API_BASE_URL}/users/pending/${encodeURIComponent(email)}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-      mode: "cors",
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
-  return true;
-}
+// async function apiRejectPendingUser(email) {
+//   const res = await fetch(
+//     `${API_BASE_URL}/users/pending/${encodeURIComponent(email)}`,
+//     {
+//       method: "DELETE",
+//       credentials: "include",
+//       mode: "cors",
+//     }
+//   );
+//   if (!res.ok) throw new Error(await res.text());
+//   return true;
+// }
 
-async function apiGetUserByEmail(email) {
-  const url = `${API_BASE_URL}/users/by-email?email=${encodeURIComponent(
-    email.trim()
-  )}`;
-  const res = await fetch(url, { credentials: "include", mode: "cors" });
-  if (!res.ok) {
-    // Treat not-found as null if backend ever returns 404
-    if (res.status === 404) return null;
-    const text = await res.text().catch(() => "");
-    throw new Error(`GET /users/by-email failed: ${res.status} ${text}`);
-  }
-  const data = await res.json().catch(() => null);
-  return data?.user ?? data ?? null;
-}
+// async function apiGetUserByEmail(email) {
+//   const url = `${API_BASE_URL}/users/by-email?email=${encodeURIComponent(
+//     email.trim()
+//   )}`;
+//   const res = await fetch(url, { credentials: "include", mode: "cors" });
+//   if (!res.ok) {
+//     // Treat not-found as null if backend ever returns 404
+//     if (res.status === 404) return null;
+//     const text = await res.text().catch(() => "");
+//     throw new Error(`GET /users/by-email failed: ${res.status} ${text}`);
+//   }
+//   const data = await res.json().catch(() => null);
+//   return data?.user ?? data ?? null;
+// }
 
-async function apiUpdateUser(email, user) {
-  const res = await fetch(
-    `${API_BASE_URL}/users/${encodeURIComponent(email)}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      mode: "cors",
-      body: JSON.stringify(user),
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiFetchOverridePrice() {
-  const res = await fetch(`${API_BASE_URL}/overrideprice`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    credentials: "include",
-    mode: "cors",
-  });
+// async function apiUpdateUser(email, user) {
+//   const res = await fetch(
+//     `${API_BASE_URL}/users/${encodeURIComponent(email)}`,
+//     {
+//       method: "PUT",
+//       headers: { "Content-Type": "application/json" },
+//       credentials: "include",
+//       mode: "cors",
+//       body: JSON.stringify(user),
+//     }
+//   );
+//   if (!res.ok) throw new Error(await res.text());
+//   return res.json();
+// }
+// async function apiFetchOverridePrice() {
+//   const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+//     method: "GET",
+//     headers: { Accept: "application/json" },
+//     credentials: "include",
+//     mode: "cors",
+//   });
 
-  if (!res.ok) {
-    throw new Error(
-      `GET /overrideprice failed: ${res.status} ${await res.text()}`
-    );
-  }
+//   if (!res.ok) {
+//     throw new Error(
+//       `GET /overrideprice failed: ${res.status} ${await res.text()}`
+//     );
+//   }
 
-  return res.json();
-}
+//   return res.json();
+// }
 
-async function apiUpdateOverridePrice(payload) {
-  try {
-    const res = await fetch(`${API_BASE_URL}/overrideprice`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "include",
-      mode: "cors",
-      body: JSON.stringify(payload),
-    });
+// async function apiUpdateOverridePrice(payload) {
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+//       method: "PUT",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Accept: "application/json",
+//       },
+//       credentials: "include",
+//       mode: "cors",
+//       body: JSON.stringify(payload),
+//     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Error:", res.status, errorText);
-      throw new Error(`Failed to update request: ${res.status} ${errorText}`);
-    }
+//     if (!res.ok) {
+//       const errorText = await res.text();
+//       console.error("Error:", res.status, errorText);
+//       throw new Error(`Failed to update request: ${res.status} ${errorText}`);
+//     }
 
-    // Return parsed JSON if available, else empty object
-    return await res.json().catch(() => ({}));
-  } catch (err) {
-    console.error("API Error:", err);
-    throw err;
-  }
-}
+//     // Return parsed JSON if available, else empty object
+//     return await res.json().catch(() => ({}));
+//   } catch (err) {
+//     console.error("API Error:", err);
+//     throw err;
+//   }
+// }
 
 
 // ---------------- Utils ----------------
-function pickLatestByCreated(arr, n = 5) {
-  return (arr || [])
-    .slice()
-    .sort(
-      (a, b) =>
-        (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)
-    )
-    .slice(0, n);
-}
-function monthKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-function formatMonthDisplay(monthStr) {
-  const [year, month] = monthStr.split("-");
-  const m = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ][parseInt(month) - 1];
-  return `${m} '${year.slice(2)}`;
-}
-function isSameDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-function toISODate(d) {
-  if (!d) return "";
-  const dt = new Date(d);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(dt.getDate()).padStart(2, "0")}`;
-}
+// function pickLatestByCreated(arr, n = 5) {
+//   return (arr || [])
+//     .slice()
+//     .sort(
+//       (a, b) =>
+//         (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)
+//     )
+//     .slice(0, n);
+// }
+// function monthKey(d) {
+//   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+// }
+// function formatMonthDisplay(monthStr) {
+//   const [year, month] = monthStr.split("-");
+//   const m = [
+//     "Jan",
+//     "Feb",
+//     "Mar",
+//     "Apr",
+//     "May",
+//     "Jun",
+//     "Jul",
+//     "Aug",
+//     "Sep",
+//     "Oct",
+//     "Nov",
+//     "Dec",
+//   ][parseInt(month) - 1];
+//   return `${m} '${year.slice(2)}`;
+// }
+// function isSameDay(a, b) {
+//   return (
+//     a.getFullYear() === b.getFullYear() &&
+//     a.getMonth() === b.getMonth() &&
+//     a.getDate() === b.getDate()
+//   );
+// }
+// function toISODate(d) {
+//   if (!d) return "";
+//   const dt = new Date(d);
+//   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
+//     2,
+//     "0"
+//   )}-${String(dt.getDate()).padStart(2, "0")}`;
+// }
 
 // ---------------- Global Styles ----------------
 function GlobalStyles() {
@@ -752,168 +770,168 @@ function GlobalStyles() {
 }
 
 // ---------------- Custom Frosted Select ----------------
-function FrostedSelect({
-  value,
-  onChange,
-  options = [],
-  disabled = false,
-  placeholder = "Select...",
-  className = "",
-  style,
-}) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const [open, setOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-    maxHeight: 260,
-  });
-  const [shouldOpenUpward, setShouldOpenUpward] = useState(false);
-  const ref = useRef(null);
-  const current = value || "";
+// function FrostedSelect({
+//   value,
+//   onChange,
+//   options = [],
+//   disabled = false,
+//   placeholder = "Select...",
+//   className = "",
+//   style,
+// }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   const [open, setOpen] = useState(false);
+//   const [dropdownPosition, setDropdownPosition] = useState({
+//     top: 0,
+//     left: 0,
+//     width: 0,
+//     maxHeight: 260,
+//   });
+//   const [shouldOpenUpward, setShouldOpenUpward] = useState(false);
+//   const ref = useRef(null);
+//   const current = value || "";
 
-  useEffect(() => {
-    const onDoc = (e) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
-  const computePosition = useCallback(() => {
-    if (!open || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const openUp = spaceBelow < 300 && spaceAbove > spaceBelow;
-    setShouldOpenUpward(openUp);
-    setDropdownPosition({
-      top: openUp ? rect.top - 8 : rect.bottom + 8,
-      left: rect.left,
-      width: rect.width,
-      maxHeight: openUp
-        ? Math.min(spaceAbove - 20, 300)
-        : Math.min(spaceBelow - 20, 300),
-    });
-  }, [open]);
-  useEffect(() => {
-    computePosition();
-  }, [open, computePosition]);
-  useEffect(() => {
-    if (!open) return;
-    const onWin = () => computePosition();
-    window.addEventListener("resize", onWin);
-    window.addEventListener("scroll", onWin, true);
-    return () => {
-      window.removeEventListener("resize", onWin);
-      window.removeEventListener("scroll", onWin, true);
-    };
-  }, [open, computePosition]);
+//   useEffect(() => {
+//     const onDoc = (e) => {
+//       if (!ref.current) return;
+//       if (!ref.current.contains(e.target)) setOpen(false);
+//     };
+//     document.addEventListener("mousedown", onDoc);
+//     return () => document.removeEventListener("mousedown", onDoc);
+//   }, []);
+//   useEffect(() => {
+//     const onKey = (e) => {
+//       if (e.key === "Escape") setOpen(false);
+//     };
+//     document.addEventListener("keydown", onKey);
+//     return () => document.removeEventListener("keydown", onKey);
+//   }, []);
+//   const computePosition = useCallback(() => {
+//     if (!open || !ref.current) return;
+//     const rect = ref.current.getBoundingClientRect();
+//     const spaceBelow = window.innerHeight - rect.bottom;
+//     const spaceAbove = rect.top;
+//     const openUp = spaceBelow < 300 && spaceAbove > spaceBelow;
+//     setShouldOpenUpward(openUp);
+//     setDropdownPosition({
+//       top: openUp ? rect.top - 8 : rect.bottom + 8,
+//       left: rect.left,
+//       width: rect.width,
+//       maxHeight: openUp
+//         ? Math.min(spaceAbove - 20, 300)
+//         : Math.min(spaceBelow - 20, 300),
+//     });
+//   }, [open]);
+//   useEffect(() => {
+//     computePosition();
+//   }, [open, computePosition]);
+//   useEffect(() => {
+//     if (!open) return;
+//     const onWin = () => computePosition();
+//     window.addEventListener("resize", onWin);
+//     window.addEventListener("scroll", onWin, true);
+//     return () => {
+//       window.removeEventListener("resize", onWin);
+//       window.removeEventListener("scroll", onWin, true);
+//     };
+//   }, [open, computePosition]);
 
-  const handleSelect = (opt) => {
-    onChange(opt);
-    setOpen(false);
-  };
-  const wrapperCls = `inline-flex w-full min-w-0 max-w-full items-center justify-between rounded-2xl border px-3 py-2 cursor-pointer overflow-hidden glass-select ${
-    isNight
-      ? "border-white/25 text-white focus:ring-[#F6E500]"
-      : "border-white/65 text-black focus:ring-[#39B4E8]"
-  } ${disabled ? "opacity-60 pointer-events-none" : ""}`;
-  const listCls = `rounded-2xl border bg-clip-padding backdrop-blur-xl ${
-    isNight
-      ? "bg-white/12 border-white/20 text-white"
-      : "bg-white/80 border-white/60 text-black"
-  } shadow-[0_12px_30px_rgba(0,0,0,0.18)] overflow-y-auto scroll-glass`;
+//   const handleSelect = (opt) => {
+//     onChange(opt);
+//     setOpen(false);
+//   };
+//   const wrapperCls = `inline-flex w-full min-w-0 max-w-full items-center justify-between rounded-2xl border px-3 py-2 cursor-pointer overflow-hidden glass-select ${
+//     isNight
+//       ? "border-white/25 text-white focus:ring-[#F6E500]"
+//       : "border-white/65 text-black focus:ring-[#39B4E8]"
+//   } ${disabled ? "opacity-60 pointer-events-none" : ""}`;
+//   const listCls = `rounded-2xl border bg-clip-padding backdrop-blur-xl ${
+//     isNight
+//       ? "bg-white/12 border-white/20 text-white"
+//       : "bg-white/80 border-white/60 text-black"
+//   } shadow-[0_12px_30px_rgba(0,0,0,0.18)] overflow-y-auto scroll-glass`;
 
-  return (
-    <>
-      <div ref={ref} className={`relative w-full ${className}`} style={style}>
-        <div
-          className={wrapperCls}
-          onClick={() => !disabled && setOpen(!open)}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-        >
-          <span className="flex-1 min-w-0 truncate">
-            {current || placeholder}
-          </span>
-          <ChevronDown
-            className={`ml-2 h-4 w-4 opacity-60 flex-shrink-0 transition-transform ${
-              open && shouldOpenUpward ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-      </div>
-      {open && (
-        <>
-          <div
-            className="fixed inset-0"
-            style={{
-              zIndex: 9998,
-              backdropFilter: "blur(0.5px)",
-              WebkitBackdropFilter: "blur(0.5px)",
-              backgroundColor: isNight
-                ? "rgba(0,0,0,0.05)"
-                : "rgba(0,0,0,0.02)",
-            }}
-            onClick={() => setOpen(false)}
-          />
-          {ReactDOM.createPortal(
-            <ul
-              role="listbox"
-              className={listCls}
-              style={{
-                position: "fixed",
-                top: shouldOpenUpward ? "auto" : `${dropdownPosition.top}px`,
-                bottom: shouldOpenUpward
-                  ? `${window.innerHeight - dropdownPosition.top + 8}px`
-                  : "auto",
-                left: `${dropdownPosition.left}px`,
-                width: `${dropdownPosition.width}px`,
-                maxHeight: `${dropdownPosition.maxHeight}px`,
-                zIndex: 9999,
-              }}
-            >
-              {options.map((opt, idx) => (
-                <li
-                  key={`${String(opt)}-${idx}`}
-                  role="option"
-                  aria-selected={opt === value}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSelect(opt);
-                  }}
-                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    isNight
-                      ? opt === value
-                        ? "bg-white/15"
-                        : "hover:bg-white/10"
-                      : opt === value
-                      ? "bg-white/70"
-                      : "hover:bg-white/60"
-                  }`}
-                >
-                  {String(opt) || "(None)"}
-                </li>
-              ))}
-            </ul>,
-            document.body
-          )}
-        </>
-      )}
-    </>
-  );
-}
+//   return (
+//     <>
+//       <div ref={ref} className={`relative w-full ${className}`} style={style}>
+//         <div
+//           className={wrapperCls}
+//           onClick={() => !disabled && setOpen(!open)}
+//           aria-haspopup="listbox"
+//           aria-expanded={open}
+//         >
+//           <span className="flex-1 min-w-0 truncate">
+//             {current || placeholder}
+//           </span>
+//           <ChevronDown
+//             className={`ml-2 h-4 w-4 opacity-60 flex-shrink-0 transition-transform ${
+//               open && shouldOpenUpward ? "rotate-180" : ""
+//             }`}
+//           />
+//         </div>
+//       </div>
+//       {open && (
+//         <>
+//           <div
+//             className="fixed inset-0"
+//             style={{
+//               zIndex: 9998,
+//               backdropFilter: "blur(0.5px)",
+//               WebkitBackdropFilter: "blur(0.5px)",
+//               backgroundColor: isNight
+//                 ? "rgba(0,0,0,0.05)"
+//                 : "rgba(0,0,0,0.02)",
+//             }}
+//             onClick={() => setOpen(false)}
+//           />
+//           {ReactDOM.createPortal(
+//             <ul
+//               role="listbox"
+//               className={listCls}
+//               style={{
+//                 position: "fixed",
+//                 top: shouldOpenUpward ? "auto" : `${dropdownPosition.top}px`,
+//                 bottom: shouldOpenUpward
+//                   ? `${window.innerHeight - dropdownPosition.top + 8}px`
+//                   : "auto",
+//                 left: `${dropdownPosition.left}px`,
+//                 width: `${dropdownPosition.width}px`,
+//                 maxHeight: `${dropdownPosition.maxHeight}px`,
+//                 zIndex: 9999,
+//               }}
+//             >
+//               {options.map((opt, idx) => (
+//                 <li
+//                   key={`${String(opt)}-${idx}`}
+//                   role="option"
+//                   aria-selected={opt === value}
+//                   onMouseDown={(e) => {
+//                     e.preventDefault();
+//                     e.stopPropagation();
+//                     handleSelect(opt);
+//                   }}
+//                   className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
+//                     isNight
+//                       ? opt === value
+//                         ? "bg-white/15"
+//                         : "hover:bg-white/10"
+//                       : opt === value
+//                       ? "bg-white/70"
+//                       : "hover:bg-white/60"
+//                   }`}
+//                 >
+//                   {String(opt) || "(None)"}
+//                 </li>
+//               ))}
+//             </ul>,
+//             document.body
+//           )}
+//         </>
+//       )}
+//     </>
+//   );
+// }
 
 // ---------------- Frosted Date Picker ----------------
 
@@ -1262,829 +1280,829 @@ function MiniCalendarWithAgenda({
 }
 
 // ---------------- Gantt----------------
-function GanttMonth({ items, monthDate, rows = 1 }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const y = monthDate.getFullYear();
-  const m = monthDate.getMonth();
-  const monthStart = new Date(y, m, 1);
-  const monthEnd = new Date(y, m + 1, 0);
-  const daysInMonth = monthEnd.getDate();
+// function GanttMonth({ items, monthDate, rows = 1 }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   const y = monthDate.getFullYear();
+//   const m = monthDate.getMonth();
+//   const monthStart = new Date(y, m, 1);
+//   const monthEnd = new Date(y, m + 1, 0);
+//   const daysInMonth = monthEnd.getDate();
 
-  const rowsData = items.map((o) => {
-    const start = new Date(
-      Math.max(new Date(o.createdAt).getTime(), monthStart.getTime())
-    );
-    const end = new Date(
-      Math.min(new Date(o.closeDate).getTime(), monthEnd.getTime())
-    );
-    const startDay = start.getDate();
-    const span = Math.max(1, end.getDate() - start.getDate() + 1);
-    return { id: o.id, title: o.title, status: o.status, startDay, span };
-  });
+//   const rowsData = items.map((o) => {
+//     const start = new Date(
+//       Math.max(new Date(o.createdAt).getTime(), monthStart.getTime())
+//     );
+//     const end = new Date(
+//       Math.min(new Date(o.closeDate).getTime(), monthEnd.getTime())
+//     );
+//     const startDay = start.getDate();
+//     const span = Math.max(1, end.getDate() - start.getDate() + 1);
+//     return { id: o.id, title: o.title, status: o.status, startDay, span };
+//   });
 
-  return (
-    <div
-      className={
-        "border rounded-xl p-2 " +
-        (isNight
-          ? "bg-white/10 border-white/25 text-white"
-          : "bg-white/40 text-gray-800")
-      }
-    >
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: `120px repeat(${daysInMonth}, minmax(0,1fr))`,
-        }}
-      >
-        <div></div>
-        {Array.from({ length: daysInMonth }).map((_, i) => (
-          <div
-            key={i}
-            className={`text-[10px] text-center ${
-              isNight ? "text-white/70" : "text-gray-500"
-            }`}
-          >
-            {i + 1}
-          </div>
-        ))}
-      </div>
-      {rowsData.slice(0, rows === 1 ? 6 : rows === 2 ? 10 : 12).map((r) => (
-        <div
-          key={r.id}
-          className="grid items-center"
-          style={{
-            gridTemplateColumns: `120px repeat(${daysInMonth}, minmax(0,1fr))`,
-          }}
-        >
-          <div
-            className={`truncate text-xs pr-2 ${
-              isNight ? "text-white" : "text-gray-700"
-            }`}
-          >
-            {r.title}
-          </div>
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const show = day === r.startDay;
-            return (
-              <div key={i} className="h-5 relative">
-                {show && (
-                  <div
-                    className="absolute inset-y-1 left-0 rounded-full"
-                    style={{
-                      width: `calc(${r.span} * 100%)`,
-                      background: `linear-gradient(90deg, ${
-                        STATUS_COLORS[r.status]
-                      } 0%, ${STATUS_COLORS[r.status]} 100%)`,
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      {rowsData.length === 0 && (
-        <div className="text-xs text-gray-400 px-2 py-3">
-          No items this month
-        </div>
-      )}
-      <div
-        className={`flex flex-wrap gap-3 mt-3 text-xs ${
-          isNight ? "text-white/80" : "text-gray-700"
-        }`}
-      >
-        {Object.entries(STATUS_COLORS).map(([k, v]) => (
-          <span key={k} className="inline-flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full" style={{ background: v }} />
-            {k}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+//   return (
+//     <div
+//       className={
+//         "border rounded-xl p-2 " +
+//         (isNight
+//           ? "bg-white/10 border-white/25 text-white"
+//           : "bg-white/40 text-gray-800")
+//       }
+//     >
+//       <div
+//         className="grid"
+//         style={{
+//           gridTemplateColumns: `120px repeat(${daysInMonth}, minmax(0,1fr))`,
+//         }}
+//       >
+//         <div></div>
+//         {Array.from({ length: daysInMonth }).map((_, i) => (
+//           <div
+//             key={i}
+//             className={`text-[10px] text-center ${
+//               isNight ? "text-white/70" : "text-gray-500"
+//             }`}
+//           >
+//             {i + 1}
+//           </div>
+//         ))}
+//       </div>
+//       {rowsData.slice(0, rows === 1 ? 6 : rows === 2 ? 10 : 12).map((r) => (
+//         <div
+//           key={r.id}
+//           className="grid items-center"
+//           style={{
+//             gridTemplateColumns: `120px repeat(${daysInMonth}, minmax(0,1fr))`,
+//           }}
+//         >
+//           <div
+//             className={`truncate text-xs pr-2 ${
+//               isNight ? "text-white" : "text-gray-700"
+//             }`}
+//           >
+//             {r.title}
+//           </div>
+//           {Array.from({ length: daysInMonth }).map((_, i) => {
+//             const day = i + 1;
+//             const show = day === r.startDay;
+//             return (
+//               <div key={i} className="h-5 relative">
+//                 {show && (
+//                   <div
+//                     className="absolute inset-y-1 left-0 rounded-full"
+//                     style={{
+//                       width: `calc(${r.span} * 100%)`,
+//                       background: `linear-gradient(90deg, ${
+//                         STATUS_COLORS[r.status]
+//                       } 0%, ${STATUS_COLORS[r.status]} 100%)`,
+//                     }}
+//                   />
+//                 )}
+//               </div>
+//             );
+//           })}
+//         </div>
+//       ))}
+//       {rowsData.length === 0 && (
+//         <div className="text-xs text-gray-400 px-2 py-3">
+//           No items this month
+//         </div>
+//       )}
+//       <div
+//         className={`flex flex-wrap gap-3 mt-3 text-xs ${
+//           isNight ? "text-white/80" : "text-gray-700"
+//         }`}
+//       >
+//         {Object.entries(STATUS_COLORS).map(([k, v]) => (
+//           <span key={k} className="inline-flex items-center gap-2">
+//             <span className="h-2 w-2 rounded-full" style={{ background: v }} />
+//             {k}
+//           </span>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
 
 // ---------------- Search ----------------
-function SearchModal({ isOpen, onClose, opps, onViewDetails }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const [searchId, setSearchId] = useState("");
-  const [searchCustomer, setSearchCustomer] = useState("");
-  const [searchProduct, setSearchProduct] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
+// function SearchModal({ isOpen, onClose, opps, onViewDetails }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   const [searchId, setSearchId] = useState("");
+//   const [searchCustomer, setSearchCustomer] = useState("");
+//   const [searchProduct, setSearchProduct] = useState("");
+//   const [searchResults, setSearchResults] = useState([]);
+//   const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchId("");
-      setSearchCustomer("");
-      setSearchProduct("");
-      setSearchResults([]);
-      setHasSearched(false);
-    }
-  }, [isOpen]);
+//   useEffect(() => {
+//     if (!isOpen) {
+//       setSearchId("");
+//       setSearchCustomer("");
+//       setSearchProduct("");
+//       setSearchResults([]);
+//       setHasSearched(false);
+//     }
+//   }, [isOpen]);
 
-  const handleSearch = () => {
-    let results = [...opps];
-    if (searchId.trim())
-      results = results.filter((o) => o.id.toString() === searchId.trim());
-    if (searchCustomer.trim())
-      results = results.filter((o) =>
-        o.customerName
-          ?.toLowerCase()
-          .includes(searchCustomer.toLowerCase().trim())
-      );
-    if (searchProduct.trim())
-      results = results.filter((o) =>
-        o.product?.toLowerCase().includes(searchProduct.toLowerCase().trim())
-      );
-    setSearchResults(results);
-    setHasSearched(true);
-  };
+//   const handleSearch = () => {
+//     let results = [...opps];
+//     if (searchId.trim())
+//       results = results.filter((o) => o.id.toString() === searchId.trim());
+//     if (searchCustomer.trim())
+//       results = results.filter((o) =>
+//         o.customerName
+//           ?.toLowerCase()
+//           .includes(searchCustomer.toLowerCase().trim())
+//       );
+//     if (searchProduct.trim())
+//       results = results.filter((o) =>
+//         o.product?.toLowerCase().includes(searchProduct.toLowerCase().trim())
+//       );
+//     setSearchResults(results);
+//     setHasSearched(true);
+//   };
 
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-md"
-        onClick={onClose}
-      />
-      <div
-        className={`relative w-full max-w-3xl max-h-[80vh] rounded-3xl ${
-          isNight
-            ? "bg-white/10 border-white/20"
-            : "bg-white/20 border-white/40"
-        } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden flex flex-col`}
-      >
-        <CardHeader
-          title="Search Opportunities"
-          subtitle="Search by ID, Customer, or Product"
-          right={
-            <Button variant="ghost" onClick={onClose}>
-              <XIcon className="h-4 w-4" />
-            </Button>
-          }
-        />
-        <CardBody className="flex-1 overflow-y-auto">
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <Label>Opportunity ID</Label>
-              <Input
-                type="text"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-                placeholder="e.g., 123"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <div>
-              <Label>Customer Name</Label>
-              <Input
-                type="text"
-                value={searchCustomer}
-                onChange={(e) => setSearchCustomer(e.target.value)}
-                placeholder="e.g., Customer 1"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <div>
-              <Label>Product</Label>
-              <Input
-                type="text"
-                value={searchProduct}
-                onChange={(e) => setSearchProduct(e.target.value)}
-                placeholder="e.g., Product name"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 mb-6">
-            <Button
-              onClick={handleSearch}
-              disabled={!searchId && !searchCustomer && !searchProduct}
-            >
-              <Search className="h-4 w-4" /> Search
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setSearchId("");
-                setSearchCustomer("");
-                setSearchProduct("");
-                setSearchResults([]);
-                setHasSearched(false);
-              }}
-            >
-              Clear
-            </Button>
-          </div>
-          {hasSearched && (
-            <div>
-              <div
-                className={`text-sm mb-3 ${
-                  isNight ? "text-white/70" : "text-gray-600"
-                }`}
-              >
-                Found {searchResults.length} result
-                {searchResults.length !== 1 ? "s" : ""}
-              </div>
-              {searchResults.length > 0 ? (
-                <div
-                  className={`overflow-x-auto border rounded-2xl scroll-glass ${
-                    isNight
-                      ? "bg-white/8 border-white/15"
-                      : "bg-white/40 border-white/50"
-                  } bg-clip-padding backdrop-blur-sm`}
-                >
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr
-                        className={`${
-                          isNight ? "text-white/70" : "text-gray-600"
-                        } text-left`}
-                      >
-                        <th className="py-2 px-3">ID</th>
-                        <th className="py-2 px-3">Title</th>
-                        <th className="py-2 px-3">Customer</th>
-                        <th className="py-2 px-3">Product</th>
-                        <th className="py-2 px-3">Status</th>
-                        <th className="py-2 px-3">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {searchResults.map((o) => (
-                        <tr
-                          key={o.id}
-                          className={`border-t ${
-                            isNight
-                              ? "border-white/10 hover:bg-white/5"
-                              : "hover:bg-black/5"
-                          }`}
-                        >
-                          <td className="py-2 px-3">
-                            <button
-                              onClick={() => {
-                                onViewDetails(o.id);
-                                onClose();
-                              }}
-                              className="cursor-pointer hover:opacity-80 transition-opacity"
-                            >
-                              #{o.id}
-                            </button>
-                          </td>
-                          <td className="py-2 px-3 font-medium">{o.title}</td>
-                          <td className="py-2 px-3">{o.customerName || "-"}</td>
-                          <td className="py-2 px-3">{o.product || "-"}</td>
-                          <td className="py-2 px-3">
-                            <span
-                              className="px-2 py-1 rounded-lg text-xs"
-                              style={{
-                                background: `${
-                                  STATUS_COLORS[o.status] || "#999"
-                                }22`,
-                                color: isNight ? "#fff" : "#111",
-                              }}
-                            >
-                              {o.status}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3">
-                            ${Number(o.amount).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div
-                  className={`text-center py-8 ${
-                    isNight ? "text-white/50" : "text-gray-500"
-                  }`}
-                >
-                  No opportunities found
-                </div>
-              )}
-            </div>
-          )}
-        </CardBody>
-      </div>
-    </div>
-  );
-}
+//   if (!isOpen) return null;
+//   return (
+//     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+//       <div
+//         className="absolute inset-0 bg-black/40 backdrop-blur-md"
+//         onClick={onClose}
+//       />
+//       <div
+//         className={`relative w-full max-w-3xl max-h-[80vh] rounded-3xl ${
+//           isNight
+//             ? "bg-white/10 border-white/20"
+//             : "bg-white/20 border-white/40"
+//         } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden flex flex-col`}
+//       >
+//         <CardHeader
+//           title="Search Opportunities"
+//           subtitle="Search by ID, Customer, or Product"
+//           right={
+//             <Button variant="ghost" onClick={onClose}>
+//               <XIcon className="h-4 w-4" />
+//             </Button>
+//           }
+//         />
+//         <CardBody className="flex-1 overflow-y-auto">
+//           <div className="grid md:grid-cols-3 gap-4 mb-6">
+//             <div>
+//               <Label>Opportunity ID</Label>
+//               <Input
+//                 type="text"
+//                 value={searchId}
+//                 onChange={(e) => setSearchId(e.target.value)}
+//                 placeholder="e.g., 123"
+//                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+//               />
+//             </div>
+//             <div>
+//               <Label>Customer Name</Label>
+//               <Input
+//                 type="text"
+//                 value={searchCustomer}
+//                 onChange={(e) => setSearchCustomer(e.target.value)}
+//                 placeholder="e.g., Customer 1"
+//                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+//               />
+//             </div>
+//             <div>
+//               <Label>Product</Label>
+//               <Input
+//                 type="text"
+//                 value={searchProduct}
+//                 onChange={(e) => setSearchProduct(e.target.value)}
+//                 placeholder="e.g., Product name"
+//                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+//               />
+//             </div>
+//           </div>
+//           <div className="flex gap-2 mb-6">
+//             <Button
+//               onClick={handleSearch}
+//               disabled={!searchId && !searchCustomer && !searchProduct}
+//             >
+//               <Search className="h-4 w-4" /> Search
+//             </Button>
+//             <Button
+//               variant="ghost"
+//               onClick={() => {
+//                 setSearchId("");
+//                 setSearchCustomer("");
+//                 setSearchProduct("");
+//                 setSearchResults([]);
+//                 setHasSearched(false);
+//               }}
+//             >
+//               Clear
+//             </Button>
+//           </div>
+//           {hasSearched && (
+//             <div>
+//               <div
+//                 className={`text-sm mb-3 ${
+//                   isNight ? "text-white/70" : "text-gray-600"
+//                 }`}
+//               >
+//                 Found {searchResults.length} result
+//                 {searchResults.length !== 1 ? "s" : ""}
+//               </div>
+//               {searchResults.length > 0 ? (
+//                 <div
+//                   className={`overflow-x-auto border rounded-2xl scroll-glass ${
+//                     isNight
+//                       ? "bg-white/8 border-white/15"
+//                       : "bg-white/40 border-white/50"
+//                   } bg-clip-padding backdrop-blur-sm`}
+//                 >
+//                   <table className="min-w-full text-sm">
+//                     <thead>
+//                       <tr
+//                         className={`${
+//                           isNight ? "text-white/70" : "text-gray-600"
+//                         } text-left`}
+//                       >
+//                         <th className="py-2 px-3">ID</th>
+//                         <th className="py-2 px-3">Title</th>
+//                         <th className="py-2 px-3">Customer</th>
+//                         <th className="py-2 px-3">Product</th>
+//                         <th className="py-2 px-3">Status</th>
+//                         <th className="py-2 px-3">Amount</th>
+//                       </tr>
+//                     </thead>
+//                     <tbody>
+//                       {searchResults.map((o) => (
+//                         <tr
+//                           key={o.id}
+//                           className={`border-t ${
+//                             isNight
+//                               ? "border-white/10 hover:bg-white/5"
+//                               : "hover:bg-black/5"
+//                           }`}
+//                         >
+//                           <td className="py-2 px-3">
+//                             <button
+//                               onClick={() => {
+//                                 onViewDetails(o.id);
+//                                 onClose();
+//                               }}
+//                               className="cursor-pointer hover:opacity-80 transition-opacity"
+//                             >
+//                               #{o.id}
+//                             </button>
+//                           </td>
+//                           <td className="py-2 px-3 font-medium">{o.title}</td>
+//                           <td className="py-2 px-3">{o.customerName || "-"}</td>
+//                           <td className="py-2 px-3">{o.product || "-"}</td>
+//                           <td className="py-2 px-3">
+//                             <span
+//                               className="px-2 py-1 rounded-lg text-xs"
+//                               style={{
+//                                 background: `${
+//                                   STATUS_COLORS[o.status] || "#999"
+//                                 }22`,
+//                                 color: isNight ? "#fff" : "#111",
+//                               }}
+//                             >
+//                               {o.status}
+//                             </span>
+//                           </td>
+//                           <td className="py-2 px-3">
+//                             ${Number(o.amount).toLocaleString()}
+//                           </td>
+//                         </tr>
+//                       ))}
+//                     </tbody>
+//                   </table>
+//                 </div>
+//               ) : (
+//                 <div
+//                   className={`text-center py-8 ${
+//                     isNight ? "text-white/50" : "text-gray-500"
+//                   }`}
+//                 >
+//                   No opportunities found
+//                 </div>
+//               )}
+//             </div>
+//           )}
+//         </CardBody>
+//       </div>
+//     </div>
+//   );
+// }
 
-// ---------------- FAB Navigation----------------
-function FloatingNav({
-  goOpps,
-  onSignOut,
-  onGoDashboard,
-  onSearch,
-  onGoMasterData,
-  onGoAnalytics,
-  isAdminUser,
-  onGoApprovals,
-}) {
-  const theme = useContext(ThemeContext);
-  const [open, setOpen] = useState(false);
-  const isNight = theme === "sunset";
-  const glass = isNight
-    ? "bg-white/12 border-white/20"
-    : "bg-white/20 border-white/40";
-  const btnBase = `h-14 w-14 rounded-full border ${glass} bg-clip-padding backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.15)] grid place-items-center`;
+// // ---------------- FAB Navigation----------------
+// function FloatingNav({
+//   goOpps,
+//   onSignOut,
+//   onGoDashboard,
+//   onSearch,
+//   onGoMasterData,
+//   onGoAnalytics,
+//   isAdminUser,
+//   onGoApprovals,
+// }) {
+//   const theme = useContext(ThemeContext);
+//   const [open, setOpen] = useState(false);
+//   const isNight = theme === "sunset";
+//   const glass = isNight
+//     ? "bg-white/12 border-white/20"
+//     : "bg-white/20 border-white/40";
+//   const btnBase = `h-14 w-14 rounded-full border ${glass} bg-clip-padding backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.15)] grid place-items-center`;
 
-  const actions = [
-    {
-      key: "dashboard",
-      icon: <LayoutDashboard className="h-6 w-6" />,
-      onClick: () => onGoDashboard?.(),
-      label: "Dashboard",
-    },
-    {
-      key: "accounts",
-      icon: <UserIcon className="h-6 w-6" />,
-      onClick: () => alert("Accounts - Coming Soon"),
-      label: "Accounts",
-    },
-    {
-      key: "opps",
-      icon: <TableIcon className="h-6 w-6" />,
-      onClick: () => goOpps?.(),
-      label: "My Opportunities",
-    },
-    {
-      key: "analytics",
-      icon: <TrendingUp className="h-6 w-6" />,
-      onClick: () => onGoAnalytics?.(),
-      label: "Analytics",
-    },
-    // { key: "search", icon: <Search className="h-6 w-6" />, onClick: () => onSearch?.(), label: "Search" },
-    {
-      key: "logout",
-      icon: <LogOut className="h-6 w-6" />,
-      onClick: () => onSignOut?.(),
-      label: "Sign Out",
-    },
-    ``,
-  ];
+//   const actions = [
+//     {
+//       key: "dashboard",
+//       icon: <LayoutDashboard className="h-6 w-6" />,
+//       onClick: () => onGoDashboard?.(),
+//       label: "Dashboard",
+//     },
+//     {
+//       key: "accounts",
+//       icon: <UserIcon className="h-6 w-6" />,
+//       onClick: () => alert("Accounts - Coming Soon"),
+//       label: "Accounts",
+//     },
+//     {
+//       key: "opps",
+//       icon: <TableIcon className="h-6 w-6" />,
+//       onClick: () => goOpps?.(),
+//       label: "My Opportunities",
+//     },
+//     {
+//       key: "analytics",
+//       icon: <TrendingUp className="h-6 w-6" />,
+//       onClick: () => onGoAnalytics?.(),
+//       label: "Analytics",
+//     },
+//     // { key: "search", icon: <Search className="h-6 w-6" />, onClick: () => onSearch?.(), label: "Search" },
+//     {
+//       key: "logout",
+//       icon: <LogOut className="h-6 w-6" />,
+//       onClick: () => onSignOut?.(),
+//       label: "Sign Out",
+//     },
+//     ``,
+//   ];
 
-  if (onGoMasterData) {
-    actions.splice(4, 0, {
-      key: "masterdata",
-      icon: <Database className="h-6 w-6" />,
-      onClick: () => onGoMasterData?.(),
-      label: "Master Data",
-    });
-  }
-  if (onGoApprovals) {
-    actions.splice(4, 0, {
-      key: "approvals",
-      icon: <Database className="h-6 w-6" />,
-      onClick: () => onGoApprovals?.(),
-      label: "Approvals",
-    });
-  }
+//   if (onGoMasterData) {
+//     actions.splice(4, 0, {
+//       key: "masterdata",
+//       icon: <Database className="h-6 w-6" />,
+//       onClick: () => onGoMasterData?.(),
+//       label: "Master Data",
+//     });
+//   }
+//   if (onGoApprovals) {
+//     actions.splice(4, 0, {
+//       key: "approvals",
+//       icon: <Database className="h-6 w-6" />,
+//       onClick: () => onGoApprovals?.(),
+//       label: "Approvals",
+//     });
+//   }
 
-  const maxHeight = actions.length * 70 + 70;
+//   const maxHeight = actions.length * 70 + 70;
 
-  return (
-    <div
-      className="fixed bottom-6 right-6 z-50"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      style={{
-        height: open ? `${maxHeight}px` : "56px",
-        width: "56px",
-        transition: "height 0.3s ease",
-      }}
-    >
-      {actions.map((a, index) => {
-        const bottomOffset = (index + 1) * 70;
-        return (
-          <div
-            key={a.key}
-            className="absolute bottom-0 right-0"
-            style={{
-              transform: open
-                ? `translateY(-${bottomOffset}px)`
-                : "translate(0, 0)",
-              opacity: open ? 1 : 0,
-              pointerEvents: open ? "auto" : "none",
-              transition: `all ${200 + index * 30}ms cubic-bezier(.2,.8,.2,1)`,
-              transitionDelay: open ? `${index * 20}ms` : "0ms",
-            }}
-          >
-            <div className="relative group">
-              <button
-                className={`${btnBase} hover:scale-110 transition-transform`}
-                onClick={a.onClick}
-                aria-label={a.label}
-                title={a.label}
-              >
-                {a.icon}
-              </button>
-              <span
-                className={`pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl text-xs whitespace-nowrap shadow-lg opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ${
-                  isNight
-                    ? "bg-white/20 border border-white/25 text-white"
-                    : "bg-white/70 border border-white/50 text-gray-900"
-                } backdrop-blur-2xl`}
-              >
-                {a.label}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-      <button
-        className={`${btnBase} ${
-          open
-            ? isNight
-              ? "ring-2 ring-[#F6E500]"
-              : "ring-2 ring-[#00205C]"
-            : ""
-        } hover:scale-110 transition-transform absolute bottom-0 right-0`}
-        aria-label="Quick navigation"
-        title="Quick Navigation"
-      >
-        <LayoutDashboard className="h-6 w-6" />
-      </button>
-    </div>
-  );
-}
+//   return (
+//     <div
+//       className="fixed bottom-6 right-6 z-50"
+//       onMouseEnter={() => setOpen(true)}
+//       onMouseLeave={() => setOpen(false)}
+//       style={{
+//         height: open ? `${maxHeight}px` : "56px",
+//         width: "56px",
+//         transition: "height 0.3s ease",
+//       }}
+//     >
+//       {actions.map((a, index) => {
+//         const bottomOffset = (index + 1) * 70;
+//         return (
+//           <div
+//             key={a.key}
+//             className="absolute bottom-0 right-0"
+//             style={{
+//               transform: open
+//                 ? `translateY(-${bottomOffset}px)`
+//                 : "translate(0, 0)",
+//               opacity: open ? 1 : 0,
+//               pointerEvents: open ? "auto" : "none",
+//               transition: `all ${200 + index * 30}ms cubic-bezier(.2,.8,.2,1)`,
+//               transitionDelay: open ? `${index * 20}ms` : "0ms",
+//             }}
+//           >
+//             <div className="relative group">
+//               <button
+//                 className={`${btnBase} hover:scale-110 transition-transform`}
+//                 onClick={a.onClick}
+//                 aria-label={a.label}
+//                 title={a.label}
+//               >
+//                 {a.icon}
+//               </button>
+//               <span
+//                 className={`pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl text-xs whitespace-nowrap shadow-lg opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ${
+//                   isNight
+//                     ? "bg-white/20 border border-white/25 text-white"
+//                     : "bg-white/70 border border-white/50 text-gray-900"
+//                 } backdrop-blur-2xl`}
+//               >
+//                 {a.label}
+//               </span>
+//             </div>
+//           </div>
+//         );
+//       })}
+//       <button
+//         className={`${btnBase} ${
+//           open
+//             ? isNight
+//               ? "ring-2 ring-[#F6E500]"
+//               : "ring-2 ring-[#00205C]"
+//             : ""
+//         } hover:scale-110 transition-transform absolute bottom-0 right-0`}
+//         aria-label="Quick navigation"
+//         title="Quick Navigation"
+//       >
+//         <LayoutDashboard className="h-6 w-6" />
+//       </button>
+//     </div>
+//   );
+// }
 
-// ---------------- Inputs ----------------
-function Label({ children }) {
-  const theme = useContext(ThemeContext);
-  return (
-    <span
-      className={`text-xs ${
-        theme === "sunset" ? "text-white/70" : "text-gray-600"
-      }`}
-    >
-      {children}
-    </span>
-  );
-}
-function Input({ ...props }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  return (
-    <input
-      {...props}
-      className={`rounded-2xl border px-3 py-2 focus:ring-2 outline-none w-full ${
-        isNight
-          ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
-          : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
-      } ${props.className || ""}`}
-    />
-  );
-}
-function Textarea({ ...props }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  return (
-    <textarea
-      {...props}
-      className={`rounded-2xl border px-3 py-2 focus:ring-2 outline-none w-full min-h-[90px] ${
-        isNight
-          ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
-          : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
-      } ${props.className || ""}`}
-    />
-  );
-}
+// // ---------------- Inputs ----------------
+// function Label({ children }) {
+//   const theme = useContext(ThemeContext);
+//   return (
+//     <span
+//       className={`text-xs ${
+//         theme === "sunset" ? "text-white/70" : "text-gray-600"
+//       }`}
+//     >
+//       {children}
+//     </span>
+//   );
+// }
+// function Input({ ...props }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   return (
+//     <input
+//       {...props}
+//       className={`rounded-2xl border px-3 py-2 focus:ring-2 outline-none w-full ${
+//         isNight
+//           ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
+//           : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
+//       } ${props.className || ""}`}
+//     />
+//   );
+// }
+// function Textarea({ ...props }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   return (
+//     <textarea
+//       {...props}
+//       className={`rounded-2xl border px-3 py-2 focus:ring-2 outline-none w-full min-h-[90px] ${
+//         isNight
+//           ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
+//           : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
+//       } ${props.className || ""}`}
+//     />
+//   );
+// }
 
-// ---------------- Login----------------
-function LoginPage({ onSubmit, onSignup }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [openSignup, setOpenSignup] = useState(false);
-  const [su, setSu] = useState({
-    firstName: "",
-    lastName: "",
-    preferredName: "",
-    email: "",
-  });
-  const [suErr, setSuErr] = useState("");
-  const [suSuccess, setSuSuccess] = useState(false);
-  const [signupSubmitting, setSignupSubmitting] = useState(false);
-  const doleEmail = /^[A-Za-z0-9._%+-]+@doleintl\.com$/i;
+// // ---------------- Login----------------
+// function LoginPage({ onSubmit, onSignup }) {
+//   const theme = useContext(ThemeContext);
+//   const isNight = theme === "sunset";
+//   const [email, setEmail] = useState("");
+//   const [error, setError] = useState("");
+//   const [submitting, setSubmitting] = useState(false);
+//   const [openSignup, setOpenSignup] = useState(false);
+//   const [su, setSu] = useState({
+//     firstName: "",
+//     lastName: "",
+//     preferredName: "",
+//     email: "",
+//   });
+//   const [suErr, setSuErr] = useState("");
+//   const [suSuccess, setSuSuccess] = useState(false);
+//   const [signupSubmitting, setSignupSubmitting] = useState(false);
+//   const doleEmail = /^[A-Za-z0-9._%+-]+@doleintl\.com$/i;
 
-  async function handleSignIn(e) {
-    e.preventDefault();
-    const emailTrim = email.trim();
-    const doleEmail = /^[A-Za-z0-9._%+-]+@doleintl\.com$/i;
+//   async function handleSignIn(e) {
+//     e.preventDefault();
+//     const emailTrim = email.trim();
+//     const doleEmail = /^[A-Za-z0-9._%+-]+@doleintl\.com$/i;
 
-    if (!doleEmail.test(emailTrim)) {
-      setError("Use your @doleintl.com email");
-      return;
-    }
+//     if (!doleEmail.test(emailTrim)) {
+//       setError("Use your @doleintl.com email");
+//       return;
+//     }
 
-    setSubmitting(true);
-    setError("");
+//     setSubmitting(true);
+//     setError("");
 
-    try {
-      const ok = await onSubmit(emailTrim);
-      setSubmitting(false);
+//     try {
+//       const ok = await onSubmit(emailTrim);
+//       setSubmitting(false);
 
-      if (!ok) {
-        setError("User not found. Please sign up to create an account.");
-      }
-    } catch (err) {
-      setSubmitting(false);
-      setError("An error occurred. Please try again.");
-    }
-  }
+//       if (!ok) {
+//         setError("User not found. Please sign up to create an account.");
+//       }
+//     } catch (err) {
+//       setSubmitting(false);
+//       setError("An error occurred. Please try again.");
+//     }
+//   }
 
-  function openSu() {
-    setSu({
-      firstName: "",
-      lastName: "",
-      preferredName: "",
-      email: email.trim(),
-    });
-    setSuErr("");
-    setSuSuccess(false);
-    setOpenSignup(true);
-  }
+//   function openSu() {
+//     setSu({
+//       firstName: "",
+//       lastName: "",
+//       preferredName: "",
+//       email: email.trim(),
+//     });
+//     setSuErr("");
+//     setSuSuccess(false);
+//     setOpenSignup(true);
+//   }
 
-  async function submitSignup(e) {
-    e.preventDefault();
+//   async function submitSignup(e) {
+//     e.preventDefault();
 
-    if (!su.firstName || !su.lastName || !doleEmail.test(su.email.trim())) {
-      setSuErr("First, Last and a valid @doleintl.com Email are required");
-      return;
-    }
+//     if (!su.firstName || !su.lastName || !doleEmail.test(su.email.trim())) {
+//       setSuErr("First, Last and a valid @doleintl.com Email are required");
+//       return;
+//     }
 
-    setSignupSubmitting(true);
-    setSuErr("");
+//     setSignupSubmitting(true);
+//     setSuErr("");
 
-    try {
-      const ok = await onSignup(su);
+//     try {
+//       const ok = await onSignup(su);
 
-      if (ok === true) {
-        setSuSuccess(true);
-        setTimeout(() => {
-          setOpenSignup(false);
-          setSuSuccess(false);
-        }, 3000);
-      } else {
-        setSuErr(
-          typeof ok === "string" ? ok : "Failed to submit signup request"
-        );
-      }
-    } catch (err) {
-      setSuErr(
-        "An error occurred while submitting your request. Please try again."
-      );
-    } finally {
-      setSignupSubmitting(false);
-    }
-  }
+//       if (ok === true) {
+//         setSuSuccess(true);
+//         setTimeout(() => {
+//           setOpenSignup(false);
+//           setSuSuccess(false);
+//         }, 3000);
+//       } else {
+//         setSuErr(
+//           typeof ok === "string" ? ok : "Failed to submit signup request"
+//         );
+//       }
+//     } catch (err) {
+//       setSuErr(
+//         "An error occurred while submitting your request. Please try again."
+//       );
+//     } finally {
+//       setSignupSubmitting(false);
+//     }
+//   }
 
-  function closeSignupModal() {
-    setOpenSignup(false);
-    setSuSuccess(false);
-    setSuErr("");
-  }
+//   function closeSignupModal() {
+//     setOpenSignup(false);
+//     setSuSuccess(false);
+//     setSuErr("");
+//   }
 
-  return (
-    <div
-      className={`min-h-screen grid md:grid-cols-2 ${
-        isNight ? "theme-sunset text-white" : "theme-sunrise text-gray-900"
-      }`}
-      style={{
-        background: isNight
-          ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
-          : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
-      }}
-    >
-      <div className="hidden md:flex items-center justify-center p-10">
-        <div className="max-w-xl">
-          <div className="flex items-center gap-5">
-            <img
-              src="/vector.png"
-              alt="Vector"
-              className="h-28 w-auto flex-shrink-0 drop-shadow"
-            />
-            <div className="text-left">
-              <h1
-                className={`text-4xl font-semibold tracking-tight ${
-                  isNight ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Vector
-              </h1>
-              <p
-                className={`mt-1 text-base ${
-                  isNight ? "text-white/70" : "text-gray-600"
-                }`}
-              >
-                Your Opportunity Pipeline Hub
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+//   return (
+//     <div
+//       className={`min-h-screen grid md:grid-cols-2 ${
+//         isNight ? "theme-sunset text-white" : "theme-sunrise text-gray-900"
+//       }`}
+//       style={{
+//         background: isNight
+//           ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
+//           : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
+//       }}
+//     >
+//       <div className="hidden md:flex items-center justify-center p-10">
+//         <div className="max-w-xl">
+//           <div className="flex items-center gap-5">
+//             <img
+//               src="/vector.png"
+//               alt="Vector"
+//               className="h-28 w-auto flex-shrink-0 drop-shadow"
+//             />
+//             <div className="text-left">
+//               <h1
+//                 className={`text-4xl font-semibold tracking-tight ${
+//                   isNight ? "text-white" : "text-gray-900"
+//                 }`}
+//               >
+//                 Vector
+//               </h1>
+//               <p
+//                 className={`mt-1 text-base ${
+//                   isNight ? "text-white/70" : "text-gray-600"
+//                 }`}
+//               >
+//                 Your Opportunity Pipeline Hub
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
 
-      <div className="w-full flex items-center justify-center px-6 py-10">
-        <Card className="w-full max-w-md">
-          <CardHeader title="Welcome" subtitle="Use your work email" />
-          <CardBody>
-            <form onSubmit={handleSignIn} className="grid gap-3">
-              <label className="grid gap-1">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError("");
-                  }}
-                  placeholder="your.name@doleintl.com"
-                  pattern="^[A-Za-z0-9._%+-]+@doleintl\.com$"
-                  title="Use your @doleintl.com work email"
-                  disabled={submitting}
-                />
-              </label>
-              {error && (
-                <div
-                  className={`mt-2 text-sm ${
-                    error.includes("not found")
-                      ? "text-amber-600"
-                      : "text-red-500"
-                  }`}
-                >
-                  {error}
-                  {error.includes("not found") && (
-                    <div className="mt-1">
-                      <button
-                        type="button"
-                        onClick={openSu}
-                        className="text-blue-600 hover:text-blue-800 underline text-sm"
-                      >
-                        Click here to sign up
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button onClick={handleSignIn} disabled={submitting}>
-                  {submitting ? "Signing In..." : "Sign In"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={openSu}>
-                  Sign Up
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      </div>
+//       <div className="w-full flex items-center justify-center px-6 py-10">
+//         <Card className="w-full max-w-md">
+//           <CardHeader title="Welcome" subtitle="Use your work email" />
+//           <CardBody>
+//             <form onSubmit={handleSignIn} className="grid gap-3">
+//               <label className="grid gap-1">
+//                 <Label>Email</Label>
+//                 <Input
+//                   type="email"
+//                   value={email}
+//                   onChange={(e) => {
+//                     setEmail(e.target.value);
+//                     setError("");
+//                   }}
+//                   placeholder="your.name@doleintl.com"
+//                   pattern="^[A-Za-z0-9._%+-]+@doleintl\.com$"
+//                   title="Use your @doleintl.com work email"
+//                   disabled={submitting}
+//                 />
+//               </label>
+//               {error && (
+//                 <div
+//                   className={`mt-2 text-sm ${
+//                     error.includes("not found")
+//                       ? "text-amber-600"
+//                       : "text-red-500"
+//                   }`}
+//                 >
+//                   {error}
+//                   {error.includes("not found") && (
+//                     <div className="mt-1">
+//                       <button
+//                         type="button"
+//                         onClick={openSu}
+//                         className="text-blue-600 hover:text-blue-800 underline text-sm"
+//                       >
+//                         Click here to sign up
+//                       </button>
+//                     </div>
+//                   )}
+//                 </div>
+//               )}
+//               <div className="flex gap-2">
+//                 <Button onClick={handleSignIn} disabled={submitting}>
+//                   {submitting ? "Signing In..." : "Sign In"}
+//                 </Button>
+//                 <Button type="button" variant="ghost" onClick={openSu}>
+//                   Sign Up
+//                 </Button>
+//               </div>
+//             </form>
+//           </CardBody>
+//         </Card>
+//       </div>
 
-      {openSignup && (
-        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
-            onClick={closeSignupModal}
-          />
-          <Card
-            className={`relative w-full max-w-lg ${
-              isNight
-                ? "bg-white/10 border-white/20"
-                : "bg-white/20 border-white/40"
-            }`}
-          >
-            <CardHeader
-              title={suSuccess ? "Request Submitted!" : "Create Account"}
-              subtitle={
-                suSuccess
-                  ? "Your request has been submitted for admin approval"
-                  : "Submit for admin approval"
-              }
-              right={
-                <Button variant="ghost" onClick={closeSignupModal}>
-                  Close
-                </Button>
-              }
-            />
-            <CardBody>
-              {suSuccess ? (
-                <div className="text-center py-8">
-                  <div
-                    className={`text-6xl mb-4 ${
-                      isNight ? "text-green-400" : "text-green-600"
-                    }`}
-                  >
-                    ✓
-                  </div>
-                  <p
-                    className={`text-lg ${
-                      isNight ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    Your registration request has been submitted successfully!
-                  </p>
-                  <p
-                    className={`text-sm mt-2 ${
-                      isNight ? "text-white/70" : "text-gray-600"
-                    }`}
-                  >
-                    An admin will review your request and you'll be notified
-                    once approved.
-                  </p>
-                  <p
-                    className={`text-xs mt-4 ${
-                      isNight ? "text-white/50" : "text-gray-500"
-                    }`}
-                  >
-                    This window will close automatically in a few seconds.
-                  </p>
-                </div>
-              ) : (
-                <form
-                  onSubmit={submitSignup}
-                  className="grid md:grid-cols-2 gap-4"
-                >
-                  <label className="grid gap-1">
-                    <Label>First Name</Label>
-                    <Input
-                      value={su.firstName}
-                      onChange={(e) =>
-                        setSu({ ...su, firstName: e.target.value })
-                      }
-                      disabled={signupSubmitting}
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <Label>Last Name</Label>
-                    <Input
-                      value={su.lastName}
-                      onChange={(e) =>
-                        setSu({ ...su, lastName: e.target.value })
-                      }
-                      disabled={signupSubmitting}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <Label>Preferred Name</Label>
-                    <Input
-                      value={su.preferredName}
-                      onChange={(e) =>
-                        setSu({ ...su, preferredName: e.target.value })
-                      }
-                      disabled={signupSubmitting}
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={su.email}
-                      onChange={(e) => setSu({ ...su, email: e.target.value })}
-                      placeholder="your.name@doleintl.com"
-                      pattern="^[A-Za-z0-9._%+-]+@doleintl\.com$"
-                      title="Use your @doleintl.com work email"
-                      disabled={signupSubmitting}
-                    />
-                  </label>
-                  {suErr && (
-                    <div
-                      className={`md:col-span-2 ${
-                        isNight ? "text-amber-200" : "text-amber-700"
-                      } text-xs`}
-                    >
-                      {suErr}
-                    </div>
-                  )}
-                  <div className="md:col-span-2 flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      onClick={closeSignupModal}
-                      disabled={signupSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={signupSubmitting}>
-                      {signupSubmitting ? "Submitting..." : "Submit"}
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
+//       {openSignup && (
+//         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+//           <div
+//             className="absolute inset-0 bg-black/40 backdrop-blur-md"
+//             onClick={closeSignupModal}
+//           />
+//           <Card
+//             className={`relative w-full max-w-lg ${
+//               isNight
+//                 ? "bg-white/10 border-white/20"
+//                 : "bg-white/20 border-white/40"
+//             }`}
+//           >
+//             <CardHeader
+//               title={suSuccess ? "Request Submitted!" : "Create Account"}
+//               subtitle={
+//                 suSuccess
+//                   ? "Your request has been submitted for admin approval"
+//                   : "Submit for admin approval"
+//               }
+//               right={
+//                 <Button variant="ghost" onClick={closeSignupModal}>
+//                   Close
+//                 </Button>
+//               }
+//             />
+//             <CardBody>
+//               {suSuccess ? (
+//                 <div className="text-center py-8">
+//                   <div
+//                     className={`text-6xl mb-4 ${
+//                       isNight ? "text-green-400" : "text-green-600"
+//                     }`}
+//                   >
+//                     ✓
+//                   </div>
+//                   <p
+//                     className={`text-lg ${
+//                       isNight ? "text-white" : "text-gray-900"
+//                     }`}
+//                   >
+//                     Your registration request has been submitted successfully!
+//                   </p>
+//                   <p
+//                     className={`text-sm mt-2 ${
+//                       isNight ? "text-white/70" : "text-gray-600"
+//                     }`}
+//                   >
+//                     An admin will review your request and you'll be notified
+//                     once approved.
+//                   </p>
+//                   <p
+//                     className={`text-xs mt-4 ${
+//                       isNight ? "text-white/50" : "text-gray-500"
+//                     }`}
+//                   >
+//                     This window will close automatically in a few seconds.
+//                   </p>
+//                 </div>
+//               ) : (
+//                 <form
+//                   onSubmit={submitSignup}
+//                   className="grid md:grid-cols-2 gap-4"
+//                 >
+//                   <label className="grid gap-1">
+//                     <Label>First Name</Label>
+//                     <Input
+//                       value={su.firstName}
+//                       onChange={(e) =>
+//                         setSu({ ...su, firstName: e.target.value })
+//                       }
+//                       disabled={signupSubmitting}
+//                     />
+//                   </label>
+//                   <label className="grid gap-1">
+//                     <Label>Last Name</Label>
+//                     <Input
+//                       value={su.lastName}
+//                       onChange={(e) =>
+//                         setSu({ ...su, lastName: e.target.value })
+//                       }
+//                       disabled={signupSubmitting}
+//                     />
+//                   </label>
+//                   <label className="grid gap-1 md:col-span-2">
+//                     <Label>Preferred Name</Label>
+//                     <Input
+//                       value={su.preferredName}
+//                       onChange={(e) =>
+//                         setSu({ ...su, preferredName: e.target.value })
+//                       }
+//                       disabled={signupSubmitting}
+//                     />
+//                   </label>
+//                   <label className="grid gap-1 md:col-span-2">
+//                     <Label>Email</Label>
+//                     <Input
+//                       type="email"
+//                       value={su.email}
+//                       onChange={(e) => setSu({ ...su, email: e.target.value })}
+//                       placeholder="your.name@doleintl.com"
+//                       pattern="^[A-Za-z0-9._%+-]+@doleintl\.com$"
+//                       title="Use your @doleintl.com work email"
+//                       disabled={signupSubmitting}
+//                     />
+//                   </label>
+//                   {suErr && (
+//                     <div
+//                       className={`md:col-span-2 ${
+//                         isNight ? "text-amber-200" : "text-amber-700"
+//                       } text-xs`}
+//                     >
+//                       {suErr}
+//                     </div>
+//                   )}
+//                   <div className="md:col-span-2 flex justify-end gap-2">
+//                     <Button
+//                       variant="ghost"
+//                       type="button"
+//                       onClick={closeSignupModal}
+//                       disabled={signupSubmitting}
+//                     >
+//                       Cancel
+//                     </Button>
+//                     <Button type="submit" disabled={signupSubmitting}>
+//                       {signupSubmitting ? "Submitting..." : "Submit"}
+//                     </Button>
+//                   </div>
+//                 </form>
+//               )}
+//             </CardBody>
+//           </Card>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
 
 // ---- Master Data: User Registration ----
 function UserRegistrationTable({ currentUser }) {
@@ -2963,18 +2981,18 @@ function AnalyticsPage({ opps = [], currentUser }) {
     chartTheme;
 
   // Pie chart colors
-  const pieColors = [
-    "#3B82F6",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#8B5CF6",
-    "#06B6D4",
-    "#84CC16",
-    "#F97316",
-    "#EC4899",
-    "#6366F1",
-  ];
+  // const pieColors = [
+  //   "#3B82F6",
+  //   "#10B981",
+  //   "#F59E0B",
+  //   "#EF4444",
+  //   "#8B5CF6",
+  //   "#06B6D4",
+  //   "#84CC16",
+  //   "#F97316",
+  //   "#EC4899",
+  //   "#6366F1",
+  // ];
 
   return (
     <div className="min-h-screen p-6">
@@ -7266,540 +7284,540 @@ function WelcomeCard({
 
 // ---------------- mockSeed ----------------
 function seedOpps() {
-  const now = new Date();
+  // const now = new Date();
 
-  const ownerMapping = {
-    Bill: "bill@doleintl.com",
-    Diana: "diana@doleintl.com",
-    Gregg: "gregg@doleintl.com",
-    Dan: "dan@doleintl.com",
-    Steve: "steve@doleintl.com",
-  };
+  // const ownerMapping = {
+  //   Bill: "bill@doleintl.com",
+  //   Diana: "diana@doleintl.com",
+  //   Gregg: "gregg@doleintl.com",
+  //   Dan: "dan@doleintl.com",
+  //   Steve: "steve@doleintl.com",
+  // };
 
-  const opportunities = [
-    // Bill's Field Sales opportunities (rows 1-25)
-    {
-      id: 1,
-      title: "&Pizza - Pineapple Juice",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "&Pizza",
-      product: "12/46 FL OZ PINEAPPLE JUICE (CONVENIENCE)",
-      units2023: 59,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890000818",
-      productCategory: "BEVERAGE",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 2,
-      title: "bb.q Chicken - Pineapple Juice SW",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "bb.q Chicken",
-      product: "2/24/6 OZ PINEAPPLE JUICE SW (CONVENIENCE)",
-      units2023: 165,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890000914",
-      productCategory: "BEVERAGE",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 3,
-      title: "Ben & Jerry's - Pineapple Juice",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Ben & Jerry's",
-      product: "8/6/6OZ PINEAPPLE JUICE (CONVENIENCE)",
-      units2023: 187,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890000947",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 4,
-      title: "Bruegger's - Pineapple Sliced",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Bruegger's",
-      product: "12/8 OZ FANCY PINEAPPLE SLICED IN JUICE (CONVENIENCE)",
-      units2023: 181,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890001139",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 5,
-      title: "Bruster's - Pineapple Chunk",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Bruster's Real Ice Cream",
-      product: "12/20 OZ FANCY PINEAPPLE CHUNK JUICE (CONVENIENCE)",
-      units2023: 194,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890001473",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 6,
-      title: "D'Angelo - Mixed Fruit",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "D'Angelo",
-      product: "6/4/4OZ MIXED FRUIT JUICE CUP (CONVENIENCE)",
-      units2023: 83,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890003060",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 7,
-      title: "Dibella's - Pineapple Chunk",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Dibella's",
-      product: "12/8 OZ FANCY PINAPPLE CHUNK IN JUICE (CONVENIENCE)",
-      units2023: 43,
-      salesStage: "Lead: Deprioritized Account",
-      materialId: "3890011469",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 8,
-      title: "Duck Donuts - Pineapple Juice",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Duck Donuts",
-      product: "12/46 FL OZ PINEAPPLE JUICE (CONVENIENCE)",
-      units2023: 125,
-      salesStage: "Lead: Deprioritized Account",
-      estimatedVolume: 10000,
-      materialId: "3890000818",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 9,
-      title: "Famous Dave's - Pineapple Juice SW",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Famous Dave's",
-      product: "2/24/6 OZ PINEAPPLE JUICE SW (CONVENIENCE)",
-      units2023: 116,
-      salesStage: "Lead: Deprioritized Account",
-      estimatedVolume: 45000,
-      materialId: "3890000914",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 10,
-      title: "Gino's Pizza - Pineapple Juice",
-      amount: 0,
-      status: "Lead: Deprioritized Account",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Gino's Pizza & Spaghetti House",
-      product: "8/6/6OZ PINEAPPLE JUICE (CONVENIENCE)",
-      units2023: 52,
-      salesStage: "Lead: Deprioritized Account",
-      estimatedVolume: 23400,
-      materialId: "3890000947",
-      createdAt: new Date(2024, 0, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
+  // const opportunities = [
+  //   // Bill's Field Sales opportunities (rows 1-25)
+  //   {
+  //     id: 1,
+  //     title: "&Pizza - Pineapple Juice",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "&Pizza",
+  //     product: "12/46 FL OZ PINEAPPLE JUICE (CONVENIENCE)",
+  //     units2023: 59,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890000818",
+  //     productCategory: "BEVERAGE",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "bb.q Chicken - Pineapple Juice SW",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "bb.q Chicken",
+  //     product: "2/24/6 OZ PINEAPPLE JUICE SW (CONVENIENCE)",
+  //     units2023: 165,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890000914",
+  //     productCategory: "BEVERAGE",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Ben & Jerry's - Pineapple Juice",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Ben & Jerry's",
+  //     product: "8/6/6OZ PINEAPPLE JUICE (CONVENIENCE)",
+  //     units2023: 187,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890000947",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "Bruegger's - Pineapple Sliced",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Bruegger's",
+  //     product: "12/8 OZ FANCY PINEAPPLE SLICED IN JUICE (CONVENIENCE)",
+  //     units2023: 181,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890001139",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 5,
+  //     title: "Bruster's - Pineapple Chunk",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Bruster's Real Ice Cream",
+  //     product: "12/20 OZ FANCY PINEAPPLE CHUNK JUICE (CONVENIENCE)",
+  //     units2023: 194,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890001473",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 6,
+  //     title: "D'Angelo - Mixed Fruit",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "D'Angelo",
+  //     product: "6/4/4OZ MIXED FRUIT JUICE CUP (CONVENIENCE)",
+  //     units2023: 83,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890003060",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 7,
+  //     title: "Dibella's - Pineapple Chunk",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Dibella's",
+  //     product: "12/8 OZ FANCY PINAPPLE CHUNK IN JUICE (CONVENIENCE)",
+  //     units2023: 43,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     materialId: "3890011469",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 8,
+  //     title: "Duck Donuts - Pineapple Juice",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Duck Donuts",
+  //     product: "12/46 FL OZ PINEAPPLE JUICE (CONVENIENCE)",
+  //     units2023: 125,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     estimatedVolume: 10000,
+  //     materialId: "3890000818",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 9,
+  //     title: "Famous Dave's - Pineapple Juice SW",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Famous Dave's",
+  //     product: "2/24/6 OZ PINEAPPLE JUICE SW (CONVENIENCE)",
+  //     units2023: 116,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     estimatedVolume: 45000,
+  //     materialId: "3890000914",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 10,
+  //     title: "Gino's Pizza - Pineapple Juice",
+  //     amount: 0,
+  //     status: "Lead: Deprioritized Account",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Gino's Pizza & Spaghetti House",
+  //     product: "8/6/6OZ PINEAPPLE JUICE (CONVENIENCE)",
+  //     units2023: 52,
+  //     salesStage: "Lead: Deprioritized Account",
+  //     estimatedVolume: 23400,
+  //     materialId: "3890000947",
+  //     createdAt: new Date(2024, 0, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
 
-    // Diana's National Account opportunities (rows 26-52)
-    {
-      id: 26,
-      title: "Texas Roadhouse - Pineapple Juice",
-      amount: 498261.67,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Texas Roadhouse",
-      product: "Pineapple Juice",
-      industrySegment: "Casual Dining",
-      units2023: 638,
-      salesStage: "Customer Engaged",
-      estimatedVolume: 15000,
-      materialId: "3890011469",
-      samplesNeeded: "Y",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2024, 9, 10),
-    },
-    {
-      id: 27,
-      title: "Texas Roadhouse - Lemons",
-      amount: 127281,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Texas Roadhouse",
-      product: "Lemons",
-      industrySegment: "Casual Dining",
-      units2023: 638,
-      salesStage: "Customer Engaged",
-      estimatedVolume: 44660,
-      materialId: "3890000818",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2024, 9, 10),
-    },
-    {
-      id: 28,
-      title: "Twin Peaks - Lemons",
-      amount: 1710000,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Twin Peaks",
-      product: "Lemons",
-      industrySegment: "Casual Dining",
-      units2023: 103,
-      salesStage: "2. Customer Engaged",
-      opportunityType: "New Business",
-      estimatedVolume: 20000,
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 2, 20),
-    },
-    {
-      id: 29,
-      title: "Wendy's - IQF Lemons",
-      amount: 309339,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Wendy's",
-      product: "IQF Lemons",
-      industrySegment: "QSR",
-      units2023: 6030,
-      salesStage: "2. Customer Engaged",
-      estimatedVolume: 108540,
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 30,
-      title: "Wienerschnitzel - Target",
-      amount: 0,
-      status: "Target Account",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Wienerschnitzel",
-      industrySegment: "QSR",
-      units2023: 323,
-      salesStage: "1. Target Account",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 25),
-    },
-    {
-      id: 31,
-      title: "Wingstop - Dole Whip",
-      amount: 3000,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Wingstop",
-      product: "Dole Whip Pineapple",
-      industrySegment: "Fast Casual",
-      units2023: 1950,
-      salesStage: "2. Customer Engaged",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 5, 1),
-    },
-    {
-      id: 32,
-      title: "IHOP - Good Crunch",
-      amount: 114720,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "IHOP",
-      product: "Good Crunch",
-      industrySegment: "Midscale",
-      units2023: 1696,
-      salesStage: "2. Customer Engaged",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 15),
-    },
-    {
-      id: 33,
-      title: "Landry's - 4+1 Strawberries",
-      amount: 57176.92,
-      status: "Win - Customer Verbal",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Landry's",
-      product: "4+1 Strawberries",
-      salesStage: "4. Win - Customer Verbal",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 30),
-    },
-    {
-      id: 34,
-      title: "Little Caesar - PA Tidbits",
-      amount: 105501,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Little Caesar",
-      product: "PA Tidbits",
-      industrySegment: "QSR",
-      salesStage: "2. Customer Engaged",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 9, 1),
-    },
-    {
-      id: 35,
-      title: "IHOP - Dragon Fruit",
-      amount: 213280,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "IHOP",
-      product: "Chef-Ready Cuts Diced Dragon Fruit",
-      salesStage: "2. Customer Engaged",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 9, 1),
-    },
-    {
-      id: 36,
-      title: "Kahala - IQF Mango",
-      amount: 285500,
-      status: "Post-pipeline: On-hold",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Kahala (Planet Smoothie)",
-      product: "IQF Mango Chunks",
-      salesStage: "Post-pipeline: On-hold",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 14),
-    },
-    {
-      id: 38,
-      title: "Famous Dave's - Pineapple Crushed",
-      amount: 18467.48,
-      status: "Proposal Submitted",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Famous Dave's (BBQ Holdings)",
-      product: "Pineapple Fancy Crushed",
-      salesStage: "Proposal Submitted",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 30),
-    },
-    {
-      id: 42,
-      title: "BBQ Holdings - Pineapple Juice VIT SW",
-      amount: 1948.8,
-      status: "Post-pipeline: Win (order shipped)",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "BBQ Holdings- Barrio Queen",
-      product: "pineapple Juice VIT SW",
-      salesStage: "Post-pipeline: Win (order shipped)",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 3, 29),
-    },
-    {
-      id: 45,
-      title: "Ladle & Leaf - IQF Avocado",
-      amount: 17600,
-      status: "Post-pipeline: Loss",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Ladle & Leaf",
-      product: "IQF Chef-Ready Avocado Diced",
-      salesStage: "Post-pipeline: Loss",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 4, 1),
-    },
-    {
-      id: 46,
-      title: "Nordstrom - Beverage RFP",
-      amount: 30023.47,
-      status: "Proposal Submitted",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Nordstrom",
-      product: "Beverage RFP ( Pineapple Juice)",
-      salesStage: "Proposal Submitted",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 4, 7),
-    },
-    {
-      id: 47,
-      title: "Landry's - Strawberry Tub",
-      amount: 445980,
-      status: "Post-pipeline: Win (order shipped)",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Landry's",
-      product: "Strawberry SL 6/6.5# 4+1 Tub",
-      salesStage: "Post-pipeline: Win (order shipped)",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 4, 13),
-    },
-    {
-      id: 48,
-      title: "Nordstrom - Dole Pineapple juice",
-      amount: 30023.47,
-      status: "Proposal Submitted",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Nordstrom",
-      product: "Dole Pineapple juice",
-      salesStage: "Proposal Submitted",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 7, 1),
-    },
-    {
-      id: 49,
-      title: "PF Changs - Good Crunch",
-      amount: 33200,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "PF Changs",
-      product: "Pineapple Good Crunch",
-      salesStage: "2. Customer Engaged",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 5, 3),
-    },
-    {
-      id: 50,
-      title: "PF Changs - IQF Lemons",
-      amount: 205200,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "PF Changs",
-      product: "IQF Lemons",
-      salesStage: "2. Customer Engaged",
-      opportunityType: "New Business",
-      createdAt: new Date(2024, 7, 1),
-      closeDate: new Date(2025, 5, 3),
-    },
+  //   // Diana's National Account opportunities (rows 26-52)
+  //   {
+  //     id: 26,
+  //     title: "Texas Roadhouse - Pineapple Juice",
+  //     amount: 498261.67,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Texas Roadhouse",
+  //     product: "Pineapple Juice",
+  //     industrySegment: "Casual Dining",
+  //     units2023: 638,
+  //     salesStage: "Customer Engaged",
+  //     estimatedVolume: 15000,
+  //     materialId: "3890011469",
+  //     samplesNeeded: "Y",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2024, 9, 10),
+  //   },
+  //   {
+  //     id: 27,
+  //     title: "Texas Roadhouse - Lemons",
+  //     amount: 127281,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Texas Roadhouse",
+  //     product: "Lemons",
+  //     industrySegment: "Casual Dining",
+  //     units2023: 638,
+  //     salesStage: "Customer Engaged",
+  //     estimatedVolume: 44660,
+  //     materialId: "3890000818",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2024, 9, 10),
+  //   },
+  //   {
+  //     id: 28,
+  //     title: "Twin Peaks - Lemons",
+  //     amount: 1710000,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Twin Peaks",
+  //     product: "Lemons",
+  //     industrySegment: "Casual Dining",
+  //     units2023: 103,
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "New Business",
+  //     estimatedVolume: 20000,
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 2, 20),
+  //   },
+  //   {
+  //     id: 29,
+  //     title: "Wendy's - IQF Lemons",
+  //     amount: 309339,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Wendy's",
+  //     product: "IQF Lemons",
+  //     industrySegment: "QSR",
+  //     units2023: 6030,
+  //     salesStage: "2. Customer Engaged",
+  //     estimatedVolume: 108540,
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 30,
+  //     title: "Wienerschnitzel - Target",
+  //     amount: 0,
+  //     status: "Target Account",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Wienerschnitzel",
+  //     industrySegment: "QSR",
+  //     units2023: 323,
+  //     salesStage: "1. Target Account",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 25),
+  //   },
+  //   {
+  //     id: 31,
+  //     title: "Wingstop - Dole Whip",
+  //     amount: 3000,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Wingstop",
+  //     product: "Dole Whip Pineapple",
+  //     industrySegment: "Fast Casual",
+  //     units2023: 1950,
+  //     salesStage: "2. Customer Engaged",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 5, 1),
+  //   },
+  //   {
+  //     id: 32,
+  //     title: "IHOP - Good Crunch",
+  //     amount: 114720,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "IHOP",
+  //     product: "Good Crunch",
+  //     industrySegment: "Midscale",
+  //     units2023: 1696,
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 15),
+  //   },
+  //   {
+  //     id: 33,
+  //     title: "Landry's - 4+1 Strawberries",
+  //     amount: 57176.92,
+  //     status: "Win - Customer Verbal",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Landry's",
+  //     product: "4+1 Strawberries",
+  //     salesStage: "4. Win - Customer Verbal",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 30),
+  //   },
+  //   {
+  //     id: 34,
+  //     title: "Little Caesar - PA Tidbits",
+  //     amount: 105501,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Little Caesar",
+  //     product: "PA Tidbits",
+  //     industrySegment: "QSR",
+  //     salesStage: "2. Customer Engaged",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 9, 1),
+  //   },
+  //   {
+  //     id: 35,
+  //     title: "IHOP - Dragon Fruit",
+  //     amount: 213280,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "IHOP",
+  //     product: "Chef-Ready Cuts Diced Dragon Fruit",
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 9, 1),
+  //   },
+  //   {
+  //     id: 36,
+  //     title: "Kahala - IQF Mango",
+  //     amount: 285500,
+  //     status: "Post-pipeline: On-hold",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Kahala (Planet Smoothie)",
+  //     product: "IQF Mango Chunks",
+  //     salesStage: "Post-pipeline: On-hold",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 14),
+  //   },
+  //   {
+  //     id: 38,
+  //     title: "Famous Dave's - Pineapple Crushed",
+  //     amount: 18467.48,
+  //     status: "Proposal Submitted",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Famous Dave's (BBQ Holdings)",
+  //     product: "Pineapple Fancy Crushed",
+  //     salesStage: "Proposal Submitted",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 30),
+  //   },
+  //   {
+  //     id: 42,
+  //     title: "BBQ Holdings - Pineapple Juice VIT SW",
+  //     amount: 1948.8,
+  //     status: "Post-pipeline: Win (order shipped)",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "BBQ Holdings- Barrio Queen",
+  //     product: "pineapple Juice VIT SW",
+  //     salesStage: "Post-pipeline: Win (order shipped)",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 3, 29),
+  //   },
+  //   {
+  //     id: 45,
+  //     title: "Ladle & Leaf - IQF Avocado",
+  //     amount: 17600,
+  //     status: "Post-pipeline: Loss",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Ladle & Leaf",
+  //     product: "IQF Chef-Ready Avocado Diced",
+  //     salesStage: "Post-pipeline: Loss",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 4, 1),
+  //   },
+  //   {
+  //     id: 46,
+  //     title: "Nordstrom - Beverage RFP",
+  //     amount: 30023.47,
+  //     status: "Proposal Submitted",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Nordstrom",
+  //     product: "Beverage RFP ( Pineapple Juice)",
+  //     salesStage: "Proposal Submitted",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 4, 7),
+  //   },
+  //   {
+  //     id: 47,
+  //     title: "Landry's - Strawberry Tub",
+  //     amount: 445980,
+  //     status: "Post-pipeline: Win (order shipped)",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Landry's",
+  //     product: "Strawberry SL 6/6.5# 4+1 Tub",
+  //     salesStage: "Post-pipeline: Win (order shipped)",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 4, 13),
+  //   },
+  //   {
+  //     id: 48,
+  //     title: "Nordstrom - Dole Pineapple juice",
+  //     amount: 30023.47,
+  //     status: "Proposal Submitted",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Nordstrom",
+  //     product: "Dole Pineapple juice",
+  //     salesStage: "Proposal Submitted",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 7, 1),
+  //   },
+  //   {
+  //     id: 49,
+  //     title: "PF Changs - Good Crunch",
+  //     amount: 33200,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "PF Changs",
+  //     product: "Pineapple Good Crunch",
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 5, 3),
+  //   },
+  //   {
+  //     id: 50,
+  //     title: "PF Changs - IQF Lemons",
+  //     amount: 205200,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "PF Changs",
+  //     product: "IQF Lemons",
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(2024, 7, 1),
+  //     closeDate: new Date(2025, 5, 3),
+  //   },
 
-    // Add 3 urgent opportunities for testing "Needs Attention"
-    {
-      id: 100,
-      title: "URGENT: Kroger - Review Today",
-      amount: 85000,
-      status: "Proposal Submitted",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Kroger",
-      product: "Mixed Produce",
-      salesStage: "Proposal Submitted",
-      opportunityType: "New Business",
-      createdAt: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - 10
-      ),
-      closeDate: now,
-    },
-    {
-      id: 101,
-      title: "URGENT: Walmart - Tomorrow",
-      amount: 120000,
-      status: "Customer Engaged",
-      owner: "diana@doleintl.com",
-      doleSalesLead: "Diana",
-      salesTeam: "Nat'l Account",
-      customerName: "Walmart",
-      product: "Fresh Produce",
-      salesStage: "2. Customer Engaged",
-      opportunityType: "Renewal",
-      createdAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
-      closeDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
-    },
-    {
-      id: 102,
-      title: "URGENT: Target - 2 Days",
-      amount: 95000,
-      status: "Customer Engaged",
-      owner: "bill@doleintl.com",
-      doleSalesLead: "Bill",
-      salesTeam: "Field Sales",
-      customerName: "Target",
-      product: "Juice Products",
-      salesStage: "2. Customer Engaged",
-      opportunityType: "Expansion",
-      createdAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5),
-      closeDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2),
-    },
-  ];
+  //   // Add 3 urgent opportunities for testing "Needs Attention"
+  //   {
+  //     id: 100,
+  //     title: "URGENT: Kroger - Review Today",
+  //     amount: 85000,
+  //     status: "Proposal Submitted",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Kroger",
+  //     product: "Mixed Produce",
+  //     salesStage: "Proposal Submitted",
+  //     opportunityType: "New Business",
+  //     createdAt: new Date(
+  //       now.getFullYear(),
+  //       now.getMonth(),
+  //       now.getDate() - 10
+  //     ),
+  //     closeDate: now,
+  //   },
+  //   {
+  //     id: 101,
+  //     title: "URGENT: Walmart - Tomorrow",
+  //     amount: 120000,
+  //     status: "Customer Engaged",
+  //     owner: "diana@doleintl.com",
+  //     doleSalesLead: "Diana",
+  //     salesTeam: "Nat'l Account",
+  //     customerName: "Walmart",
+  //     product: "Fresh Produce",
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "Renewal",
+  //     createdAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
+  //     closeDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+  //   },
+  //   {
+  //     id: 102,
+  //     title: "URGENT: Target - 2 Days",
+  //     amount: 95000,
+  //     status: "Customer Engaged",
+  //     owner: "bill@doleintl.com",
+  //     doleSalesLead: "Bill",
+  //     salesTeam: "Field Sales",
+  //     customerName: "Target",
+  //     product: "Juice Products",
+  //     salesStage: "2. Customer Engaged",
+  //     opportunityType: "Expansion",
+  //     createdAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5),
+  //     closeDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2),
+  //   },
+  // ];
 
-  console.log("Loaded opportunities from dataset:", opportunities.length);
-  return opportunities;
+  console.log("Loaded opportunities from dataset:", OPPORTUNITIES.length);
+  return OPPORTUNITIES;
 }
 
 // ---------------- Lightweight runtime self-checks ("tests") ----------------
