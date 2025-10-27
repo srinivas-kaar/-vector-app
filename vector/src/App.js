@@ -347,6 +347,7 @@ async function apiCreateOpp(body) {
       DAYS_30_SHIP: body.days_30_Ship || body.days30Ship || "N",
       MATERIAL_PROJECTED_PRICE:
         body.material_Projected_Price || body.materialProjectedPrice || "",
+      OVERRIDE_PRICE: body.override_Price || body.overridePrice || "",
       EQUIVALIZED_PIPELINE_LBS:
         body.equivalized_Pipeline_LBS || body.equalizedPipelineLbs || "",
       PIPELINE_PROJECTED_REVENUE:
@@ -409,6 +410,40 @@ async function apiCreateOpp(body) {
       );
     const created = await res.json();
 
+    if (payload.MATERIAL_PROJECTED_PRICE > payload.OVERRIDE_PRICE) {
+      const overridePricepayload = {
+        opportunity_id:
+          body.opportunity_ID ||
+          payload.opportunity_ID ||
+          payload.opportunity_ID,
+        currentprice: payload.MATERIAL_PROJECTED_PRICE,
+        overrideprice: payload.OVERRIDE_PRICE,
+        businessjustification: body.businessJustification,
+        dateofrequest: new Date().toISOString().split("T")[0],
+        dateofapproval: "",
+        approvalnote: "",
+        requestor: payload.SALES_LEAD,
+        product_category: payload.PRODUCT_CATEGORY,
+        customer_name: payload.CUSTOMER_NAME,
+        status: "Pending",
+      };
+
+      const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        mode: "cors",
+        body: JSON.stringify(overridePricepayload),
+      });
+      if (!res.ok)
+        throw new Error(
+          `Failed to create opportunity: ${res.status} ${await res.text()}`
+        );
+    }
+
     return {
       id: created.OPPORTUNITY_ID || created.id || created.opportunity_ID,
       title: created.TITLE || created.title || payload.TITLE,
@@ -437,6 +472,7 @@ async function apiCreateOpp(body) {
       pipelineProjectedRevenue:
         created.PIPELINE_PROJECTED_REVENUE ||
         payload.PIPELINE_PROJECTED_REVENUE,
+      overridePrice: created.OVERRIDE_PRICE || payload.OVERRIDE_PRICE,
       ...created,
     };
   } catch (error) {
@@ -616,55 +652,33 @@ async function apiFetchOverridePrice() {
   return res.json();
 }
 
-async function apiFetchApprovals() {
-  return [
-    {
-      id: "OPP-12342",
-      productCategory: "Electronics",
-      customerName: "Acme Corp",
-      approverName: "John Doe",
-      dateRaised: "2025-10-10",
-      dateApproved: null,
-      status: "Pending",
-      overridePrice: 10,
-      BussinessJustification: "Approve raised from sales",
-      currentPrice: 12,
-    },
-    {
-      id: "OPP-12341",
-      productCategory: "Ships",
-      customerName: "Bcme Corp",
-      approverName: "Nithin Doe",
-      dateRaised: "2025-10-12",
-      dateApproved: null,
-      status: "Pending",
-      overridePrice: 10,
-      BussinessJustification: "Approve raised from sales",
-      currentPrice: 10,
-    },
-    {
-      id: "OPP-12345",
-      productCategory: "Electronics",
-      customerName: "Acme Corp",
-      approverName: "John Doe",
-      dateRaised: "2025-10-16",
-      dateApproved: null,
-      status: "Pending",
-      overridePrice: 12,
-      BussinessJustification: "Approve raised from sales",
-      currentPrice: 14,
-    },
-    {
-      id: "OPP-12346",
-      productCategory: "Electronics",
-      customerName: "Acme Corp",
-      approverName: "John Doe",
-      dateRaised: "2025-10-07",
-      dateApproved: null,
-      status: "Approved",
-    },
-  ];
+async function apiUpdateOverridePrice(payload) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/overrideprice`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include",
+      mode: "cors",
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Error:", res.status, errorText);
+      throw new Error(`Failed to update request: ${res.status} ${errorText}`);
+    }
+
+    // Return parsed JSON if available, else empty object
+    return await res.json().catch(() => ({}));
+  } catch (err) {
+    console.error("API Error:", err);
+    throw err;
+  }
 }
+
 
 // ---------------- Utils ----------------
 function pickLatestByCreated(arr, n = 5) {
@@ -2470,34 +2484,6 @@ function UserRegistrationTable({ currentUser }) {
   );
 }
 
-async function apiApproveRequest({ payload }) {
-  console.log("Appproved", payload);
-
-  {
-    /* Once API is ready we can test via posting the data */
-  }
-  // const res = await fetch(`${API_BASE_URL}/overrideTracker`, {
-  //     method: "POST",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       Accept: "application/json",
-  //     },
-  //     credentials: "include",
-  //     mode: "cors",
-  //     body: JSON.stringify(payload),
-  //   });
-  //   if (!res.ok)
-  //     console.log("error",res.status,res.text());
-  //     throw new Error(
-  //       `Failed to Post the approve: ${res.status} ${await res.text()}`
-  //     );
-}
-
-async function apiRejectRequest({ payload }) {
-  console.log("Rejected:", payload);
-  return { success: true };
-}
-
 function OverridePriceApprovalRequestsTable({ currentUser }) {
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
@@ -2513,9 +2499,9 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
   async function refresh() {
     try {
       setLoading(true);
-      const data = await apiFetchApprovals();
+      const data = await apiFetchOverridePrice();
       const pendingOnly = Array.isArray(data)
-        ? data.filter((r) => r.status === "Pending")
+        ? data.filter((r) => r.STATUS === "Pending")
         : [];
       setApprovals(pendingOnly);
       setError("");
@@ -2531,44 +2517,25 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
     refresh();
   }, []);
 
-  async function handleSubmit(row, action) {
+  async function handleSubmit(row, action, comment) {
     try {
-      if (action === "approve") {
-        await apiApproveRequest({
-          payload: {
-            Opportunity_ID: row.id,
-            CurrentPrice: row.currentPrice,
-            OverridePrice: row.overridePrice,
-            BussinessJustification: row.BussinessJustification,
-            DateOfRequest: row.dateRaised,
-            DateOfApproval: new Date().toISOString().split("T")[0],
-            BussinessJusti: "",
-            ApprovalStatus: "Approved",
-          },
-        });
-      } else {
-        await apiRejectRequest({
-          payload: {
-            Opportunity_ID: row.id,
-            CurrentPrice: row.currentPrice,
-            OverridePrice: row.overridePrice,
-            BussinessJustification: "Approve raised from sales",
-            DateOfRequest: row.dateRaised,
-            DateOfApproval: "",
-            BussinessJusti: "",
-            ApprovalNote: comment,
-            ApprovalStatus: "Rejected",
-          },
-        });
-      }
+      const status = action === "approve" ? "Approved" : "Rejected";
 
-      // Remove this row from state since it's no longer pending
-      setApprovals((prev) => prev.filter((r) => r.id !== row.id));
+      await apiUpdateOverridePrice({
+        opportunity_id: row.OPPORTUNITY_ID,
+        dateofapproval: new Date().toISOString().split("T")[0],
+        approvalnote: comment,
+        status,
+      });
 
-      // Reset state
+      // Update local state
+      setApprovals((prev) =>
+        prev.filter((r) => r.OPPORTUNITY_ID !== row.OPPORTUNITY_ID)
+      );
       setActiveRow(null);
       setComment("");
-    } catch {
+    } catch (error) {
+      console.error(error);
       alert("Failed to update request.");
     }
   }
@@ -2657,7 +2624,6 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                 {[
                   { key: "productCategory", label: "Product Category" },
                   { key: "customerName", label: "Customer Name" },
-                  { key: "approverName", label: "Approver Name" },
                   { key: "dateRaised", label: "Date Raised" },
                   { key: "currentPrice", label: "Current Price" },
                   { key: "overridePrice", label: "Override Price" },
@@ -2706,19 +2672,20 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                 </tr>
               ) : (
                 sortedApprovals.map((row) => (
-                  <React.Fragment key={row.id}>
+                  <React.Fragment key={row.OPPORTUNITY_ID}>
                     <tr
                       className={`border-t ${
                         isNight ? "border-white/10" : "border-white/60"
                       }`}
                     >
                       {/* <td className="py-2 px-3">{row.id}</td> */}
-                      <td className="py-2 px-3">{row.productCategory}</td>
-                      <td className="py-2 px-3">{row.customerName}</td>
-                      <td className="py-2 px-3">{row.approverName}</td>
-                      <td className="py-2 px-3">{row.dateRaised}</td>
-                      <td className="py-2 px-3">{row.currentPrice}</td>
-                      <td className="py-2 px-3">{row.overridePrice}</td>
+                      <td className="py-2 px-3">{row.PRODUCT_CATEGORY}</td>
+                      <td className="py-2 px-3">{row.CUSTOMER_NAME}</td>
+                      <td className="py-2 px-3">
+                        {row.DATE_OF_REQUEST.split(" ")[0]}
+                      </td>
+                      <td className="py-2 px-3">{row.CURRENT_PRICE}</td>
+                      <td className="py-2 px-3">{row.OVERRIDE_PRICE}</td>
                       <td className="py-2 px-3">
                         <span
                           className={`px-2 py-1 rounded-lg text-xs ${
@@ -2727,13 +2694,13 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                               : "bg-yellow-100 text-yellow-700"
                           }`}
                         >
-                          {row.status}
+                          {row.STATUS}
                         </span>
                       </td>
                       <td className="p-3">
                         <textarea
                           rows={3}
-                          value={row.BussinessJustification}
+                          value={row.BUSINESS_JUSTIFICATION}
                           className={`w-full p-2 rounded-lg border ${
                             isNight
                               ? "bg-black/20 border-white/20 text-white"
@@ -2746,7 +2713,10 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                         <div className="flex gap-2">
                           <Button
                             onClick={() => {
-                              setActiveRow({ id: row.id, action: "approve" });
+                              setActiveRow({
+                                OPPORTUNITY_ID: row.OPPORTUNITY_ID,
+                                action: "approve",
+                              });
                               setComment("");
                             }}
                             className="bg-green-600 hover:bg-green-700 text-white"
@@ -2755,7 +2725,10 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                           </Button>
                           <Button
                             onClick={() => {
-                              setActiveRow({ id: row.id, action: "reject" });
+                              setActiveRow({
+                                OPPORTUNITY_ID: row.OPPORTUNITY_ID,
+                                action: "reject",
+                              });
                               setComment("");
                             }}
                             className="bg-red-600 hover:bg-red-700 text-white"
@@ -2766,7 +2739,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                       </td>
                     </tr>
 
-                    {activeRow?.id === row.id && (
+                    {activeRow?.OPPORTUNITY_ID === row.OPPORTUNITY_ID && (
                       <tr>
                         <td colSpan={9} className="p-3">
                           <div className="flex flex-col gap-2">
@@ -2784,7 +2757,7 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                             <div className="flex gap-2">
                               <Button
                                 onClick={() =>
-                                  handleSubmit(row, activeRow.action)
+                                  handleSubmit(row, activeRow.action, comment)
                                 }
                                 disabled={!comment.trim()}
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -3735,24 +3708,6 @@ export default function App() {
   );
 
   async function addOpportunity(form) {
-    const startDate = form.likely_Start_Date
-      ? new Date(form.likely_Start_Date)
-      : new Date();
-
-    // Calculate dynamic end date if not manually set
-    let computedEndDate = null;
-
-    if (!computedEndDate && form.annual_Or_LTO) {
-      const type = form.annual_Or_LTO;
-
-      if (type === "Annual") {
-        // 13 periods = 351 days including start date → +350 days
-        computedEndDate.setDate(startDate.getDate() + 350);
-      } else {
-        // Default for LTO or others = 1 period (27 days including start date) → +26 days
-        computedEndDate.setDate(startDate.getDate() + 26);
-      }
-    }
     const payload = {
       customerName: form.customer_Name,
       materialId: form.material_ID,
@@ -3762,7 +3717,8 @@ export default function App() {
         form.sales_Stage || form.status || "Lead: No Current Product Solution",
       owner: currentUser,
       closeDate: form.end_Date ? new Date(form.end_Date) : new Date(),
-      opportunity_ID: form.opportunity_ID || "",
+      opportunity_ID:
+        form.opportunity_ID || Math.max(0, ...opps.map((o) => o.id)) + 1,
       salesLead: form.sales_Lead,
       salesTeam: form.sales_Team,
       salesStage: form.sales_Stage,
@@ -3781,11 +3737,13 @@ export default function App() {
       opportunityVolumeInput: form.opportunity_Volume_Input,
       days30Ship: form.days_30_Ship,
       materialProjectedPrice: form.material_Projected_Price,
+      overridePrice: form.override_Price,
+      businessJustification: form.business_justification,
       equivalizedPipelineLbs: form.equivalized_Pipeline_LBS,
       pipelineProjectedRevenue: form.pipeline_Projected_Revenue,
       likelyStartDate: form.likely_Start_Date,
       annualOrLTO: form.annual_Or_LTO,
-      endDate: computedEndDate,
+      endDate: form.end_Date,
       lastMeetingDate: form.last_Meeting_Date,
       nextStepDescription: form.next_Step_Description,
       winLossReasonCode: form.win_Loss_Reason_Code,
@@ -3818,7 +3776,7 @@ export default function App() {
           created.pipelineProjectedRevenue ||
           created.pipeline_Projected_Revenue,
         likely_Start_Date: created.likelyStartDate || created.likely_Start_Date,
-        end_Date: created.endDate || created.end_Date || computedEndDate,
+        end_Date: created.endDate || created.end_Date,
         ...payload,
         ...created,
       };
@@ -4990,6 +4948,17 @@ export default function App() {
               />
             )}
 
+            {route === "volumeAllocation" && (
+              <OpportunityVolumeAllocation
+                form={{
+                  opportunity_Type: opps.annual_Or_LTO,
+                  volume: opps.estimated_Volume,
+                  start_date: opps.likely_Start_Date,
+                  end_Date: opps.end_Date,
+                }}
+              />
+            )}
+
             {confirmOpen && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                 <div
@@ -5072,8 +5041,9 @@ export default function App() {
               onGoDashboard={() => setRoute("dashboard")}
               onSearch={() => setSearchModalOpen(true)}
               onGoMasterData={() => setRoute("masterdata")}
-              onGoAnalytics={() => setRoute("analytics")} // Add this line
+              onGoAnalytics={() => setRoute("analytics")}
               onGoApprovals={() => setRoute("approvals")}
+              onGoVolumeAllocation={() => setRoute("volumeAllocation")}
               onSignOut={() => {
                 try {
                   localStorage.removeItem("oppty_user");
@@ -5150,7 +5120,6 @@ function OpportunityVolumeAllocation({ form }) {
 
   const likelyStart = dayjs(form?.start_date, "YYYY-MM-DD");
   const likelyEnd = dayjs(form?.end_date, "YYYY-MM-DD");
-  console.log(likelyStart, likelyEnd);
 
   const volumes = useMemo(() => {
     const total = Number(form?.volume) || 0;
@@ -5159,41 +5128,36 @@ function OpportunityVolumeAllocation({ form }) {
 
     const totalDays = 364; // Total ficsal period (adjust if needed)
     const dailyVolume = total / totalDays;
-    console.log(dailyVolume);
     const result = {};
 
     periods.forEach((period, i) => {
       const startDate = parseDate(period.start);
       const endDate = parseDate(period.end);
-      console.log(startDate, endDate, "4801");
       if (!startDate || !endDate) {
         result[period.key] = "-";
         return;
       }
 
       let activeDays = endDate.diff(startDate, "day") + 1;
-      console.log(activeDays, "4805");
 
       // Adjust if the likely start falls in this period
       if (
         likelyStart &&
-        likelyStart.isSameOrAfter(startDate) &&
-        likelyStart.isSameOrBefore(endDate) &&
+        // likelyStart.isSameOrAfter(startDate) &&
+        // likelyStart.isSameOrBefore(endDate) &&
         i === 0
       ) {
         activeDays = endDate.diff(likelyStart, "day") + 1;
-        console.log("4815", activeDays);
       }
 
       // Adjust if the likely end falls in this period
       if (
         likelyEnd &&
-        likelyEnd.isSameOrAfter(startDate) &&
-        likelyEnd.isSameOrBefore(endDate) &&
+        // likelyEnd.isSameOrAfter(startDate) &&
+        // likelyEnd.isSameOrBefore(endDate) &&
         i === periods.length - 1
       ) {
         activeDays = likelyEnd.diff(startDate, "day") + 1;
-        console.log(activeDays, "4826");
       }
 
       result[period.key] = Math.round(dailyVolume * activeDays);
@@ -5279,9 +5243,10 @@ function AddOpportunityPage({ onCancel, onSave }) {
   const handleOverrideChange = () => {
     const override = parseFloat(form.override_Price);
     const projected = parseFloat(form.material_Projected_Price);
+    setPendingValue(override);
 
-    if (override < projected) {
-      setShowModal(true);
+    if (override < projected && form.business_justification) {
+      setShowModal((prev) => !prev);
     }
   };
 
@@ -5292,7 +5257,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
 
   const handleCancel1 = () => {
     setPendingValue("");
-    setShowModal(false);
+    setShowModal((prev) => !prev);
   };
 
   const handleAnnual_LTO = (e) => {
@@ -5338,7 +5303,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
     { key: "timing", label: "Timing", icon: "📅" },
     { key: "outcome", label: "Outcome", icon: "📝" },
     { key: "support", label: "Culinary", icon: "🤝" },
-    { key: "voumeAllocation", label: "Volume Allocation", icon: "🤝" },
+    // { key: "voumeAllocation", label: "Volume Allocation", icon: "🤝" },
   ];
 
   const getSectionIndex = (key) => sections.findIndex((s) => s.key === key);
@@ -5429,6 +5394,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
     equivalized_Pipeline_LBS: "",
     pipeline_Projected_Revenue: "",
     override_Price: "",
+    business_justification: "",
 
     // Timing & Lifecycle
     likely_Start_Date: "",
@@ -5481,6 +5447,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
       title: `${form.customer_Name} - ${form.product}`,
       closeDate: form.end_Date ? new Date(form.end_Date) : new Date(),
     };
+
     onSave(payload);
   };
 
@@ -5945,6 +5912,23 @@ function AddOpportunityPage({ onCancel, onSave }) {
                   />
                 </div>
               </label>
+              {form.material_Projected_Price > form.override_Price &&
+                form.override_Price && (
+                  <label className="grid gap-1 md:col-span-2">
+                    <Label>Business Justification</Label>
+                    <Textarea
+                      value={form.business_justification}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          business_justification: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your reason"
+                      rows={3}
+                    />
+                  </label>
+                )}
             </div>
           )}
 
@@ -6131,16 +6115,6 @@ function AddOpportunityPage({ onCancel, onSave }) {
               )}
             </div>
           )}
-          {currentSection === "voumeAllocation" && (
-            <OpportunityVolumeAllocation
-              form={{
-                opportunity_Type: form.annual_Or_LTO,
-                volume: form.estimated_Volume,
-                start_date: form.likely_Start_Date,
-                end_Date: form.end_Date,
-              }}
-            />
-          )}
         </CardBody>
       </Card>
 
@@ -6161,16 +6135,32 @@ function AddOpportunityPage({ onCancel, onSave }) {
 
                 const newErrors = {};
 
+                // Validate End Date if LTO selected
                 if (form.annual_Or_LTO === "LTO" && !form.end_Date) {
                   newErrors.end_Date = "End Date is required";
                 }
 
                 setErrors(newErrors);
 
+                // Stop if there are any validation errors
                 if (Object.keys(newErrors).length > 0) return;
 
-                handleOverrideChange(e);
-                goToNextSection();
+                if (currentSection === "pricing") {
+                  if (
+                    form.business_justification &&
+                    form.business_justification.trim() !== ""
+                  ) {
+                    handleOverrideChange(e);
+                    goToNextSection();
+                  } else {
+                    alert(
+                      "Please provide a business justification before proceeding."
+                    );
+                    return;
+                  }
+                } else {
+                  goToNextSection();
+                }
               }}
             >
               Next
