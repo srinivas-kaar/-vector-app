@@ -679,7 +679,6 @@ async function apiUpdateOverridePrice(payload) {
   }
 }
 
-
 // ---------------- Utils ----------------
 function pickLatestByCreated(arr, n = 5) {
   return (arr || [])
@@ -1581,11 +1580,11 @@ function FloatingNav({
   goOpps,
   onSignOut,
   onGoDashboard,
-  onSearch,
   onGoMasterData,
   onGoAnalytics,
   isAdminUser,
   onGoApprovals,
+  onGoVolumeAllocation,
 }) {
   const theme = useContext(ThemeContext);
   const [open, setOpen] = useState(false);
@@ -1644,6 +1643,14 @@ function FloatingNav({
       icon: <Database className="h-6 w-6" />,
       onClick: () => onGoApprovals?.(),
       label: "Approvals",
+    });
+  }
+  if (onGoVolumeAllocation) {
+    actions.splice(4, 0, {
+      key: "volumeAllocation",
+      icon: <Database className="h-6 w-6" />,
+      onClick: () => onGoVolumeAllocation?.(),
+      label: "Volume Allocation",
     });
   }
 
@@ -3707,6 +3714,14 @@ export default function App() {
     [scopedOpps]
   );
 
+  const volumeAllocationArray = opps.map((o) => ({
+    opportunity_ID: o.OPPORTUNITY_ID,
+    opportunity_Type: o.ANNUAL_OR_LTO,
+    volume: o.ESTIMATED_VOLUME,
+    start_date: o.LIKELY_START_DATE,
+    end_Date: o.END_DATE,
+  }));
+
   async function addOpportunity(form) {
     const payload = {
       customerName: form.customer_Name,
@@ -4948,16 +4963,10 @@ export default function App() {
               />
             )}
 
-            {route === "volumeAllocation" && (
-              <OpportunityVolumeAllocation
-                form={{
-                  opportunity_Type: opps.annual_Or_LTO,
-                  volume: opps.estimated_Volume,
-                  start_date: opps.likely_Start_Date,
-                  end_Date: opps.end_Date,
-                }}
-              />
-            )}
+            {route === "volumeAllocation" &&
+              volumeAllocationArray.map((item, index) => (
+                <OpportunityVolumeAllocation key={index} form={item} />
+              ))}
 
             {confirmOpen && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -5096,6 +5105,7 @@ function ConfirmationModal({
 }
 
 function OpportunityVolumeAllocation({ form }) {
+  console.log(form);
   const periods = [
     { key: "P1", start: "23-03-2025", end: "19-04-2025" },
     { key: "P2", start: "20-04-2025", end: "17-05-2025" },
@@ -5249,7 +5259,6 @@ function AddOpportunityPage({ onCancel, onSave }) {
       setShowModal((prev) => !prev);
     }
   };
-
 
   const handleAnnual_LTO = (e) => {
     const startDate = typeof e === "string" ? e : e?.target?.value;
@@ -6157,7 +6166,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
                     return;
                   }
 
-                  // if ovride price is less than projected Price  requires approval
+                  // if ovride price is less than projected requires approval
                   if (override < projected) {
                     setShowModal(true);
                     return;
