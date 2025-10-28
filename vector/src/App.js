@@ -5250,15 +5250,6 @@ function AddOpportunityPage({ onCancel, onSave }) {
     }
   };
 
-  const handleConfirm = () => {
-    setForm((prev) => ({ ...prev, override_Price: pendingValue }));
-    setShowModal(false);
-  };
-
-  const handleCancel1 = () => {
-    setPendingValue("");
-    setShowModal((prev) => !prev);
-  };
 
   const handleAnnual_LTO = (e) => {
     const startDate = typeof e === "string" ? e : e?.target?.value;
@@ -5912,8 +5903,10 @@ function AddOpportunityPage({ onCancel, onSave }) {
                   />
                 </div>
               </label>
-              {form.material_Projected_Price > form.override_Price &&
-                form.override_Price && (
+              {!isNaN(Number(form.override_Price)) &&
+                !isNaN(Number(form.material_Projected_Price)) &&
+                Number(form.material_Projected_Price) >
+                  Number(form.override_Price) && (
                   <label className="grid gap-1 md:col-span-2">
                     <Label>Business Justification</Label>
                     <Textarea
@@ -5936,8 +5929,14 @@ function AddOpportunityPage({ onCancel, onSave }) {
             isOpen={showModal}
             title="Approval Required"
             message="Entered price is less than the projected price. This requires approval from an approver."
-            onConfirm={handleConfirm}
-            onCancel={handleCancel1}
+            onConfirm={() => {
+              handleOverrideChange();
+              setShowModal(false);
+              goToNextSection();
+            }}
+            onCancel={() => {
+              setShowModal(false);
+            }}
           />
 
           {currentSection === "timing" && (
@@ -6141,26 +6140,34 @@ function AddOpportunityPage({ onCancel, onSave }) {
                 }
 
                 setErrors(newErrors);
-
-                // Stop if there are any validation errors
                 if (Object.keys(newErrors).length > 0) return;
 
+                // Handle pricing section logic
                 if (currentSection === "pricing") {
-                  if (
+                  const override = Number(form.override_Price);
+                  const projected = Number(form.material_Projected_Price);
+
+                  const hasJustification =
                     form.business_justification &&
-                    form.business_justification.trim() !== ""
-                  ) {
-                    handleOverrideChange(e);
-                    goToNextSection();
-                  } else {
+                    form.business_justification.trim() !== "";
+                  if (!hasJustification) {
                     alert(
                       "Please provide a business justification before proceeding."
                     );
                     return;
                   }
-                } else {
+
+                  // if ovride price is less than projected Price  requires approval
+                  if (override < projected) {
+                    setShowModal(true);
+                    return;
+                  }
+
+                  handleOverrideChange(e);
                   goToNextSection();
+                  return;
                 }
+                goToNextSection();
               }}
             >
               Next
