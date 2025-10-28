@@ -789,18 +789,15 @@ router.put('/overrideprice', withConnection, (req, res) => {
 }, cleanupConnection);
 
 router.get('/getItochuperiod/:date', withConnection, (req, res) => {
-    console.log('Fetching ITOCHU period details');
+    console.log('Fetching Itochu period details');
 
-    const inputDate = req.params.date; // e.g. 2025-10-24
+    const inputDate = req.params.date; // Example: 20070101
 
     try {
         const sql = `
-            SELECT 
-                "ZIFISYR",
-                "ZIFISPER",
-                "DATE"
-            FROM "BTP_INTERFACE#BTP"."ZDATE"
-            WHERE "BTP#ZDATE" = ?
+            SELECT *
+            FROM "DIM_ZDATE_BTP"
+            WHERE "ZDATE" = ?
         `;
 
         req.hanaConn.exec(sql, [inputDate], (err, result) => {
@@ -819,7 +816,7 @@ router.get('/getItochuperiod/:date', withConnection, (req, res) => {
             }
 
             console.log('Successfully fetched Itochu period data');
-            res.json(result[0]); // return first row
+            res.status(200).json(result); // Return full result set
         });
     } catch (error) {
         console.error('Error processing request:', error);
@@ -829,5 +826,6 @@ router.get('/getItochuperiod/:date', withConnection, (req, res) => {
         });
     }
 }, cleanupConnection);
+
 
 module.exports = router;
