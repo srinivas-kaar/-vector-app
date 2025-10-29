@@ -2491,15 +2491,19 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeRow, setActiveRow] = useState(null);
-  const [comment, setComment] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [actionType, setActionType] = useState(null);
+  const [approvalNote, setApprovalNote] = useState("");
 
   // Fetch only Pending approvals
   async function refresh() {
     try {
       setLoading(true);
       const data = await apiFetchOverridePrice();
+      console.log(data);
       const pendingOnly = Array.isArray(data)
         ? data.filter((r) => r.STATUS === "Pending")
         : [];
@@ -2532,13 +2536,19 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
       setApprovals((prev) =>
         prev.filter((r) => r.OPPORTUNITY_ID !== row.OPPORTUNITY_ID)
       );
-      setActiveRow(null);
-      setComment("");
+      closeModal();
     } catch (error) {
       console.error(error);
       alert("Failed to update request.");
     }
   }
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setSelectedRow(null);
+    setActionType(null);
+    setApprovalNote("");
+  };
 
   const requestSort = (key) => {
     let direction = "asc";
@@ -2593,96 +2603,92 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
   };
 
   return (
-    <Card>
-      <CardHeader
-        title="Override Price Approvals"
-        subtitle="Approval requests raised for price overrides"
-        right={<Button onClick={refresh}>Refresh</Button>}
-      />
-      <CardBody>
-        {error && (
-          <div
-            className={`${
-              isNight ? "text-amber-200" : "text-amber-700"
-            } text-xs mb-2`}
-          >
-            {error}
-          </div>
-        )}
-        <div
-          className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
-        >
-          <table className="min-w-full">
-            <thead
-              className={`sticky top-0 z-10 ${
-                isNight
-                  ? "text-white/80 bg-white/10"
-                  : "text-gray-700 bg-white/80"
-              } backdrop-blur-md`}
+    <>
+      <Card>
+        <CardHeader
+          title="Override Price Approvals"
+          subtitle="Approval requests raised for price overrides"
+          right={<Button onClick={refresh}>Refresh</Button>}
+        />
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
             >
-              <tr>
-                {[
-                  { key: "productCategory", label: "Product Category" },
-                  { key: "customerName", label: "Customer Name" },
-                  { key: "dateRaised", label: "Date Raised" },
-                  { key: "currentPrice", label: "Current Price" },
-                  { key: "overridePrice", label: "Override Price" },
-                  { key: "status", label: "Status" },
-                  {
-                    key: "BussinessJustification",
-                    label: "Business Justification",
-                  },
-                ].map((col) => (
-                  <th
-                    key={col.key}
-                    className="py-2 px-3 cursor-pointer select-none"
-                    onClick={() => requestSort(col.key)}
-                  >
-                    <div className="flex items-center gap-1">
-                      {col.label}{" "}
-                      <span className="text-xs">{getSortIcon(col.key)}</span>
-                    </div>
-                  </th>
-                ))}
-                <th className="py-2 px-3 w-40">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+              {error}
+            </div>
+          )}
+          <div
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+          >
+            <table className="min-w-full">
+              <thead
+                className={`sticky top-0 z-10 ${
+                  isNight
+                    ? "text-white/80 bg-white/10"
+                    : "text-gray-700 bg-white/80"
+                } backdrop-blur-md`}
+              >
                 <tr>
-                  <td
-                    colSpan={9}
-                    className={`${
-                      isNight ? "text-white/70" : "text-gray-600"
-                    } py-6 px-3`}
-                  >
-                    Loading…
-                  </td>
+                  {[
+                    { key: "PRODUCT_CATEGORY", label: "Product Category" },
+                    { key: "CUSTOMER_NAME", label: "Customer Name" },
+                    { key: "DATE_OF_REQUEST", label: "Date Raised" },
+                    { key: "CURRENT_PRICE", label: "Current Price" },
+                    { key: "OVERRIDE_PRICE", label: "Override Price" },
+                    { key: "STATUS", label: "Status" },
+                    { key: "BUSINESS_JUSTIFICATION", label: "Business Justification" },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className="py-2 px-3 cursor-pointer select-none"
+                      onClick={() => requestSort(col.key)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {col.label}{" "}
+                        <span className="text-xs">{getSortIcon(col.key)}</span>
+                      </div>
+                    </th>
+                  ))}
                 </tr>
-              ) : sortedApprovals.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className={`${
-                      isNight ? "text-white/60" : "text-gray-500"
-                    } py-6 px-3`}
-                  >
-                    No pending approval requests found.
-                  </td>
-                </tr>
-              ) : (
-                sortedApprovals.map((row) => (
-                  <React.Fragment key={row.OPPORTUNITY_ID}>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3`}
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                ) : sortedApprovals.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3`}
+                    >
+                      No pending approval requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  sortedApprovals.map((row) => (
                     <tr
+                      key={row.OPPORTUNITY_ID}
                       className={`border-t ${
                         isNight ? "border-white/10" : "border-white/60"
                       }`}
                     >
-                      {/* <td className="py-2 px-3">{row.id}</td> */}
                       <td className="py-2 px-3">{row.PRODUCT_CATEGORY}</td>
                       <td className="py-2 px-3">{row.CUSTOMER_NAME}</td>
                       <td className="py-2 px-3">
-                        {row.DATE_OF_REQUEST.split(" ")[0]}
+                        {row.DATE_OF_REQUEST?.split(" ")[0]}
                       </td>
                       <td className="py-2 px-3">{row.CURRENT_PRICE}</td>
                       <td className="py-2 px-3">{row.OVERRIDE_PRICE}</td>
@@ -2697,95 +2703,98 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                           {row.STATUS}
                         </span>
                       </td>
-                      <td className="p-3">
-                        <textarea
-                          rows={3}
-                          value={row.BUSINESS_JUSTIFICATION}
-                          className={`w-full p-2 rounded-lg border ${
-                            isNight
-                              ? "bg-black/20 border-white/20 text-white"
-                              : "bg-white border-gray-300 text-gray-700"
-                          }`}
-                          readOnly
-                        />
-                      </td>
                       <td className="py-2 px-3">
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => {
-                              setActiveRow({
-                                OPPORTUNITY_ID: row.OPPORTUNITY_ID,
-                                action: "approve",
-                              });
-                              setComment("");
-                            }}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            Yes
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setActiveRow({
-                                OPPORTUNITY_ID: row.OPPORTUNITY_ID,
-                                action: "reject",
-                              });
-                              setComment("");
-                            }}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                          >
-                            No
-                          </Button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedRow(row);
+                            setModalOpen(true);
+                          }}
+                          className={`underline text-blue-600 hover:text-blue-800 text-sm`}
+                        >
+                          View Business Justification
+                        </button>
                       </td>
                     </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
 
-                    {activeRow?.OPPORTUNITY_ID === row.OPPORTUNITY_ID && (
-                      <tr>
-                        <td colSpan={9} className="p-3">
-                          <div className="flex flex-col gap-2">
-                            <textarea
-                              rows={2}
-                              value={comment}
-                              onChange={(e) => setComment(e.target.value)}
-                              placeholder="Enter your comments..."
-                              className={`w-full p-2 rounded-lg border ${
-                                isNight
-                                  ? "bg-black/20 border-white/20 text-white"
-                                  : "bg-white border-gray-300 text-gray-700"
-                              }`}
-                            />
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() =>
-                                  handleSubmit(row, activeRow.action, comment)
-                                }
-                                disabled={!comment.trim()}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                Submit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => {
-                                  setActiveRow(null);
-                                  setComment("");
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Modal */}
+      {modalOpen && selectedRow && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div
+            className={`rounded-2xl w-full max-w-lg shadow-lg p-6 ${
+              isNight ? "bg-slate-800 text-white" : "bg-white text-gray-800"
+            }`}
+          >
+            <h2 className="text-lg font-semibold mb-4">
+              Business Justification
+            </h2>
+            <textarea
+              readOnly
+              value={selectedRow.BUSINESS_JUSTIFICATION || "No justification provided."}
+              className={`w-full p-2 rounded-lg border mb-4 resize-none ${
+                isNight
+                  ? "bg-black/20 border-white/20 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-700"
+              }`}
+              rows={4}
+            />
+            {!actionType ? (
+              <div className="flex justify-end gap-3">
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => setActionType("approve")}
+                >
+                  Approve
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => setActionType("reject")}
+                >
+                  Reject
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium mb-2">Approval Note</h3>
+                  <textarea
+                    rows={3}
+                    value={approvalNote}
+                    onChange={(e) => setApprovalNote(e.target.value)}
+                    placeholder="Enter your approval note..."
+                    className={`w-full p-2 rounded-lg border ${
+                      isNight
+                        ? "bg-black/20 border-white/20 text-white"
+                        : "bg-gray-50 border-gray-300 text-gray-700"
+                    }`}
+                  />
+                </div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={!approvalNote.trim()}
+                    onClick={() =>
+                      handleSubmit(selectedRow, actionType, approvalNote)
+                    }
+                  >
+                    Submit
+                  </Button>
+                  <Button variant="ghost" onClick={closeModal}>
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </CardBody>
-    </Card>
+      )}
+    </>
   );
 }
 
