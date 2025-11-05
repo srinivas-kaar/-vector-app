@@ -796,7 +796,7 @@ router.get('/getItochuperiod/:date', withConnection, (req, res) => {
     try {
         const sql = `
             SELECT *
-            FROM "DIM_ZDATE_BTP"
+            FROM "BTP_INTERFACE"."DIM_ZDATE_BTP"
             WHERE "ZDATE" = ?
         `;
 
