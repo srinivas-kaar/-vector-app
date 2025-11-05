@@ -50,6 +50,8 @@ import {
   Settings,
   ChevronsUpDown,
   ChevronUp,
+  ClipboardCheck,
+  UserPlus,
 } from "lucide-react";
 
 import ReactDOM from "react-dom";
@@ -74,17 +76,30 @@ const BRAND = {
 };
 const ThemeContext = React.createContext("sunrise");
 
-// ---------------- Frosted UI ----------------
-const Card = ({ children, className = "", noClip = false }) => {
+// ---------------- Frosted UI --------------
+
+const Card = ({ children, className = "", noClip = false, onClick }) => {
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
   const frostBg = isNight ? "bg-white/10" : "bg-white/20";
   const borderClr = isNight ? "border-white/20" : "border-white/40";
   const shadow = "shadow-[0_6px_24px_rgba(0,0,0,0.08)]";
   const overflowCls = noClip ? "overflow-visible" : "overflow-hidden";
+
   return (
     <div
-      className={`relative rounded-3xl border ${borderClr} ${frostBg} bg-clip-padding backdrop-blur-xl backdrop-saturate-150 ${shadow} ${overflowCls} ${className}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={clsx(
+        "relative rounded-3xl border bg-clip-padding backdrop-blur-xl backdrop-saturate-150",
+        frostBg,
+        borderClr,
+        shadow,
+        overflowCls,
+        className,
+        onClick && "cursor-pointer select-none"
+      )}
     >
       {children}
     </div>
@@ -678,7 +693,22 @@ async function apiUpdateOverridePrice(payload) {
     throw err;
   }
 }
+async function apiFetchZdate(start_date) {
+  const res = await fetch(`${API_BASE_URL}/getItochuperiod/${start_date}`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
 
+  if (!res.ok) {
+    throw new Error(
+      `GET /overrideprice failed: ${res.status} ${await res.text()}`
+    );
+  }
+
+  return res.json();
+}
 
 // ---------------- Utils ----------------
 function pickLatestByCreated(arr, n = 5) {
@@ -725,6 +755,10 @@ function toISODate(d) {
     2,
     "0"
   )}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateToYYYYMMDD(dateStr) {
+  return dayjs(dateStr).format("YYYYMMDD");
 }
 
 // ---------------- Global Styles ----------------
@@ -1581,11 +1615,10 @@ function FloatingNav({
   goOpps,
   onSignOut,
   onGoDashboard,
-  onSearch,
-  onGoMasterData,
   onGoAnalytics,
   isAdminUser,
-  onGoApprovals,
+  onGoVolumeAllocation,
+  onGoAdmin,
 }) {
   const theme = useContext(ThemeContext);
   const [open, setOpen] = useState(false);
@@ -1620,6 +1653,12 @@ function FloatingNav({
       onClick: () => onGoAnalytics?.(),
       label: "Analytics",
     },
+    {
+      key: "admin",
+      icon: <Database className="h-6 w-6" />,
+      onClick: () => onGoAdmin?.(),
+      label: "Admin",
+    },
     // { key: "search", icon: <Search className="h-6 w-6" />, onClick: () => onSearch?.(), label: "Search" },
     {
       key: "logout",
@@ -1630,20 +1669,12 @@ function FloatingNav({
     ``,
   ];
 
-  if (onGoMasterData) {
+  if (onGoVolumeAllocation) {
     actions.splice(4, 0, {
-      key: "masterdata",
+      key: "volumeAllocation",
       icon: <Database className="h-6 w-6" />,
-      onClick: () => onGoMasterData?.(),
-      label: "Master Data",
-    });
-  }
-  if (onGoApprovals) {
-    actions.splice(4, 0, {
-      key: "approvals",
-      icon: <Database className="h-6 w-6" />,
-      onClick: () => onGoApprovals?.(),
-      label: "Approvals",
+      onClick: () => onGoVolumeAllocation?.(),
+      label: "Volume Allocation",
     });
   }
 
@@ -2639,7 +2670,10 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
                     { key: "CURRENT_PRICE", label: "Current Price" },
                     { key: "OVERRIDE_PRICE", label: "Override Price" },
                     { key: "STATUS", label: "Status" },
-                    { key: "BUSINESS_JUSTIFICATION", label: "Business Justification" },
+                    {
+                      key: "BUSINESS_JUSTIFICATION",
+                      label: "Business Justification",
+                    },
                   ].map((col) => (
                     <th
                       key={col.key}
@@ -2736,7 +2770,10 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
             </h2>
             <textarea
               readOnly
-              value={selectedRow.BUSINESS_JUSTIFICATION || "No justification provided."}
+              value={
+                selectedRow.BUSINESS_JUSTIFICATION ||
+                "No justification provided."
+              }
               className={`w-full p-2 rounded-lg border mb-4 resize-none ${
                 isNight
                   ? "bg-black/20 border-white/20 text-white"
@@ -3525,6 +3562,8 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("visibleColumns", JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+  useEffect(() => {
+  }, [route]);
 
   const toggleColumn = (key) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -3715,6 +3754,14 @@ export default function App() {
     () => pickLatestByCreated(scopedOpps, 5),
     [scopedOpps]
   );
+
+  const volumeAllocationArray = opps.map((o) => ({
+      opportunity_ID: o.OPPORTUNITY_ID,
+      opportunity_Type: o.ANNUAL_OR_LTO,
+      volume: o.ESTIMATED_VOLUME,
+      start_date: o.LIKELY_START_DATE,
+      end_Date: o.END_DATE,
+    }));
 
   async function addOpportunity(form) {
     const payload = {
@@ -4896,20 +4943,23 @@ export default function App() {
               </main>
             )}
 
+            {route === "adminPage" &&
+              <AdminPage setRoute={setRoute} isNight={isNight} />}
             {route === "masterdata" &&
-              (isAdminUser ? (
+              // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
                   <UserRegistrationTable currentUser={currentUser} />
                 </main>
-              ) : (
-                <div
-                  className={`${
-                    isNight ? "text-white/70" : "text-gray-600"
-                  } p-6`}
-                >
-                  Not authorized
-                </div>
-              ))}
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+              }
             {
               route === "approvals" && (
                 // (isAdminUser ? (
@@ -4957,16 +5007,10 @@ export default function App() {
               />
             )}
 
-            {route === "volumeAllocation" && (
-              <OpportunityVolumeAllocation
-                form={{
-                  opportunity_Type: opps.annual_Or_LTO,
-                  volume: opps.estimated_Volume,
-                  start_date: opps.likely_Start_Date,
-                  end_Date: opps.end_Date,
-                }}
-              />
-            )}
+            {route === "volumeAllocation" &&
+              volumeAllocationArray.map((item, index) => (
+                <OpportunityVolumeAllocation key={index} form={item} />
+              ))}
 
             {confirmOpen && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -5053,6 +5097,7 @@ export default function App() {
               onGoAnalytics={() => setRoute("analytics")}
               onGoApprovals={() => setRoute("approvals")}
               onGoVolumeAllocation={() => setRoute("volumeAllocation")}
+              onGoAdmin={() => setRoute("adminPage")}
               onSignOut={() => {
                 try {
                   localStorage.removeItem("oppty_user");
@@ -5120,6 +5165,28 @@ function OpportunityVolumeAllocation({ form }) {
     { key: "P12", start: "25-01-2026", end: "21-02-2026" },
     { key: "P13", start: "22-02-2026", end: "21-03-2026" },
   ];
+
+  const [loading, setLoading] = useState(false);
+  const [zDate, setzDate] = useState(null);
+  const [error, setError] = useState("");
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchZdate(formatDateToYYYYMMDD(form.start_date));
+      setzDate(data);
+      setError("");
+    } catch {
+      setzDate();
+      setError("Failed to load approval requests.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
 
   const parseDate = (dateStr) => {
     if (!dateStr) return null;
@@ -5258,7 +5325,6 @@ function AddOpportunityPage({ onCancel, onSave }) {
       setShowModal((prev) => !prev);
     }
   };
-
 
   const handleAnnual_LTO = (e) => {
     const startDate = typeof e === "string" ? e : e?.target?.value;
@@ -5914,8 +5980,9 @@ function AddOpportunityPage({ onCancel, onSave }) {
               </label>
               {!isNaN(Number(form.override_Price)) &&
                 !isNaN(Number(form.material_Projected_Price)) &&
-                Number(form.material_Projected_Price) >
-                  Number(form.override_Price) && (
+                Number(form.override_Price) > 0 &&
+                Number(form.override_Price) <
+                  Number(form.material_Projected_Price) && (
                   <label className="grid gap-1 md:col-span-2">
                     <Label>Business Justification</Label>
                     <Textarea
@@ -6156,26 +6223,29 @@ function AddOpportunityPage({ onCancel, onSave }) {
                   const override = Number(form.override_Price);
                   const projected = Number(form.material_Projected_Price);
 
-                  const hasJustification =
-                    form.business_justification &&
-                    form.business_justification.trim() !== "";
-                  if (!hasJustification) {
-                    alert(
-                      "Please provide a business justification before proceeding."
-                    );
-                    return;
-                  }
+                  if (override > 0) {
+                    const hasJustification =
+                      form.business_justification &&
+                      form.business_justification.trim() !== "";
 
-                  // if ovride price is less than projected Price  requires approval
-                  if (override < projected) {
-                    setShowModal(true);
-                    return;
+                    if (override < projected && !hasJustification) {
+                      alert(
+                        "Please provide a business justification before proceeding."
+                      );
+                      return;
+                    }
+
+                    if (override < projected) {
+                      setShowModal(true);
+                      return;
+                    }
                   }
 
                   handleOverrideChange(e);
                   goToNextSection();
                   return;
                 }
+
                 goToNextSection();
               }}
             >
@@ -7277,6 +7347,101 @@ function WelcomeCard({
         )}
       </div>
     </div>
+  );
+}
+
+function AdminPage({ setRoute, isNight }) {
+  console.log("entered")
+  return (
+    <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* User Registration Card */}
+        <Card
+  className={clsx(
+    "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+    isNight
+      ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+      : "bg-white/60 border border-white/50 hover:bg-white"
+  )}
+  onClick={() => {
+    setRoute("masterdata");
+  }}
+>
+  <CardBody className="flex flex-col items-center justify-center py-10">
+    <div
+      className={clsx(
+        "p-4 rounded-full mb-4 flex items-center justify-center",
+        isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+      )}
+    >
+      <UserPlus
+        size={36}
+        className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+      />
+    </div>
+    <h2
+      className={clsx(
+        "text-lg font-semibold",
+        isNight ? "text-white" : "text-gray-800"
+      )}
+    >
+      User Registration
+    </h2>
+    <p
+      className={clsx(
+        "text-sm mt-2 text-center max-w-xs",
+        isNight ? "text-white/60" : "text-gray-600"
+      )}
+    >
+      Manage and onboard new users with ease.
+    </p>
+  </CardBody>
+</Card>
+
+
+
+        {/* Approvals Card */}
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("approvals")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <ClipboardCheck
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Approvals
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Review and approve user requests and submissions.
+            </p>
+          </CardBody>
+        </Card>
+      </div>
+    </main>
   );
 }
 
