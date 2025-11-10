@@ -3562,8 +3562,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("visibleColumns", JSON.stringify(visibleColumns));
   }, [visibleColumns]);
-  useEffect(() => {
-  }, [route]);
+  useEffect(() => {}, [route]);
 
   const toggleColumn = (key) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -3756,12 +3755,12 @@ export default function App() {
   );
 
   const volumeAllocationArray = opps.map((o) => ({
-      opportunity_ID: o.OPPORTUNITY_ID,
-      opportunity_Type: o.ANNUAL_OR_LTO,
-      volume: o.ESTIMATED_VOLUME,
-      start_date: o.LIKELY_START_DATE,
-      end_Date: o.END_DATE,
-    }));
+    opportunity_ID: o.OPPORTUNITY_ID,
+    opportunity_Type: o.ANNUAL_OR_LTO,
+    volume: o.ESTIMATED_VOLUME,
+    start_date: o.LIKELY_START_DATE,
+    end_Date: o.END_DATE,
+  }));
 
   async function addOpportunity(form) {
     const payload = {
@@ -4943,13 +4942,16 @@ export default function App() {
               </main>
             )}
 
-            {route === "adminPage" &&
-              <AdminPage setRoute={setRoute} isNight={isNight} />}
-            {route === "masterdata" &&
-              // (isAdminUser ? (
+            {route === "adminPage" && (
+              <AdminPage setRoute={setRoute} isNight={isNight} />
+            )}
+            {
+              route === "masterdata" && (
+                // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
                   <UserRegistrationTable currentUser={currentUser} />
                 </main>
+              )
               // ) : (
               //   <div
               //     className={`${
@@ -4959,7 +4961,7 @@ export default function App() {
               //     Not authorized
               //   </div>
               // ))
-              }
+            }
             {
               route === "approvals" && (
                 // (isAdminUser ? (
@@ -5004,6 +5006,7 @@ export default function App() {
                   await addOpportunity(form);
                   setRoute("dashboard");
                 }}
+                currentUser={currentUser}
               />
             )}
 
@@ -5301,7 +5304,7 @@ function OpportunityVolumeAllocation({ form }) {
   );
 }
 
-function AddOpportunityPage({ onCancel, onSave }) {
+function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
   const [currentSection, setCurrentSection] = useState("product");
@@ -5315,6 +5318,39 @@ function AddOpportunityPage({ onCancel, onSave }) {
   const [showModal, setShowModal] = useState(false);
   const [pendingValue, setPendingValue] = useState("");
   const [errors, setErrors] = useState({});
+
+  const salesMapping = {
+    Bill: "Field Sales",
+    Broker: "Broker",
+    Canada: "Canada",
+    Diana: "Nat'l Account",
+    Gregg: "Nat'l Account",
+    Jayne: "Field Sales",
+    Dan: "Nat'l Account",
+    Larry: "Field Sales",
+    Meredith: "Field Sales",
+    "Michael J": "Field Sales",
+    "Mike K": "Field Sales",
+    Steve: "Nat'l Account",
+    UNKNOWN: "UNKNOWN",
+    Nithin: "Admin User",
+  };
+
+  let capitalizedSalesLead = "UNKNOWN";
+
+  let salesTeam;
+  if (currentUser || typeof currentUser === "string") {
+    const defaultSalesLead = currentUser.split(".")[0] || "";
+    capitalizedSalesLead =
+      defaultSalesLead.charAt(0).toUpperCase() +
+      defaultSalesLead.slice(1).toLowerCase();
+
+    if (salesMapping.hasOwnProperty(capitalizedSalesLead)) {
+      salesTeam = salesMapping[capitalizedSalesLead];
+    } else {
+      salesTeam = salesMapping.UNKNOWN;
+    }
+  }
 
   const handleOverrideChange = () => {
     const override = parseFloat(form.override_Price);
@@ -5343,33 +5379,12 @@ function AddOpportunityPage({ onCancel, onSave }) {
     }));
   };
 
-  const salesMapping = {
-    Bill: "Field Sales",
-    Broker: "Broker",
-    Canada: "Canada",
-    Diana: "Nat'l Account",
-    Gregg: "Nat'l Account",
-    Jayne: "Field Sales",
-    Dan: "Nat'l Account",
-    Larry: "Field Sales",
-    Meredith: "Field Sales",
-    "Michael J": "Field Sales",
-    "Mike K": "Field Sales",
-    Steve: "Nat'l Account",
-    UNKNOWN: "UNKNOWN",
-  };
-
-  const salesLeads = Object.keys(salesMapping).sort();
-  const salesTeams = [...new Set(Object.values(salesMapping))].sort();
-
   const sections = [
     { key: "product", label: "Product", icon: "📦" },
-    { key: "volume", label: "Volume", icon: "📊" },
-    { key: "pricing", label: "Pricing", icon: "💰" },
-    { key: "timing", label: "Timing", icon: "📅" },
+    { key: "volume_pricing", label: "Volume & Pricing", icon: "📊" },
+    { key: "location_timing", label: "Location and Timing", icon: "📅" },
     { key: "outcome", label: "Outcome", icon: "📝" },
-    { key: "support", label: "Culinary", icon: "🤝" },
-    // { key: "voumeAllocation", label: "Volume Allocation", icon: "🤝" },
+    { key: "customerDetails", label: "Customer Details", icon: "🤝" },
   ];
 
   const getSectionIndex = (key) => sections.findIndex((s) => s.key === key);
@@ -5425,49 +5440,41 @@ function AddOpportunityPage({ onCancel, onSave }) {
     fetchMaterials();
   }, []);
 
-  const productList = materials
-    .map((material) => material.product)
-    .filter(Boolean)
-    .sort();
-
   const [form, setForm] = useState({
     // Core Details
     customer_Name: "",
-    sales_Lead: "",
-    sales_Team: "",
+    sales_Lead: capitalizedSalesLead,
+    sales_Team: salesTeam,
     sales_Stage: "Lead: No Current Product Solution",
-    opportunity_Type: "",
+    probability: "",
+    material_ID: "",
+    product_Category: "",
+    material_Desc: "",
+    estimated_Volume: "",
+    uoM: "Case",
     opportunity_Summary: "",
 
     // Product & Material
-    product: "",
-    material_ID: "",
-    product_Category: "",
     base_UoM: "Case",
     material_Weight: "",
-    product_Source_Location: "",
-    likely_Distributors: "",
-
-    // Volume & Units
-    estimated_Volume: "",
-    uoM: "Case",
-    case_Volume_Converted: "",
-    opportunity_Volume_Input: "",
-    days_30_Ship: "N",
-
-    // Pricing & Financial Impact
-    material_Projected_Price: "",
-    equivalized_Pipeline_LBS: "",
-    pipeline_Projected_Revenue: "",
+    
+    // Volume & Pricing
+    case_Volume: "",
+    pound_Volume: "",
+    material_Price: "",
     override_Price: "",
     business_justification: "",
+    topline_Revenue: "",
+    period_Rolling: "",
 
-    // Timing & Lifecycle
-    likely_Start_Date: "",
+    // Location & Timing
+    ship_DC: "",
+    likely_Distributors: "",
     annual_Or_LTO: "Annual",
+    likely_Start_Date: "",
     end_Date: "",
     last_Meeting_Date: "",
-    next_Step_Description: "",
+    estimated_Close_Date: "",
 
     // Outcome & Notes
     win_Loss_Reason_Code: "",
@@ -5477,6 +5484,12 @@ function AddOpportunityPage({ onCancel, onSave }) {
     culinary_Support_Needed: "N",
     culinary_Support_Description: "",
     culinary_Support_Status: "",
+
+    // Customer Details
+    contact_Name: "",
+    contact_Title: "",
+    contact_Email: "",
+    contact_Phone: "",
   });
 
   const handleConfirmExit = () => {
@@ -5598,28 +5611,19 @@ function AddOpportunityPage({ onCancel, onSave }) {
             </label>
             <label className="grid gap-1">
               <Label>Sales Lead *</Label>
-              <FrostedSelect
+              <Input
                 value={form.sales_Lead}
-                onChange={(v) => {
-                  setForm((prev) => ({ ...prev, sales_Lead: v }));
-                  if (v && salesMapping[v]) {
-                    setForm((prev) => ({
-                      ...prev,
-                      sales_Team: salesMapping[v],
-                    }));
-                  }
-                }}
-                options={["", ...salesLeads]}
-                placeholder="Select sales lead"
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, sales_Lead: e.target.value }))
+                }
+                placeholder="Sales Lead"
+                readOnly
               />
             </label>
             <label className="grid gap-1">
               <Label>Sales Team</Label>
               <Input
                 value={form.sales_Team}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, sales_Team: e.target.value }))
-                }
                 placeholder="Sales team"
                 readOnly
               />
@@ -5646,19 +5650,125 @@ function AddOpportunityPage({ onCancel, onSave }) {
               />
             </label>
             <label className="grid gap-1">
-              <Label>Opportunity Type</Label>
+              <Label>Probability</Label>
               <FrostedSelect
-                value={form.opportunity_Type}
+                value={form.probability}
                 onChange={(v) =>
-                  setForm((prev) => ({ ...prev, opportunity_Type: v }))
+                  setForm((prev) => ({ ...prev, probability: v }))
+                }
+                options={["0%", "25%", "50%", "75%", "100%"]}
+                placeholder="Select Probability"
+              />
+            </label>
+            <label className="grid gap-1">
+              <Label>Material ID</Label>
+              {isLoadingMaterials ? (
+                <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
+                  Loading products...
+                </div>
+              ) : materialsError ? (
+                <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
+                  {materialsError}
+                </div>
+              ) : (
+                <div className="w-full max-w-2xl">
+                  <FrostedSelect
+                    value={form.material_ID}
+                    onChange={(v) => {
+                      console.log("Material selected:", v);
+                      setForm((prev) => ({ ...prev, material_ID: v }));
+
+                      if (v && materials.length > 0) {
+                        const selectedMaterial = materials.find(
+                          (material) => material.MATERIAL_ID === v
+                        );
+                        console.log(
+                          "Selected material found:",
+                          selectedMaterial
+                        );
+
+                        if (selectedMaterial) {
+                          setForm((prev) => ({
+                            ...prev,
+                            product: v,
+                            material_ID: selectedMaterial.MATERIAL_ID,
+                            material_Weight: selectedMaterial.MATERIAL_WEIGHT,
+                            product_Category: selectedMaterial.PRODUCT_CATEGORY,
+                            base_UoM: selectedMaterial.BASE_UOM,
+                            material_Projected_Price:
+                              selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                            pipeline_Projected_Revenue: prev.estimated_Volume
+                              ? (
+                                  parseFloat(
+                                    selectedMaterial.MATERIAL_PROJECTED_PRICE
+                                  ) * parseFloat(prev.estimated_Volume)
+                                ).toFixed(2)
+                              : "",
+                          }));
+                        }
+                      }
+                    }}
+                    options={materials.map((material) => material.MATERIAL_ID)}
+                    placeholder="Select Material ID"
+                    disabled={isLoadingMaterials}
+                    className="w-full"
+                    style={{
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                    }}
+                  />
+                </div>
+              )}
+            </label>
+            <label className="grid gap-1">
+              <Label>Product Category</Label>
+              <FrostedSelect
+                value={form.product_Category}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, product_Category: v }))
                 }
                 options={[
-                  "New Business",
-                  "Expansion",
-                  "Renewal",
-                  "Replacement",
+                  "SNACKING",
+                  "PANTRY",
+                  "BEVERAGE",
+                  "INDUSTRIAL/GOVT",
+                  "FROZEN",
+                  "CORE FRUITS & BEVERA",
                 ]}
-                placeholder="Select opportunity type"
+                placeholder="Select Product Category"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <Label>Material Desc</Label>
+              <Input
+                value={form.material_Desc}
+                placeholder="Material Description"
+                readOnly
+              />
+            </label>
+            <label className="grid gap-1">
+              <Label>Volume</Label>
+              <Input
+                type="number"
+                value={form.estimated_Volume}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    estimated_Volume: e.target.value,
+                  }))
+                }
+                placeholder="Enter volume"
+              />
+            </label>
+            <label className="grid gap-1">
+              <Label>Base UoM</Label>
+              <FrostedSelect
+                value={form.base_UoM}
+                onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
+                options={["Case", "Bins", "Pallet", "Drum", "Pail"]}
+                placeholder="Select UOM"
               />
             </label>
             <label className="grid gap-1 md:col-span-3">
@@ -5690,108 +5800,31 @@ function AddOpportunityPage({ onCancel, onSave }) {
           {currentSection === "product" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
-                <Label>Product *</Label>
-                {isLoadingMaterials ? (
-                  <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
-                    Loading products...
-                  </div>
-                ) : materialsError ? (
-                  <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
-                    {materialsError}
-                  </div>
-                ) : (
-                  <div className="w-full max-w-2xl">
-                    <FrostedSelect
-                      value={form.product}
-                      onChange={(v) => {
-                        console.log("Product selected:", v);
-                        setForm((prev) => ({ ...prev, product: v }));
-
-                        if (v && materials.length > 0) {
-                          const selectedMaterial = materials.find(
-                            (material) => material.PRODUCT === v
-                          );
-                          console.log(
-                            "Selected material found:",
-                            selectedMaterial
-                          );
-
-                          if (selectedMaterial) {
-                            setForm((prev) => ({
-                              ...prev,
-                              product: v,
-                              material_ID: selectedMaterial.MATERIAL_ID,
-                              material_Weight: selectedMaterial.MATERIAL_WEIGHT,
-                              product_Category:
-                                selectedMaterial.PRODUCT_CATEGORY,
-                              base_UoM: selectedMaterial.BASE_UOM,
-                              material_Projected_Price:
-                                selectedMaterial.MATERIAL_PROJECTED_PRICE,
-                              pipeline_Projected_Revenue: prev.estimated_Volume
-                                ? (
-                                    parseFloat(
-                                      selectedMaterial.MATERIAL_PROJECTED_PRICE
-                                    ) * parseFloat(prev.estimated_Volume)
-                                  ).toFixed(2)
-                                : "",
-                            }));
-                          }
-                        }
-                      }}
-                      options={materials.map((material) => material.PRODUCT)}
-                      placeholder="Select Product"
-                      disabled={isLoadingMaterials}
-                      className="w-full"
-                      style={{
-                        textOverflow: "ellipsis",
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                      }}
-                    />
-                  </div>
-                )}
-              </label>
-              <label className="grid gap-1">
                 <Label>Material ID</Label>
                 <Input
                   value={form.material_ID}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      material_ID: e.target.value,
-                    }))
-                  }
                   placeholder="Material ID"
                   readOnly
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Product Category</Label>
+                <Label>Material Description</Label>
+                <Input
+                  value={form.material_Desc}
+                  placeholder="Material Description"
+                  readOnly
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Category</Label>
                 <Input
                   value={form.product_Category}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      product_Category: e.target.value,
-                    }))
-                  }
-                  placeholder="Product category"
+                  placeholder="Category"
                   readOnly
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Base UoM</Label>
-                <Input
-                  value={form.base_UoM}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, base_UoM: e.target.value }))
-                  }
-                  placeholder="Base UoM"
-                  readOnly
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Material Weight</Label>
+                <Label>Case Weight</Label>
                 <Input
                   type="number"
                   value={form.material_Weight}
@@ -5801,39 +5834,13 @@ function AddOpportunityPage({ onCancel, onSave }) {
                       material_Weight: e.target.value,
                     }))
                   }
-                  placeholder="Weight"
+                  placeholder="Case Weight"
                   readOnly
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Product Source Location</Label>
-                <Input
-                  value={form.product_Source_Location}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      product_Source_Location: e.target.value,
-                    }))
-                  }
-                  placeholder="Source location"
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Likely Distributors</Label>
-                <Input
-                  value={form.likely_Distributors}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      likely_Distributors: e.target.value,
-                    }))
-                  }
-                  placeholder="Distributors"
                 />
               </label>
             </div>
           )}
-          {currentSection === "volume" && (
+          {currentSection === "volume_pricing" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
                 <Label>Estimated Volume *</Label>
@@ -5847,6 +5854,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
                     }))
                   }
                   placeholder="Enter volume"
+                  readOnly
                 />
               </label>
               <label className="grid gap-1">
@@ -5859,97 +5867,46 @@ function AddOpportunityPage({ onCancel, onSave }) {
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Case Volume (Converted)</Label>
+                <Label>Case Volume</Label>
                 <Input
                   type="number"
-                  value={form.case_Volume_Converted}
+                  value={form.case_Volume}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      case_Volume_Converted: e.target.value,
+                      case_Volume: e.target.value,
                     }))
                   }
-                  placeholder="Case volume"
+                  placeholder="Case Volume"
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Opportunity Volume Input</Label>
+                <Label>Pound Volume</Label>
                 <Input
                   type="number"
-                  value={form.opportunity_Volume_Input}
+                  value={form.pound_Volume}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      opportunity_Volume_Input: e.target.value,
+                      pound_Volume: e.target.value,
                     }))
                   }
-                  placeholder="Volume input"
+                  placeholder="0.00"
                 />
               </label>
               <label className="grid gap-1">
-                <Label>30 Days Ship</Label>
-                <FrostedSelect
-                  value={form.days_30_Ship}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, days_30_Ship: v }))
-                  }
-                  options={["Y", "N"]}
-                  placeholder="Select"
-                />
-              </label>
-            </div>
-          )}
-
-          {currentSection === "pricing" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Material Projected Price</Label>
+                <Label>Material Price</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
                     $
                   </span>
                   <Input
                     type="number"
-                    value={form.material_Projected_Price}
+                    value={form.material_Price}
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        material_Projected_Price: e.target.value,
-                      }))
-                    }
-                    className="pl-6"
-                    placeholder="0.00"
-                    readOnly
-                  />
-                </div>
-              </label>
-              <label className="grid gap-1">
-                <Label>Equivalized Pipeline LBS</Label>
-                <Input
-                  type="number"
-                  value={form.equivalized_Pipeline_LBS}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      equivalized_Pipeline_LBS: e.target.value,
-                    }))
-                  }
-                  placeholder="Pipeline LBS"
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Pipeline Projected Revenue</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
-                    $
-                  </span>
-                  <Input
-                    type="number"
-                    value={form.pipeline_Projected_Revenue}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        pipeline_Projected_Revenue: e.target.value,
+                        material_Price: e.target.value,
                       }))
                     }
                     className="pl-6"
@@ -5998,6 +5955,76 @@ function AddOpportunityPage({ onCancel, onSave }) {
                     />
                   </label>
                 )}
+                <label className="grid gap-1">
+                <Label>Topline Revenue</Label>
+                <Input
+                  type="number"
+                  value={form.topline_Revenue}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      topline_Revenue: e.target.value,
+                    }))
+                  }
+                  placeholder="Pound Volume"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Period Rolling (Quantity)</Label>
+                <Input
+                  type="number"
+                  value={form.period_Rolling}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      period_Rolling: e.target.value,
+                    }))
+                  }
+                  placeholder="Period Rolling (Quantity)"
+                />
+              </label>
+            </div>
+          )}
+
+          {currentSection === "pricing" && (
+            <div className="grid md:grid-cols-2 gap-4">
+              
+              <label className="grid gap-1">
+                <Label>Equivalized Pipeline LBS</Label>
+                <Input
+                  type="number"
+                  value={form.equivalized_Pipeline_LBS}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      equivalized_Pipeline_LBS: e.target.value,
+                    }))
+                  }
+                  placeholder="Pipeline LBS"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Pipeline Projected Revenue</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    value={form.pipeline_Projected_Revenue}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        pipeline_Projected_Revenue: e.target.value,
+                      }))
+                    }
+                    className="pl-6"
+                    placeholder="0.00"
+                    readOnly
+                  />
+                </div>
+              </label>
+              
             </div>
           )}
 
@@ -6015,8 +6042,35 @@ function AddOpportunityPage({ onCancel, onSave }) {
             }}
           />
 
-          {currentSection === "timing" && (
+          {currentSection === "location_timing" && (
             <div className="grid md:grid-cols-2 gap-4">
+              <label className="grid gap-1">
+                <Label>Ship DC</Label>
+                <FrostedSelect
+                  value={form.ship_DC}
+                  onChange={(v) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      ship_DC: v,
+                    }));
+                  }}
+                  options={["India", "USA", "Japan"]}
+                  placeholder="Select DC Location"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Likely Distributors</Label>
+                <Input
+                  value={form.likely_Distributors}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      likely_Distributors: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
               <label className="grid gap-1">
                 <Label>Annual or LTO</Label>
                 <FrostedSelect
@@ -6086,18 +6140,14 @@ function AddOpportunityPage({ onCancel, onSave }) {
                   placeholder="Select meeting date"
                 />
               </label>
-              <label className="grid gap-1 md:col-span-2">
-                <Label>Next Step Description</Label>
-                <Textarea
-                  value={form.next_Step_Description}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      next_Step_Description: e.target.value,
-                    }))
+              <label className="grid gap-1">
+                <Label>Estimated Close Date</Label>
+                <FrostedDate
+                  value={form.estimated_Close_Date}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, estimated_Close_Date: v }))
                   }
-                  placeholder="Describe next steps"
-                  rows={3}
+                  placeholder="Select closing date"
                 />
               </label>
             </div>
@@ -6144,7 +6194,7 @@ function AddOpportunityPage({ onCancel, onSave }) {
               </label>
             </div>
           )}
-          {currentSection === "support" && (
+          {/* {currentSection === "support" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
                 <Label>Culinary Support Needed</Label>
@@ -6189,6 +6239,64 @@ function AddOpportunityPage({ onCancel, onSave }) {
                 </>
               )}
             </div>
+          )} */}
+          {currentSection === "customerDetails" && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <label className="grid gap-1">
+                <Label>Contact Name</Label>
+                <Input
+                  value={form.contact_Name}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Name: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Name"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Contact Title</Label>
+                <Input
+                  value={form.contact_Title}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Title: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Title"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Contact Email</Label>
+                <Input
+                  value={form.contact_Email}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Email: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Email"
+                />
+              </label>
+
+              <label className="grid gap-1">
+                <Label>Contact Phone</Label>
+                <Input
+                  value={form.contact_Phone}
+                  type="number"
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Phone: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Phone"
+                />
+              </label>
+            </div>
           )}
         </CardBody>
       </Card>
@@ -6219,9 +6327,9 @@ function AddOpportunityPage({ onCancel, onSave }) {
                 if (Object.keys(newErrors).length > 0) return;
 
                 // Handle pricing section logic
-                if (currentSection === "pricing") {
+                if (currentSection === "volume_pricing") {
                   const override = Number(form.override_Price);
-                  const projected = Number(form.material_Projected_Price);
+                  const projected = Number(form.material_Price);
 
                   if (override > 0) {
                     const hasJustification =
@@ -7351,52 +7459,51 @@ function WelcomeCard({
 }
 
 function AdminPage({ setRoute, isNight }) {
-  console.log("entered")
   return (
     <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* User Registration Card */}
         <Card
-  className={clsx(
-    "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
-    isNight
-      ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
-      : "bg-white/60 border border-white/50 hover:bg-white"
-  )}
-  onClick={() => {
-    setRoute("masterdata");
-  }}
->
-  <CardBody className="flex flex-col items-center justify-center py-10">
-    <div
-      className={clsx(
-        "p-4 rounded-full mb-4 flex items-center justify-center",
-        isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
-      )}
-    >
-      <UserPlus
-        size={36}
-        className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
-      />
-    </div>
-    <h2
-      className={clsx(
-        "text-lg font-semibold",
-        isNight ? "text-white" : "text-gray-800"
-      )}
-    >
-      User Registration
-    </h2>
-    <p
-      className={clsx(
-        "text-sm mt-2 text-center max-w-xs",
-        isNight ? "text-white/60" : "text-gray-600"
-      )}
-    >
-      Manage and onboard new users with ease.
-    </p>
-  </CardBody>
-</Card>
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => {
+            setRoute("masterdata");
+          }}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <UserPlus
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              User Registration
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Manage and onboard new users with ease.
+            </p>
+          </CardBody>
+        </Card>
 
 
 
