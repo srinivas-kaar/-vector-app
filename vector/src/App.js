@@ -52,6 +52,8 @@ import {
   ChevronUp,
   ClipboardCheck,
   UserPlus,
+  DatabaseZap,
+  CircleArrowLeft,
 } from "lucide-react";
 
 import ReactDOM from "react-dom";
@@ -391,7 +393,7 @@ async function apiCreateOpp(body) {
       SAMPLES_SUPPORT_STATUS:
         body.samples_Support_Status || body.samplesSupportStatus || "",
       CULINARY_SUPPORT_NEEDED:
-        body.culinary_Support_Needed || body.culinarySupportNeeded || "N",
+        body.culinary_Needed || body.culinaryNeeded || "N",
       CULINARY_SUPPORT_DESCRIPTION:
         body.culinary_Support_Description ||
         body.culinarySupportDescription ||
@@ -708,6 +710,108 @@ async function apiFetchZdate(start_date) {
   }
 
   return res.json();
+}
+async function apiFetchSalesStage() {
+  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
+  //   method: "GET",
+  //   headers: { Accept: "application/json" },
+  //   credentials: "include",
+  //   mode: "cors",
+  // });
+
+  // if (!res.ok) {
+  //   throw new Error(
+  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
+  //   );
+  // }
+
+  const values = {
+    stage1: "Lead: No Current Product Solution",
+    stage2: "Lead: Deprioritized Account",
+    stage3: "Target Account",
+    stage4: "Customer Engaged",
+    stage5: "Proposal Submitted",
+    stage6: "Win - Customer Verbal",
+    stage7: "Post-pipeline: Win (order shipped)",
+    stage8: "Post-pipeline: Loss",
+    stage9: "Post-pipeline: On-hold",
+  };
+
+  const result = Object.entries(values).map(([key, value]) => ({
+    key,
+    value,
+  }));
+
+  await new Promise((res) => setTimeout(res, 300));
+  // return res.json();
+
+  return result;
+}
+async function apiFetchProductCategory() {
+  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
+  //   method: "GET",
+  //   headers: { Accept: "application/json" },
+  //   credentials: "include",
+  //   mode: "cors",
+  // });
+
+  // if (!res.ok) {
+  //   throw new Error(
+  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
+  //   );
+  // }
+
+  const values = {
+    category1: "SNACKING",
+    category2: "PANTRY",
+    category3: "BEVERAGE",
+    category4: "INDUSTRIAL/GOVT",
+    category5: "FROZEN",
+    category6: "CORE FRUITS & BEVERA",
+  };
+
+  const result = Object.entries(values).map(([key, value]) => ({
+    key,
+    value,
+  }));
+
+  await new Promise((res) => setTimeout(res, 300));
+  // return res.json();
+
+  return result;
+}
+async function apiFetchProbability() {
+  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
+  //   method: "GET",
+  //   headers: { Accept: "application/json" },
+  //   credentials: "include",
+  //   mode: "cors",
+  // });
+
+  // if (!res.ok) {
+  //   throw new Error(
+  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
+  //   );
+  // }
+
+  const values = {
+    code1: "0%",
+    code2: "25%",
+    code3: "50%",
+    code4: "75%",
+    code5: "90%",
+    code6: "100%",
+  };
+
+  const result = Object.entries(values).map(([key, value]) => ({
+    key,
+    value,
+  }));
+
+  await new Promise((res) => setTimeout(res, 300));
+  // return res.json();
+
+  return result;
 }
 
 // ---------------- Utils ----------------
@@ -2114,6 +2218,600 @@ function LoginPage({ onSubmit, onSignup }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Static Tables
+
+function SalesStageDataTable({ currentUser, setRoute }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
+
+  const [salesStages, setSalesStages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [newRow, setNewRow] = useState({ key: "", value: "" });
+  const [editedStages, setEditedStages] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const hasChanges = Object.keys(editedStages).length > 0;
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchSalesStage();
+      setSalesStages(Array.isArray(data) ? data : []);
+      setError("");
+    } catch {
+      setSalesStages([]);
+      setError("Failed to load sales stages.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleInputChange = (index, field, value) => {
+    setSalesStages((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setEditedStages((prev) => ({
+      ...prev,
+      [index]: { ...salesStages[index], [field]: value },
+    }));
+  };
+
+  const handleAddNewRow = () => {
+    if (!newRow.key.trim() || !newRow.value.trim()) return;
+    setSalesStages((prev) => [...prev, { ...newRow }]);
+    setNewRow({ key: "", value: "" });
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      // await apiSaveSalesStage(salesStages);
+      console.log("data is saved")
+      await refresh();
+    } catch {
+      alert("Failed to save sales stages.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tableShell =
+    (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
+    " bg-clip-padding backdrop-blur-sm";
+
+  return (
+    <>
+      <CircleArrowLeft
+        size={36}
+        onClick={() => setRoute("dataTablesPage")}
+        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+      />
+      <Card>
+        <CardHeader
+          title="Sales Stages"
+          subtitle="Fetched from SAP Datasphere"
+          right={
+            <div className="flex gap-2">
+              <Input
+                placeholder="Stage Code"
+                value={newRow.key}
+                onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
+                className="w-36"
+              />
+              <Input
+                placeholder="Stage Name"
+                value={newRow.value}
+                onChange={(e) =>
+                  setNewRow({ ...newRow, value: e.target.value })
+                }
+                className="w-48"
+              />
+              <Button onClick={handleAddNewRow}>Add</Button>
+              <Button onClick={refresh}>Refresh</Button>
+            </div>
+          }
+        />
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
+            >
+              {error}
+            </div>
+          )}
+          <div
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+          >
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr
+                  className={`${
+                    isNight
+                      ? "text-white/80 bg-white/10"
+                      : "text-gray-700 bg-white/80"
+                  } backdrop-blur-md`}
+                >
+                  <th className="py-2 px-3 w-32">Stage Code</th>
+                  <th className="py-2 px-3 w-32">Stage Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3`}
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                ) : salesStages.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3`}
+                    >
+                      No sales stages found.
+                    </td>
+                  </tr>
+                ) : (
+                  salesStages.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-t ${
+                        isNight ? "border-white/10" : "border-white/60"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <Input
+                          value={row.key || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "key", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          value={row.value || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "value", e.target.value)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {!loading && salesStages.length > 0 && (
+                <tr>
+                  <td colSpan={2} className="py-3 px-3 text-right">
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !hasChanges}
+                      className={
+                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                      }
+                    >
+                      Save
+                    </Button>
+                  </td>
+                </tr>
+              )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </>
+  );
+}
+function ProductCategoryDataTable({ currentUser, setRoute }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
+
+  const [category, setCategory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [newRow, setNewRow] = useState({ key: "", value: "" });
+  const [editedCategory, setEditedCategory] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const hasChanges = Object.keys(editedCategory).length > 0;
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchProductCategory();
+      setCategory(Array.isArray(data) ? data : []);
+      setError("");
+    } catch {
+      setCategory([]);
+      setError("Failed to load sales stages.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleInputChange = (index, field, value) => {
+    setCategory((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setEditedCategory((prev) => ({
+      ...prev,
+      [index]: { ...category[index], [field]: value },
+    }));
+  };
+
+  const handleAddNewRow = () => {
+    if (!newRow.key.trim() || !newRow.value.trim()) return;
+    setCategory((prev) => [...prev, { ...newRow }]);
+    setNewRow({ key: "", value: "" });
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      console.log("It is saved");
+      // await apiSaveProductCategory(category);
+      await refresh();
+
+      setEditedCategory({});
+    } catch {
+      alert("Failed to save product categories.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tableShell =
+    (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
+    " bg-clip-padding backdrop-blur-sm";
+
+  return (
+    <>
+    <CircleArrowLeft
+        size={36}
+        onClick={() => setRoute("dataTablesPage")}
+        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+      />
+    <Card>
+      <CardHeader
+        title="Product Categories"
+        subtitle="Fetched from SAP Datasphere"
+        right={
+          <div className="flex gap-2">
+            <Input
+              placeholder="Category Code"
+              value={newRow.key}
+              onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
+              className="w-36"
+            />
+            <Input
+              placeholder="Category Name"
+              value={newRow.value}
+              onChange={(e) => setNewRow({ ...newRow, value: e.target.value })}
+              className="w-48"
+            />
+            <Button onClick={handleAddNewRow}>Add</Button>
+            <Button onClick={refresh}>Refresh</Button>
+          </div>
+        }
+      />
+      <CardBody>
+        {error && (
+          <div
+            className={`${
+              isNight ? "text-amber-200" : "text-amber-700"
+            } text-xs mb-2`}
+          >
+            {error}
+          </div>
+        )}
+        <div
+          className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+        >
+          <table className="min-w-full text-sm">
+            <thead className="sticky top-0 z-10">
+              <tr
+                className={`${
+                  isNight
+                    ? "text-white/80 bg-white/10"
+                    : "text-gray-700 bg-white/80"
+                } backdrop-blur-md`}
+              >
+                <th className="py-2 px-3 w-32">Category Code</th>
+                <th className="py-2 px-3 w-32">Category Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className={`${
+                      isNight ? "text-white/70" : "text-gray-600"
+                    } py-6 px-3`}
+                  >
+                    Loading…
+                  </td>
+                </tr>
+              ) : category.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className={`${
+                      isNight ? "text-white/60" : "text-gray-500"
+                    } py-6 px-3`}
+                  >
+                    No product category found.
+                  </td>
+                </tr>
+              ) : (
+                category.map((row, index) => (
+                  <tr
+                    key={index}
+                    className={`border-t ${
+                      isNight ? "border-white/10" : "border-white/60"
+                    }`}
+                  >
+                    <td className="py-2 px-3">
+                      <Input
+                        value={row.key || ""}
+                        onChange={(e) =>
+                          handleInputChange(index, "key", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className="py-2 px-3">
+                      <Input
+                        value={row.value || ""}
+                        onChange={(e) =>
+                          handleInputChange(index, "value", e.target.value)
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+              {!loading && category.length > 0 && (
+                <tr>
+                  <td colSpan={2} className="py-3 px-3 text-right">
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !hasChanges}
+                      className={
+                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                      }
+                    >
+                      Save
+                    </Button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
+    </>
+  );
+}
+function ProbabilityDataTable({ currentUser, setRoute }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
+
+  const [probability, setProbability] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [newRow, setNewRow] = useState({ key: "", value: "" });
+  const [editedProbability, setEditedProbability] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const hasChanges = Object.keys(editedProbability).length > 0;
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchProbability();
+      setProbability(Array.isArray(data) ? data : []);
+      setError("");
+    } catch {
+      setProbability([]);
+      setError("Failed to load sales stages.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleInputChange = (index, field, value) => {
+    setProbability((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setEditedProbability((prev) => ({
+      ...prev,
+      [index]: { ...probability[index], [field]: value },
+    }));
+  };
+
+  const handleAddNewRow = () => {
+    if (!newRow.key.trim() || !newRow.value.trim()) return;
+    setProbability((prev) => [...prev, { ...newRow }]);
+    setNewRow({ key: "", value: "" });
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      console.log("It is saved");
+      // await apiSaveProbabiltity(probability);
+      await refresh();
+
+      setEditedProbability({});
+    } catch {
+      alert("Failed to save Probability.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tableShell =
+    (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
+    " bg-clip-padding backdrop-blur-sm";
+
+  return (
+    <>
+    <CircleArrowLeft
+        size={36}
+        onClick={() => setRoute("dataTablesPage")}
+        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+      />
+    <Card>
+      <CardHeader
+        title="Product Categories"
+        subtitle="Fetched from SAP Datasphere"
+        right={
+          <div className="flex gap-2">
+            <Input
+              placeholder="Probability Code"
+              value={newRow.key}
+              onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
+              className="w-36"
+            />
+            <Input
+              placeholder="Probability Name"
+              value={newRow.value}
+              onChange={(e) => setNewRow({ ...newRow, value: e.target.value })}
+              className="w-48"
+            />
+            <Button onClick={handleAddNewRow}>Add</Button>
+            <Button onClick={refresh}>Refresh</Button>
+          </div>
+        }
+      />
+      <CardBody>
+        {error && (
+          <div
+            className={`${
+              isNight ? "text-amber-200" : "text-amber-700"
+            } text-xs mb-2`}
+          >
+            {error}
+          </div>
+        )}
+        <div
+          className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+        >
+          <table className="min-w-full text-sm">
+            <thead className="sticky top-0 z-10">
+              <tr
+                className={`${
+                  isNight
+                    ? "text-white/80 bg-white/10"
+                    : "text-gray-700 bg-white/80"
+                } backdrop-blur-md`}
+              >
+                <th className="py-2 px-3 w-32">Probability Code</th>
+                <th className="py-2 px-3 w-32">Probability Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className={`${
+                      isNight ? "text-white/70" : "text-gray-600"
+                    } py-6 px-3`}
+                  >
+                    Loading…
+                  </td>
+                </tr>
+              ) : probability.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className={`${
+                      isNight ? "text-white/60" : "text-gray-500"
+                    } py-6 px-3`}
+                  >
+                    No Data found.
+                  </td>
+                </tr>
+              ) : (
+                probability.map((row, index) => (
+                  <tr
+                    key={index}
+                    className={`border-t ${
+                      isNight ? "border-white/10" : "border-white/60"
+                    }`}
+                  >
+                    <td className="py-2 px-3">
+                      <Input
+                        value={row.key || ""}
+                        onChange={(e) =>
+                          handleInputChange(index, "key", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className="py-2 px-3">
+                      <Input
+                        value={row.value || ""}
+                        onChange={(e) =>
+                          handleInputChange(index, "value", e.target.value)
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+              {!loading && probability.length > 0 && (
+                <tr>
+                  <td colSpan={2} className="py-3 px-3 text-right">
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !hasChanges}
+                      className={
+                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                      }
+                    >
+                      Save
+                    </Button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
+    </>
   );
 }
 
@@ -3803,7 +4501,7 @@ export default function App() {
       nextStepDescription: form.next_Step_Description,
       winLossReasonCode: form.win_Loss_Reason_Code,
       winLossComments: form.win_Loss_Comments,
-      culinarySupportNeeded: form.culinary_Support_Needed,
+      culinaryNeeded: form.culinary_Needed,
       culinarySupportDescription: form.culinary_Support_Description,
       culinarySupportStatus: form.culinary_Support_Status,
     };
@@ -4945,6 +5643,10 @@ export default function App() {
             {route === "adminPage" && (
               <AdminPage setRoute={setRoute} isNight={isNight} />
             )}
+            {route === "dataTablesPage" && (
+              <DataTablePage setRoute={setRoute} isNight={isNight} />
+            )}
+
             {
               route === "masterdata" && (
                 // (isAdminUser ? (
@@ -4969,6 +5671,60 @@ export default function App() {
                   <OverridePriceApprovalRequestsTable
                     currentUser={currentUser}
                   />
+                </main>
+              )
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+            }
+            {
+              route === "salesStage" && (
+                // (isAdminUser ? (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <SalesStageDataTable
+                    currentUser={currentUser}
+                    setRoute={setRoute}
+                  />
+                </main>
+              )
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+            }
+            {
+              route === "productCategory" && (
+                // (isAdminUser ? (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <ProductCategoryDataTable currentUser={currentUser} setRoute={setRoute} />
+                </main>
+              )
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+            }
+            {
+              route === "probability" && (
+                // (isAdminUser ? (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <ProbabilityDataTable currentUser={currentUser} setRoute={setRoute} />
                 </main>
               )
               // ) : (
@@ -5446,7 +6202,9 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     sales_Lead: capitalizedSalesLead,
     sales_Team: salesTeam,
     sales_Stage: "Lead: No Current Product Solution",
-    probability: "",
+    broker_Led: false,
+    probability: "0%",
+    opportunity_Type: "",
     material_ID: "",
     product_Category: "",
     material_Desc: "",
@@ -5457,7 +6215,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     // Product & Material
     base_UoM: "Case",
     material_Weight: "",
-    
+    culinary_Needed: false,
+
     // Volume & Pricing
     case_Volume: "",
     pound_Volume: "",
@@ -5481,7 +6240,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     win_Loss_Comments: "",
 
     // Support & Enablement
-    culinary_Support_Needed: "N",
     culinary_Support_Description: "",
     culinary_Support_Status: "",
 
@@ -5541,6 +6299,11 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     }
   }, [form.material_Projected_Price, form.estimated_Volume]);
 
+  const fieldsOrder =
+    form.probability === "0%"
+      ? ["category", "material"]
+      : ["material", "category"];
+
   return (
     <main className="max-w-5xl mx-auto px-6 py-6 grid gap-6">
       <div className="flex items-center justify-between">
@@ -5587,7 +6350,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
         />
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="grid gap-1">
+            {/* <label className="grid gap-1">
               <Label>Opportunity ID</Label>
               <Input
                 value="Auto-generated"
@@ -5595,7 +6358,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 readOnly
                 className="bg-gray-100 text-gray-500"
               />
-            </label>
+            </label> */}
             <label className="grid gap-1">
               <Label>Customer Name *</Label>
               <Input
@@ -5619,6 +6382,38 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 placeholder="Sales Lead"
                 readOnly
               />
+            </label>
+            <label className="grid gap-1">
+              <span className="font-medium">Broker Led</span>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.broker_Led === true}
+                    onChange={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        broker_Led: true,
+                      }))
+                    }
+                  />
+                  Yes
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.broker_Led === false}
+                    onChange={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        broker_Led: false,
+                      }))
+                    }
+                  />
+                  No
+                </label>
+              </div>
             </label>
             <label className="grid gap-1">
               <Label>Sales Team</Label>
@@ -5656,89 +6451,139 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 onChange={(v) =>
                   setForm((prev) => ({ ...prev, probability: v }))
                 }
-                options={["0%", "25%", "50%", "75%", "100%"]}
+                options={["0%", "25%", "50%", "75%", "90%", "100%"]}
                 placeholder="Select Probability"
               />
             </label>
-            <label className="grid gap-1">
-              <Label>Material ID</Label>
-              {isLoadingMaterials ? (
-                <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
-                  Loading products...
-                </div>
-              ) : materialsError ? (
-                <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
-                  {materialsError}
-                </div>
-              ) : (
-                <div className="w-full max-w-2xl">
-                  <FrostedSelect
-                    value={form.material_ID}
-                    onChange={(v) => {
-                      console.log("Material selected:", v);
-                      setForm((prev) => ({ ...prev, material_ID: v }));
-
-                      if (v && materials.length > 0) {
-                        const selectedMaterial = materials.find(
-                          (material) => material.MATERIAL_ID === v
-                        );
-                        console.log(
-                          "Selected material found:",
-                          selectedMaterial
-                        );
-
-                        if (selectedMaterial) {
-                          setForm((prev) => ({
-                            ...prev,
-                            product: v,
-                            material_ID: selectedMaterial.MATERIAL_ID,
-                            material_Weight: selectedMaterial.MATERIAL_WEIGHT,
-                            product_Category: selectedMaterial.PRODUCT_CATEGORY,
-                            base_UoM: selectedMaterial.BASE_UOM,
-                            material_Projected_Price:
-                              selectedMaterial.MATERIAL_PROJECTED_PRICE,
-                            pipeline_Projected_Revenue: prev.estimated_Volume
-                              ? (
-                                  parseFloat(
-                                    selectedMaterial.MATERIAL_PROJECTED_PRICE
-                                  ) * parseFloat(prev.estimated_Volume)
-                                ).toFixed(2)
-                              : "",
-                          }));
-                        }
-                      }
-                    }}
-                    options={materials.map((material) => material.MATERIAL_ID)}
-                    placeholder="Select Material ID"
-                    disabled={isLoadingMaterials}
-                    className="w-full"
-                    style={{
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                    }}
-                  />
-                </div>
-              )}
-            </label>
-            <label className="grid gap-1">
-              <Label>Product Category</Label>
+            <label key="category" className="grid gap-1">
+              <Label>Opportunity Type</Label>
               <FrostedSelect
-                value={form.product_Category}
+                value={form.opportunity_Type}
                 onChange={(v) =>
-                  setForm((prev) => ({ ...prev, product_Category: v }))
+                  setForm((prev) => ({ ...prev, opportunity_Type: v }))
                 }
                 options={[
-                  "SNACKING",
-                  "PANTRY",
-                  "BEVERAGE",
-                  "INDUSTRIAL/GOVT",
-                  "FROZEN",
-                  "CORE FRUITS & BEVERA",
+                  "New Business",
+                  "Expansion",
+                  "Renewal",
+                  "Replacement",
                 ]}
-                placeholder="Select Product Category"
+                placeholder="Select Opportunit Type"
               />
             </label>
+
+            {fieldsOrder.map((field) => {
+              if (field === "material") {
+                const isMaterialRequired = form.probability !== "0%";
+
+                return (
+                  <label key="material" className="grid gap-1">
+                    <Label>
+                      Material ID{" "}
+                      {isMaterialRequired && (
+                        <span className="text-red-500 text-sm ml-1">*</span>
+                      )}
+                    </Label>
+
+                    {isLoadingMaterials ? (
+                      <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
+                        Loading products...
+                      </div>
+                    ) : materialsError ? (
+                      <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
+                        {materialsError}
+                      </div>
+                    ) : (
+                      <div className="w-full max-w-2xl">
+                        <FrostedSelect
+                          value={form.material_ID}
+                          onChange={(v) => {
+                            setForm((prev) => ({ ...prev, material_ID: v }));
+
+                            if (v && materials.length > 0) {
+                              const selectedMaterial = materials.find(
+                                (m) => m.MATERIAL_ID === v
+                              );
+
+                              if (selectedMaterial) {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  product: v,
+                                  material_ID: selectedMaterial.MATERIAL_ID,
+                                  material_Weight:
+                                    selectedMaterial.MATERIAL_WEIGHT,
+                                  product_Category:
+                                    selectedMaterial.PRODUCT_CATEGORY,
+                                  base_UoM: selectedMaterial.BASE_UOM,
+                                  material_Projected_Price:
+                                    selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                                  pipeline_Projected_Revenue:
+                                    prev.estimated_Volume
+                                      ? (
+                                          parseFloat(
+                                            selectedMaterial.MATERIAL_PROJECTED_PRICE
+                                          ) * parseFloat(prev.estimated_Volume)
+                                        ).toFixed(2)
+                                      : "",
+                                }));
+                              }
+                            }
+                          }}
+                          options={materials.map((m) => m.MATERIAL_ID)}
+                          placeholder={
+                            isMaterialRequired
+                              ? "Select Material ID (Required)"
+                              : "Select Material ID"
+                          }
+                          disabled={isLoadingMaterials}
+                          className={`w-full ${
+                            isMaterialRequired && !form.material_ID
+                              ? "border border-red-400"
+                              : ""
+                          }`}
+                          style={{
+                            textOverflow: "ellipsis",
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {isMaterialRequired && !form.material_ID && (
+                      <p className="text-red-500 text-xs mt-1">
+                        * Material ID is required when probability is not 100%
+                      </p>
+                    )}
+                  </label>
+                );
+              }
+
+              if (field === "category") {
+                return (
+                  <label key="category" className="grid gap-1">
+                    <Label>Product Category</Label>
+                    <FrostedSelect
+                      value={form.product_Category}
+                      onChange={(v) =>
+                        setForm((prev) => ({ ...prev, product_Category: v }))
+                      }
+                      options={[
+                        "SNACKING",
+                        "PANTRY",
+                        "BEVERAGE",
+                        "INDUSTRIAL/GOVT",
+                        "FROZEN",
+                        "CORE FRUITS & BEVERA",
+                      ]}
+                      placeholder="Select Product Category"
+                    />
+                  </label>
+                );
+              }
+
+              return null;
+            })}
 
             <label className="grid gap-1">
               <Label>Material Desc</Label>
@@ -5805,6 +6650,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   value={form.material_ID}
                   placeholder="Material ID"
                   readOnly
+                  disabled
                 />
               </label>
               <label className="grid gap-1">
@@ -5813,6 +6659,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   value={form.material_Desc}
                   placeholder="Material Description"
                   readOnly
+                  disabled
                 />
               </label>
               <label className="grid gap-1">
@@ -5821,6 +6668,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   value={form.product_Category}
                   placeholder="Category"
                   readOnly
+                  disabled
                 />
               </label>
               <label className="grid gap-1">
@@ -5836,7 +6684,40 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   }
                   placeholder="Case Weight"
                   readOnly
+                  disabled
                 />
+              </label>
+              <label className="grid gap-1">
+                <span className="font-medium">Culinary Needed</span>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.culinary_Needed === true}
+                      onChange={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          culinary_Needed: true,
+                        }))
+                      }
+                    />
+                    Yes
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.culinary_Needed === false}
+                      onChange={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          culinary_Needed: false,
+                        }))
+                      }
+                    />
+                    No
+                  </label>
+                </div>
               </label>
             </div>
           )}
@@ -5955,7 +6836,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                     />
                   </label>
                 )}
-                <label className="grid gap-1">
+              <label className="grid gap-1">
                 <Label>Topline Revenue</Label>
                 <Input
                   type="number"
@@ -5966,7 +6847,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                       topline_Revenue: e.target.value,
                     }))
                   }
-                  placeholder="Pound Volume"
+                  placeholder="$0.00"
                 />
               </label>
               <label className="grid gap-1">
@@ -5988,7 +6869,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
           {currentSection === "pricing" && (
             <div className="grid md:grid-cols-2 gap-4">
-              
               <label className="grid gap-1">
                 <Label>Equivalized Pipeline LBS</Label>
                 <Input
@@ -6024,7 +6904,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   />
                 </div>
               </label>
-              
             </div>
           )}
 
@@ -6199,15 +7078,15 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               <label className="grid gap-1">
                 <Label>Culinary Support Needed</Label>
                 <FrostedSelect
-                  value={form.culinary_Support_Needed}
+                  value={form.culinary_Needed}
                   onChange={(v) =>
-                    setForm((prev) => ({ ...prev, culinary_Support_Needed: v }))
+                    setForm((prev) => ({ ...prev, culinary_Needed: v }))
                   }
                   options={["Y", "N"]}
                   placeholder="Select"
                 />
               </label>
-              {form.culinary_Support_Needed === "Y" && (
+              {form.culinary_Needed === "Y" && (
                 <>
                   <label className="grid gap-1">
                     <Label>Culinary Support Status</Label>
@@ -6520,7 +7399,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
         win_Loss_Comments: opp.win_Loss_Comments || "",
 
         // Support & Enablement
-        culinary_Support_Needed: opp.culinary_Support_Needed || "N",
+        culinary_Needed: opp.culinary_Needed || "N",
         culinary_Support_Description: opp.culinary_Support_Description || "",
         culinary_Support_Status: opp.culinary_Support_Status || "",
       });
@@ -7180,11 +8059,11 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                 <Label>Culinary Support Needed</Label>
                 {editMode ? (
                   <FrostedSelect
-                    value={form.culinary_Support_Needed}
+                    value={form.culinary_Needed}
                     onChange={(v) =>
                       setForm((prev) => ({
                         ...prev,
-                        culinary_Support_Needed: v,
+                        culinary_Needed: v,
                       }))
                     }
                     options={["Y", "N"]}
@@ -7192,13 +8071,13 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   />
                 ) : (
                   <Input
-                    value={form.culinary_Support_Needed === "Y" ? "Yes" : "No"}
+                    value={form.culinary_Needed === "Y" ? "Yes" : "No"}
                     disabled
                     readOnly
                   />
                 )}
               </label>
-              {(form.culinary_Support_Needed === "Y" ||
+              {(form.culinary_Needed === "Y" ||
                 (!editMode && form.culinary_Support_Status)) && (
                 <>
                   <label className="grid gap-1">
@@ -7505,8 +8384,6 @@ function AdminPage({ setRoute, isNight }) {
           </CardBody>
         </Card>
 
-
-
         {/* Approvals Card */}
         <Card
           className={clsx(
@@ -7544,6 +8421,176 @@ function AdminPage({ setRoute, isNight }) {
               )}
             >
               Review and approve user requests and submissions.
+            </p>
+          </CardBody>
+        </Card>
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("dataTablesPage")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Data Tables
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Sales Stages, Product Category, Probability ......
+            </p>
+          </CardBody>
+        </Card>
+      </div>
+    </main>
+  );
+}
+function DataTablePage({ setRoute, isNight }) {
+  return (
+    
+    <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+    <CircleArrowLeft
+        size={36}
+        onClick={() => setRoute("adminPage")}
+        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("salesStage")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Sales Stage
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Sales stage data
+            </p>
+          </CardBody>
+        </Card>
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("productCategory")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Product Category
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Product Category data
+            </p>
+          </CardBody>
+        </Card>
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("probability")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Probability
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Probability data
             </p>
           </CardBody>
         </Card>
