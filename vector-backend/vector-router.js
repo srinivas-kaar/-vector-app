@@ -826,6 +826,97 @@ router.get('/getItochuperiod/:date', withConnection, (req, res) => {
         });
     }
 }, cleanupConnection);
+// dwsa11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111NEW API ENDPOINTS111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+router.get('/winprobability', withConnection, (req, res) => {
+    console.log('Fetching probability percentage data from WINPROBABILITYLKP');
+
+    try {
+        const sql = `
+            SELECT 
+                "PROBABILITYPCT"
+            FROM "BTP_INTERFACE#BTP"."WINPROBABILITYLKP"
+        `;
+
+        req.hanaConn.exec(sql, [], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch probability percentage data',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully fetched probability percentage data');
+            res.json(result || []);
+        });
+    } catch (error) {
+        console.error('Error processing probability request:', error);
+        return res.status(500).json({
+            error: 'Failed to process probability request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+router.get('/productcategory', withConnection, (req, res) => {
+    console.log('Fetching product category data from PRODUCTCATEGORYLKP');
+
+    try {
+        const sql = `
+            SELECT
+                *
+            FROM "BTP_INTERFACE#BTP"."PRODUCTCATEGORYLKP"
+        `;
+
+        req.hanaConn.exec(sql, [], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch product category data',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully fetched product category data');
+            res.json(result || []);
+        });
+    } catch (error) {
+        console.error('Error processing product category request:', error);
+        return res.status(500).json({
+            error: 'Failed to process product category request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+router.get('/salesstage', withConnection, (req, res) => {
+    console.log('Fetching sales stage data from SALESSTAGELKP');
+
+    try {
+        const sql = `
+            SELECT
+                *
+            FROM "BTP_INTERFACE#BTP"."SALESSTAGELKP"
+        `;
+
+        req.hanaConn.exec(sql, [], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch sales stage data',
+                    details: err.message
+                });
+            }
+
+            console.log('Successfully fetched sales stage data');
+            res.json(result || []);
+        });
+    } catch (error) {
+        console.error('Error processing sales stage request:', error);
+        return res.status(500).json({
+            error: 'Failed to process sales stage request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
 
 
 module.exports = router;
