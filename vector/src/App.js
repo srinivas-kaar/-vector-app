@@ -64,6 +64,9 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -362,8 +365,7 @@ async function apiCreateOpp(body) {
       OPPORTUNITY_VOLUME_INPUT:
         body.opportunity_Volume_Input || body.opportunityVolumeInput || "",
       DAYS_30_SHIP: body.days_30_Ship || body.days30Ship || "N",
-      MATERIAL_PROJECTED_PRICE:
-        body.material_Projected_Price || body.materialProjectedPrice || "",
+      material_Price: body.material_Price || body.materialProjectedPrice || "",
       OVERRIDE_PRICE: body.override_Price || body.overridePrice || "",
       EQUIVALIZED_PIPELINE_LBS:
         body.equivalized_Pipeline_LBS || body.equalizedPipelineLbs || "",
@@ -427,13 +429,13 @@ async function apiCreateOpp(body) {
       );
     const created = await res.json();
 
-    if (payload.MATERIAL_PROJECTED_PRICE > payload.OVERRIDE_PRICE) {
+    if (payload.material_Price > payload.OVERRIDE_PRICE) {
       const overridePricepayload = {
         opportunity_id:
           body.opportunity_ID ||
           payload.opportunity_ID ||
           payload.opportunity_ID,
-        currentprice: payload.MATERIAL_PROJECTED_PRICE,
+        currentprice: payload.material_Price,
         overrideprice: payload.OVERRIDE_PRICE,
         businessjustification: body.businessJustification,
         dateofrequest: new Date().toISOString().split("T")[0],
@@ -712,107 +714,145 @@ async function apiFetchZdate(start_date) {
   return res.json();
 }
 async function apiFetchSalesStage() {
-  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
-  //   method: "GET",
-  //   headers: { Accept: "application/json" },
-  //   credentials: "include",
-  //   mode: "cors",
-  // });
+  const res = await fetch(`${API_BASE_URL}/salesstage/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
 
-  // if (!res.ok) {
-  //   throw new Error(
-  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
-  //   );
-  // }
+  if (!res.ok) {
+    throw new Error(
+      `GET /salesStage failed: ${res.status} ${await res.text()}`
+    );
+  }
+  const data = await res.json();
 
-  const values = {
-    stage1: "Lead: No Current Product Solution",
-    stage2: "Lead: Deprioritized Account",
-    stage3: "Target Account",
-    stage4: "Customer Engaged",
-    stage5: "Proposal Submitted",
-    stage6: "Win - Customer Verbal",
-    stage7: "Post-pipeline: Win (order shipped)",
-    stage8: "Post-pipeline: Loss",
-    stage9: "Post-pipeline: On-hold",
-  };
-
-  const result = Object.entries(values).map(([key, value]) => ({
-    key,
-    value,
-  }));
-
-  await new Promise((res) => setTimeout(res, 300));
-  // return res.json();
-
-  return result;
+  return data;
 }
 async function apiFetchProductCategory() {
-  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
-  //   method: "GET",
-  //   headers: { Accept: "application/json" },
-  //   credentials: "include",
-  //   mode: "cors",
-  // });
+  const res = await fetch(`${API_BASE_URL}/productcategory/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
 
-  // if (!res.ok) {
-  //   throw new Error(
-  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
-  //   );
-  // }
+  if (!res.ok) {
+    throw new Error(
+      `GET /productcategory failed: ${res.status} ${await res.text()}`
+    );
+  }
 
-  const values = {
-    category1: "SNACKING",
-    category2: "PANTRY",
-    category3: "BEVERAGE",
-    category4: "INDUSTRIAL/GOVT",
-    category5: "FROZEN",
-    category6: "CORE FRUITS & BEVERA",
-  };
+  const data = await res.json();
 
-  const result = Object.entries(values).map(([key, value]) => ({
-    key,
-    value,
-  }));
-
-  await new Promise((res) => setTimeout(res, 300));
-  // return res.json();
-
-  return result;
+  return data;
 }
 async function apiFetchProbability() {
-  // const res = await fetch(`${API_BASE_URL}/salesStage/`, {
-  //   method: "GET",
-  //   headers: { Accept: "application/json" },
-  //   credentials: "include",
-  //   mode: "cors",
-  // });
+  const res = await fetch(`${API_BASE_URL}/winprobability/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
 
-  // if (!res.ok) {
-  //   throw new Error(
-  //     `GET /salesStage failed: ${res.status} ${await res.text()}`
-  //   );
-  // }
+  if (!res.ok) {
+    throw new Error(
+      `GET /winprobability failed: ${res.status} ${await res.text()}`
+    );
+  }
 
-  const values = {
-    code1: "0%",
-    code2: "25%",
-    code3: "50%",
-    code4: "75%",
-    code5: "90%",
-    code6: "100%",
-  };
+  const data = await res.json();
 
-  const result = Object.entries(values).map(([key, value]) => ({
-    key,
-    value,
-  }));
-
-  await new Promise((res) => setTimeout(res, 300));
-  // return res.json();
-
-  return result;
+  return data;
 }
+
+async function apiFetchOpportunityTypes() {
+  const res = await fetch(`${API_BASE_URL}/opportunitytypes/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `GET /opportunitytypes failed: ${res.status} ${await res.text()}`
+    );
+  }
+
+  const data = await res.json();
+  console.log(data);
+  return data;
+}
+
+apiFetchOpportunityTypes();
+async function apiFetchWinLoseCodes() {
+  const res = await fetch(`${API_BASE_URL}/winlosscodes/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `GET /winlosscodes failed: ${res.status} ${await res.text()}`
+    );
+  }
+
+  const data = await res.json();
+  return data;
+}
+
+async function apiFetchSalesTeam(name) {
+  const res = await fetch(`${API_BASE_URL}/salesteam/:${name}/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
+
+  if (!res.ok) {
+    throw new Error(`GET salesteam failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  console.log(data);
+  return data;
+}
+
+// apiFetchSalesTeam("dan");
+
+const customerPaylod = {
+  CUSTOMERNAME: "Srinivas",
+  CUSTOMERTITLE: "Mr",
+  CUSTOMEREMAIL: "aasrinivas@kaartech.com",
+  CUSTOMERPHONE: "9999999999",
+};
+
+async function apiPostCustomers(payload) {
+  const res = await fetch(`${API_BASE_URL}/customer/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    credentials: "include",
+    mode: "cors",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok)
+    throw new Error(
+      `Failed to create customer: ${res.status} ${await res.text()}`
+    );
+
+  // const data = await res.json();
+  console.log(res);
+  // return data;
+}
+
+// apiPostCustomers(customerPaylod)
 
 // ---------------- Utils ----------------
 function pickLatestByCreated(arr, n = 5) {
@@ -845,11 +885,21 @@ function formatMonthDisplay(monthStr) {
   ][parseInt(month) - 1];
   return `${m} '${year.slice(2)}`;
 }
-function isSameDay(a, b) {
+// function isSameDay(a, b) {
+//   return (
+//     a.getFullYear() === b.getFullYear() &&
+//     a.getMonth() === b.getMonth() &&
+//     a.getDate() === b.getDate()
+//   );
+// }
+
+function isSameDay(d1, d2) {
   return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+    d1 &&
+    d2 &&
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
   );
 }
 function toISODate(d) {
@@ -1055,120 +1105,227 @@ function FrostedSelect({
 
 // ---------------- Frosted Date Picker ----------------
 
-function FrostedDate({
+// function MyPicker({
+//   label,
+//   value,
+//   onChange,
+//   placeholder,
+//   className,
+//   required,
+//   disabled,
+//   error,
+//   errorMessage,
+//   onOpenChange,
+// }) {
+//   const [open, setOpen] = useState(false);
+//   const [view, setView] = useState(null);
+
+//   // CRITICAL FIX — prevents view resetting after date select
+//   const shouldSyncView = useRef(true);
+
+//   function getTodayMonth() {
+//     const t = new Date();
+//     return new Date(t.getFullYear(), t.getMonth(), 1);
+//   }
+
+//   useEffect(() => {
+//     // Only sync if allowed AND if opening or initial load
+//     if (!open && shouldSyncView.current) {
+//       if (value) {
+//         const d = new Date(value);
+//         setView(new Date(d.getFullYear(), d.getMonth(), 1));
+//       } else {
+//         setView(getTodayMonth());
+//       }
+//     }
+//   }, [value, open]);
+
+//   return (
+//     <div className="relative w-full">
+//       {label && (
+//         <label className="block mb-1 font-medium">
+//           {label} {required && <span className="text-red-600">*</span>}
+//         </label>
+//       )}
+
+//       <div
+//         className={`w-full px-3 py-2 rounded-lg border bg-white cursor-pointer ${
+//           disabled ? "opacity-50 cursor-not-allowed" : ""
+//         } ${className}`}
+//         onClick={() => {
+//           if (disabled) return;
+
+//           const next = !open;
+
+//           if (next === true) {
+//             // Opening calendar → allow syncing view only now
+//             shouldSyncView.current = true;
+//           }
+
+//           setOpen(next);
+//           onOpenChange?.(next);
+//         }}
+//       >
+//         {value
+//           ? dayjs(value).format("DD-MM-YYYY")
+//           : placeholder || "Select date"}
+//       </div>
+
+//       {open && (
+//         <div className="absolute z-50 bg-white shadow-xl p-2 rounded-xl mt-2">
+//           <MiniCalendar
+//             view={view}
+//             setView={setView}
+//             value={value ? dayjs(value).toDate() : null}
+//             onChange={(d) => {
+//               shouldSyncView.current = false; // IMPORTANT FIX
+//               onChange(dayjs(d).toISOString());
+//               setOpen(false);
+//               onOpenChange?.(false);
+//             }}
+//           />
+//         </div>
+//       )}
+
+//       {error && <p className="text-red-600 mt-1 text-sm">{errorMessage}</p>}
+//     </div>
+//   );
+// }
+
+// //                  MINI CALENDAR
+
+// function MiniCalendar({ view, setView, value, onChange }) {
+//   const start = dayjs(view).startOf("month");
+//   const end = dayjs(view).endOf("month");
+
+//   const days = [];
+
+//   for (let i = start.date(); i <= end.date(); i++) {
+//     days.push(start.date(i));
+//   }
+
+//   return (
+//     <div className="w-64">
+//       {/* Header */}
+//       <div className="flex items-center justify-between mb-2">
+//         <button
+//           onClick={() => setView(dayjs(view).subtract(1, "month").toDate())}
+//         >
+//           ◀
+//         </button>
+//         <strong>{dayjs(view).format("MMMM YYYY")}</strong>
+//         <button onClick={() => setView(dayjs(view).add(1, "month").toDate())}>
+//           ▶
+//         </button>
+//       </div>
+
+//       {/* Days Grid */}
+//       <div className="grid grid-cols-7 gap-1 text-center">
+//         {days.map((d) => (
+//           <div
+//             key={d.format("YYYY-MM-DD")} // FIXED UNIQUE KEY
+//             onClick={() => onChange(d.toDate())}
+//             className={`p-2 rounded cursor-pointer ${
+//               value && dayjs(value).isSame(d, "day")
+//                 ? "bg-blue-500 text-white"
+//                 : "hover:bg-gray-200"
+//             }`}
+//           >
+//             {d.date()}
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+function MyPicker({
   value,
   onChange,
-  onOpenChange,
-  disabled = false,
-  required = false,
-  error = "",
   placeholder = "Select date",
+  label,
+  required,
+  disabled = false,
+  readOnly = false
 }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState(() =>
-    value ? new Date(value) : new Date()
-  );
   const ref = useRef(null);
 
   useEffect(() => {
-    const handleClick = (e) => {
+    const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
-        onOpenChange?.(false);
       }
     };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [onOpenChange]);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        onOpenChange?.(false);
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onOpenChange]);
+  const toDate = (val) => {
+    if (!val) return undefined;
+    if (val instanceof Date) return val;
 
-  useEffect(() => {
-    if (value) setView(new Date(value));
-  }, [value]);
-
-  const format = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate()
-    ).padStart(2, "0")}`;
-
-  const display = (val) => {
-    if (!val) return "";
-    try {
-      return new Date(val).toLocaleDateString("en-IN");
-    } catch {
-      return val;
-    }
+    const parsed = new Date(val + "T00:00:00"); 
+    return isNaN(parsed) ? undefined : parsed;
   };
 
-  const invalid = required && !value && !disabled;
-  const showError = !!error || invalid;
+  const selectedDate = toDate(value);
 
-  const wrapperCls = `
-    relative w-full glass-select rounded-2xl border px-3 py-2 flex items-center justify-between cursor-pointer
-    transition-all duration-200
-    ${
-      isNight
-        ? "bg-white/10 text-white focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
-        : "bg-white/60 text-gray-900 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
-    }
-    ${
-      showError
-        ? "border-red-500 ring-1 ring-red-300"
-        : isNight
-        ? "border-white/25"
-        : "border-gray-300"
-    }
-  `;
+  const formatDate = (date) => {
+    if (!date) return "";
+    return date.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
 
-  const popCls = `
-    absolute left-0 top-full mt-2 z-50 rounded-2xl border bg-clip-padding backdrop-blur-xl shadow-[0_12px_30px_rgba(0,0,0,0.18)] p-3
-    ${
-      isNight
-        ? "bg-white/12 border-white/20 text-white"
-        : "bg-white/80 border-white/60 text-black"
-    }
-  `;
+  // Block opening if disabled or readOnly
+  const handleInputClick = () => {
+    if (disabled || readOnly) return;
+    setOpen((prev) => !prev);
+  };
 
   return (
-    <div ref={ref} className="relative">
-      <div
-        className={`${wrapperCls} ${
-          disabled ? "opacity-60 pointer-events-none" : ""
-        }`}
-        onClick={() => {
-          if (disabled) return;
-          const next = !open;
-          setOpen(next);
-          onOpenChange?.(next);
-        }}
-        role="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        <span>{display(value) || placeholder}</span>
-        <CalendarIcon className="h-4 w-4 opacity-60" />
-      </div>
+    <div className="relative inline-block w-full" ref={ref}>
+      
+      {label && (
+        <label className="block mb-1 font-medium">
+          {label} {required && <span className="text-red-600">*</span>}
+        </label>
+      )}
 
-      {open && (
-        <div className={popCls} style={{ width: 280 }}>
-          <MiniCalendar
-            value={view}
-            onChange={(d) => {
-              onChange(format(d));
+      <input
+        readOnly
+        disabled={disabled}
+        value={selectedDate ? formatDate(selectedDate) : ""}
+        onClick={handleInputClick}
+        placeholder={placeholder}
+        className={`
+          w-full px-3 py-2 border rounded-lg bg-white cursor-pointer 
+          placeholder:font-semibold 
+          ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}
+          ${readOnly ? "cursor-default" : ""}
+        `}
+      />
+
+      {/* Calendar popover - do not show if disabled or readOnly */}
+      {open && !disabled && !readOnly && (
+        <div className="absolute left-0 mt-2 z-50 bg-white border rounded-xl shadow-lg">
+          <DayPicker
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => {
+              if (!date) return;
+
+              // return in YYYY-MM-DD
+              const y = date.getFullYear();
+              const m = String(date.getMonth() + 1).padStart(2, "0");
+              const d = String(date.getDate()).padStart(2, "0");
+
+              onChange(`${y}-${m}-${d}`);
+
               setOpen(false);
-              onOpenChange?.(false);
             }}
           />
         </div>
@@ -1177,105 +1334,6 @@ function FrostedDate({
   );
 }
 
-// ---------------- Mini Calendars ----------------
-function MiniCalendar({ value, onChange }) {
-  const theme = useContext(ThemeContext);
-  const isNight = theme === "sunset";
-  const today = new Date();
-  const [view, setView] = useState(
-    new Date(value.getFullYear(), value.getMonth(), 1)
-  );
-  const start = new Date(view.getFullYear(), view.getMonth(), 1);
-  const end = new Date(view.getFullYear(), view.getMonth() + 1, 0);
-  const startWeekDay = start.getDay();
-  const days = [
-    ...Array(startWeekDay).fill(null),
-    ...Array(end.getDate())
-      .fill(0)
-      .map((_, i) => i + 1),
-  ];
-
-  return (
-    <div className="select-none -mt-2">
-      <div className="flex items-center justify-between mb-1">
-        <Button
-          variant="ghost"
-          onClick={() =>
-            setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))
-          }
-        >
-          ‹
-        </Button>
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-medium">
-            {view.toLocaleString(undefined, { month: "long", year: "numeric" })}
-          </div>
-          <Button
-            variant="ghost"
-            className="px-2 py-1 text-xs"
-            onClick={() => {
-              const t = new Date();
-              setView(new Date(t.getFullYear(), t.getMonth(), 1));
-              onChange(t);
-            }}
-          >
-            Today
-          </Button>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={() =>
-            setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))
-          }
-        >
-          ›
-        </Button>
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-xs text-gray-500 mb-0">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, idx) => (
-          <div key={idx} className="text-center">
-            {d}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1 -mt-0.5">
-        {days.map((d, i) => {
-          const isSelected =
-            d !== null &&
-            isSameDay(value, new Date(view.getFullYear(), view.getMonth(), d));
-          const isTodayActive =
-            d !== null &&
-            isSameDay(today, new Date(view.getFullYear(), view.getMonth(), d));
-          return (
-            <button
-              key={i}
-              onClick={() =>
-                d && onChange(new Date(view.getFullYear(), view.getMonth(), d))
-              }
-              className={`aspect-square rounded-lg text-sm grid place-items-center leading-none tabular-nums ${
-                d === null
-                  ? "bg-transparent"
-                  : isSelected
-                  ? "cal-selected shadow-sm"
-                  : isNight
-                  ? "hover:bg-white/10"
-                  : "hover:bg-gray-100"
-              } ${
-                isTodayActive && !isSelected
-                  ? isNight
-                    ? "border border-white/40"
-                    : "border border-gray-300"
-                  : ""
-              }`}
-            >
-              {d ?? ""}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function MiniCalendarWithAgenda({
   value,
@@ -1775,7 +1833,7 @@ function FloatingNav({
 
   if (onGoVolumeAllocation) {
     actions.splice(4, 0, {
-      key: "volumeAllocation",
+      key: "volume-allocation",
       icon: <Database className="h-6 w-6" />,
       onClick: () => onGoVolumeAllocation?.(),
       label: "Volume Allocation",
@@ -2230,11 +2288,8 @@ function SalesStageDataTable({ currentUser, setRoute }) {
   const [salesStages, setSalesStages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [newRow, setNewRow] = useState({ key: "", value: "" });
-  const [editedStages, setEditedStages] = useState({});
   const [saving, setSaving] = useState(false);
-
-  const hasChanges = Object.keys(editedStages).length > 0;
+  const [hasChanges, setHasChanges] = useState(false);
 
   async function refresh() {
     try {
@@ -2242,6 +2297,7 @@ function SalesStageDataTable({ currentUser, setRoute }) {
       const data = await apiFetchSalesStage();
       setSalesStages(Array.isArray(data) ? data : []);
       setError("");
+      setHasChanges(false);
     } catch {
       setSalesStages([]);
       setError("Failed to load sales stages.");
@@ -2260,25 +2316,30 @@ function SalesStageDataTable({ currentUser, setRoute }) {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
-    setEditedStages((prev) => ({
-      ...prev,
-      [index]: { ...salesStages[index], [field]: value },
-    }));
+    setHasChanges(true);
   };
 
   const handleAddNewRow = () => {
-    if (!newRow.key.trim() || !newRow.value.trim()) return;
-    setSalesStages((prev) => [...prev, { ...newRow }]);
-    setNewRow({ key: "", value: "" });
+    setSalesStages((prev) => [
+      ...prev,
+      { STAGEKEY: "", SALESSTAGE: "", _isNew: true },
+    ]);
+    setHasChanges(true);
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      // await apiSaveSalesStage(salesStages);
-      console.log("data is saved")
+      console.log("Saving sales stages:", salesStages);
+
+      // Replace with actual save logic once POST and Put api are given
+      // await apiSaveSalesStage(
+      //   salesStages.map(({ _isNew, ...rest }) => rest)
+      // );
+
       await refresh();
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Failed to save sales stages.");
     } finally {
       setSaving(false);
@@ -2290,37 +2351,33 @@ function SalesStageDataTable({ currentUser, setRoute }) {
     " bg-clip-padding backdrop-blur-sm";
 
   return (
-    <>
-      <CircleArrowLeft
-        size={36}
-        onClick={() => setRoute("dataTablesPage")}
-        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
-      />
-      <Card>
-        <CardHeader
-          title="Sales Stages"
-          subtitle="Fetched from SAP Datasphere"
-          right={
-            <div className="flex gap-2">
-              <Input
-                placeholder="Stage Code"
-                value={newRow.key}
-                onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
-                className="w-36"
-              />
-              <Input
-                placeholder="Stage Name"
-                value={newRow.value}
-                onChange={(e) =>
-                  setNewRow({ ...newRow, value: e.target.value })
-                }
-                className="w-48"
-              />
-              <Button onClick={handleAddNewRow}>Add</Button>
-              <Button onClick={refresh}>Refresh</Button>
-            </div>
-          }
+    <main className="relative">
+      <div
+        className={`sticky top-0 z-20 ${
+          isNight ? "bg-gray-900 border-white/10" : "bg-white border-b"
+        } shadow-sm flex items-center justify-between px-4 py-3`}
+      >
+        <CircleArrowLeft
+          size={36}
+          onClick={() => setRoute("data-tables-page")}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
         />
+        <div className="flex-1">
+          <CardHeader
+            className="!bg-transparent !border-none p-0"
+            title="Sales Stages"
+            subtitle="Fetched from SAP Datasphere"
+            right={
+              <div className="flex gap-2">
+                <Button onClick={handleAddNewRow}>Add Row</Button>
+                <Button onClick={refresh}>Refresh</Button>
+              </div>
+            }
+          />
+        </div>
+      </div>
+
+      <Card className="max-h-[600px] overflow-y-auto mt-2">
         <CardBody>
           {error && (
             <div
@@ -2380,17 +2437,23 @@ function SalesStageDataTable({ currentUser, setRoute }) {
                     >
                       <td className="py-2 px-3">
                         <Input
-                          value={row.key || ""}
+                          placeholder={row._isNew ? "Enter stage code..." : ""}
+                          value={row.STAGEKEY || ""}
                           onChange={(e) =>
-                            handleInputChange(index, "key", e.target.value)
+                            handleInputChange(index, "STAGEKEY", e.target.value)
                           }
                         />
                       </td>
                       <td className="py-2 px-3">
                         <Input
-                          value={row.value || ""}
+                          placeholder={row._isNew ? "Enter stage name..." : ""}
+                          value={row.SALESSTAGE || ""}
                           onChange={(e) =>
-                            handleInputChange(index, "value", e.target.value)
+                            handleInputChange(
+                              index,
+                              "SALESSTAGE",
+                              e.target.value
+                            )
                           }
                         />
                       </td>
@@ -2398,26 +2461,26 @@ function SalesStageDataTable({ currentUser, setRoute }) {
                   ))
                 )}
                 {!loading && salesStages.length > 0 && (
-                <tr>
-                  <td colSpan={2} className="py-3 px-3 text-right">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving || !hasChanges}
-                      className={
-                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
-                      }
-                    >
-                      Save
-                    </Button>
-                  </td>
-                </tr>
-              )}
+                  <tr>
+                    <td colSpan={2} className="py-3 px-3 text-right">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !hasChanges}
+                        className={
+                          !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                        }
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </Button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </CardBody>
       </Card>
-    </>
+    </main>
   );
 }
 function ProductCategoryDataTable({ currentUser, setRoute }) {
@@ -2427,11 +2490,8 @@ function ProductCategoryDataTable({ currentUser, setRoute }) {
   const [category, setCategory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [newRow, setNewRow] = useState({ key: "", value: "" });
-  const [editedCategory, setEditedCategory] = useState({});
   const [saving, setSaving] = useState(false);
-
-  const hasChanges = Object.keys(editedCategory).length > 0;
+  const [hasChanges, setHasChanges] = useState(false);
 
   async function refresh() {
     try {
@@ -2439,9 +2499,10 @@ function ProductCategoryDataTable({ currentUser, setRoute }) {
       const data = await apiFetchProductCategory();
       setCategory(Array.isArray(data) ? data : []);
       setError("");
+      setHasChanges(false);
     } catch {
       setCategory([]);
-      setError("Failed to load sales stages.");
+      setError("Failed to load product categories.");
     } finally {
       setLoading(false);
     }
@@ -2457,27 +2518,30 @@ function ProductCategoryDataTable({ currentUser, setRoute }) {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
-    setEditedCategory((prev) => ({
-      ...prev,
-      [index]: { ...category[index], [field]: value },
-    }));
+    setHasChanges(true);
   };
 
   const handleAddNewRow = () => {
-    if (!newRow.key.trim() || !newRow.value.trim()) return;
-    setCategory((prev) => [...prev, { ...newRow }]);
-    setNewRow({ key: "", value: "" });
+    setCategory((prev) => [
+      ...prev,
+      { CATEGORYKEY: "", CATEGORY: "", _isNew: true },
+    ]);
+    setHasChanges(true);
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      console.log("It is saved");
-      // await apiSaveProductCategory(category);
-      await refresh();
+      console.log("Saving category data:", category);
 
-      setEditedCategory({});
-    } catch {
+      // 🔧 Replace with actual save logic once post and put api are given
+      // await apiSaveProductCategory(
+      //   category.map(({ _isNew, ...rest }) => rest) 
+      // );
+
+      await refresh();
+    } catch (err) {
+      console.error(err);
       alert("Failed to save product categories.");
     } finally {
       setSaving(false);
@@ -2489,132 +2553,140 @@ function ProductCategoryDataTable({ currentUser, setRoute }) {
     " bg-clip-padding backdrop-blur-sm";
 
   return (
-    <>
-    <CircleArrowLeft
-        size={36}
-        onClick={() => setRoute("dataTablesPage")}
-        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
-      />
-    <Card>
-      <CardHeader
-        title="Product Categories"
-        subtitle="Fetched from SAP Datasphere"
-        right={
-          <div className="flex gap-2">
-            <Input
-              placeholder="Category Code"
-              value={newRow.key}
-              onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
-              className="w-36"
-            />
-            <Input
-              placeholder="Category Name"
-              value={newRow.value}
-              onChange={(e) => setNewRow({ ...newRow, value: e.target.value })}
-              className="w-48"
-            />
-            <Button onClick={handleAddNewRow}>Add</Button>
-            <Button onClick={refresh}>Refresh</Button>
-          </div>
-        }
-      />
-      <CardBody>
-        {error && (
+    <main className="relative">
+      <div
+        className={`sticky top-0 z-20 ${
+          isNight ? "bg-gray-900 border-white/10" : "bg-white border-b"
+        } shadow-sm flex items-center justify-between px-4 py-3`}
+      >
+        <CircleArrowLeft
+          size={36}
+          onClick={() => setRoute("data-tables-page")}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+        />
+        <div className="flex-1">
+          <CardHeader
+            className="!bg-transparent !border-none p-0"
+            title="Product Categories"
+            subtitle="Fetched from SAP Datasphere"
+            right={
+              <div className="flex gap-2">
+                <Button onClick={handleAddNewRow}>Add Row</Button>
+                <Button onClick={refresh}>Refresh</Button>
+              </div>
+            }
+          />
+        </div>
+      </div>
+
+      <Card className="max-h-[600px] overflow-y-auto mt-2">
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
+            >
+              {error}
+            </div>
+          )}
           <div
-            className={`${
-              isNight ? "text-amber-200" : "text-amber-700"
-            } text-xs mb-2`}
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
           >
-            {error}
-          </div>
-        )}
-        <div
-          className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
-        >
-          <table className="min-w-full text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr
-                className={`${
-                  isNight
-                    ? "text-white/80 bg-white/10"
-                    : "text-gray-700 bg-white/80"
-                } backdrop-blur-md`}
-              >
-                <th className="py-2 px-3 w-32">Category Code</th>
-                <th className="py-2 px-3 w-32">Category Name</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className={`${
-                      isNight ? "text-white/70" : "text-gray-600"
-                    } py-6 px-3`}
-                  >
-                    Loading…
-                  </td>
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr
+                  className={`${
+                    isNight
+                      ? "text-white/80 bg-white/10"
+                      : "text-gray-700 bg-white/80"
+                  } backdrop-blur-md`}
+                >
+                  <th className="py-2 px-3 w-32">Category Code</th>
+                  <th className="py-2 px-3 w-32">Category Name</th>
                 </tr>
-              ) : category.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className={`${
-                      isNight ? "text-white/60" : "text-gray-500"
-                    } py-6 px-3`}
-                  >
-                    No product category found.
-                  </td>
-                </tr>
-              ) : (
-                category.map((row, index) => (
-                  <tr
-                    key={index}
-                    className={`border-t ${
-                      isNight ? "border-white/10" : "border-white/60"
-                    }`}
-                  >
-                    <td className="py-2 px-3">
-                      <Input
-                        value={row.key || ""}
-                        onChange={(e) =>
-                          handleInputChange(index, "key", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        value={row.value || ""}
-                        onChange={(e) =>
-                          handleInputChange(index, "value", e.target.value)
-                        }
-                      />
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3`}
+                    >
+                      Loading…
                     </td>
                   </tr>
-                ))
-              )}
-              {!loading && category.length > 0 && (
-                <tr>
-                  <td colSpan={2} className="py-3 px-3 text-right">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving || !hasChanges}
-                      className={
-                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
-                      }
+                ) : category.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3`}
                     >
-                      Save
-                    </Button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CardBody>
-    </Card>
-    </>
+                      No product categories found.
+                    </td>
+                  </tr>
+                ) : (
+                  category.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-t ${
+                        isNight ? "border-white/10" : "border-white/60"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter category code..." : ""
+                          }
+                          value={row.CATEGORYKEY || ""}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "CATEGORYKEY",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter category name..." : ""
+                          }
+                          value={row.CATEGORY || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "CATEGORY", e.target.value)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {!loading && category.length > 0 && (
+                  <tr>
+                    <td colSpan={2} className="py-3 px-3 text-right">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !hasChanges}
+                        className={
+                          !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                        }
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </main>
   );
 }
 function ProbabilityDataTable({ currentUser, setRoute }) {
@@ -2624,11 +2696,8 @@ function ProbabilityDataTable({ currentUser, setRoute }) {
   const [probability, setProbability] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [newRow, setNewRow] = useState({ key: "", value: "" });
-  const [editedProbability, setEditedProbability] = useState({});
   const [saving, setSaving] = useState(false);
-
-  const hasChanges = Object.keys(editedProbability).length > 0;
+  const [hasChanges, setHasChanges] = useState(false);
 
   async function refresh() {
     try {
@@ -2636,9 +2705,10 @@ function ProbabilityDataTable({ currentUser, setRoute }) {
       const data = await apiFetchProbability();
       setProbability(Array.isArray(data) ? data : []);
       setError("");
+      setHasChanges(false);
     } catch {
       setProbability([]);
-      setError("Failed to load sales stages.");
+      setError("Failed to load probability data.");
     } finally {
       setLoading(false);
     }
@@ -2654,28 +2724,28 @@ function ProbabilityDataTable({ currentUser, setRoute }) {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
-    setEditedProbability((prev) => ({
-      ...prev,
-      [index]: { ...probability[index], [field]: value },
-    }));
+    setHasChanges(true);
   };
 
   const handleAddNewRow = () => {
-    if (!newRow.key.trim() || !newRow.value.trim()) return;
-    setProbability((prev) => [...prev, { ...newRow }]);
-    setNewRow({ key: "", value: "" });
+    setProbability((prev) => [...prev, { PROBABILITYPCT: "", _isNew: true }]);
+    setHasChanges(true);
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      console.log("It is saved");
-      // await apiSaveProbabiltity(probability);
-      await refresh();
+      console.log("Saving probabilities:", probability);
 
-      setEditedProbability({});
-    } catch {
-      alert("Failed to save Probability.");
+      // Actual save API replace when Post and put avpi are given
+      // await apiSaveProbability(
+      //   probability.map(({ _isNew, ...rest }) => rest)
+      // );
+
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save Probability data.");
     } finally {
       setSaving(false);
     }
@@ -2686,135 +2756,546 @@ function ProbabilityDataTable({ currentUser, setRoute }) {
     " bg-clip-padding backdrop-blur-sm";
 
   return (
-    <>
-    <CircleArrowLeft
-        size={36}
-        onClick={() => setRoute("dataTablesPage")}
-        className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
-      />
-    <Card>
-      <CardHeader
-        title="Product Categories"
-        subtitle="Fetched from SAP Datasphere"
-        right={
-          <div className="flex gap-2">
-            <Input
-              placeholder="Probability Code"
-              value={newRow.key}
-              onChange={(e) => setNewRow({ ...newRow, key: e.target.value })}
-              className="w-36"
-            />
-            <Input
-              placeholder="Probability Name"
-              value={newRow.value}
-              onChange={(e) => setNewRow({ ...newRow, value: e.target.value })}
-              className="w-48"
-            />
-            <Button onClick={handleAddNewRow}>Add</Button>
-            <Button onClick={refresh}>Refresh</Button>
-          </div>
-        }
-      />
-      <CardBody>
-        {error && (
+    <main className="relative">
+      <div
+        className={`sticky top-0 z-20 ${
+          isNight ? "bg-gray-900 border-white/10" : "bg-white border-b"
+        } shadow-sm flex items-center justify-between px-4 py-3`}
+      >
+        <CircleArrowLeft
+          size={36}
+          onClick={() => setRoute("data-tables-page")}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+        />
+        <div className="flex-1">
+          <CardHeader
+            className="!bg-transparent !border-none p-0"
+            title="Probability (%)"
+            subtitle="Fetched from SAP Datasphere"
+            right={
+              <div className="flex gap-2">
+                <Button onClick={handleAddNewRow}>Add Row</Button>
+                <Button onClick={refresh}>Refresh</Button>
+              </div>
+            }
+          />
+        </div>
+      </div>
+
+      <Card className="max-h-[600px] overflow-y-auto mt-2">
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
+            >
+              {error}
+            </div>
+          )}
+
           <div
-            className={`${
-              isNight ? "text-amber-200" : "text-amber-700"
-            } text-xs mb-2`}
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
           >
-            {error}
-          </div>
-        )}
-        <div
-          className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
-        >
-          <table className="min-w-full text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr
-                className={`${
-                  isNight
-                    ? "text-white/80 bg-white/10"
-                    : "text-gray-700 bg-white/80"
-                } backdrop-blur-md`}
-              >
-                <th className="py-2 px-3 w-32">Probability Code</th>
-                <th className="py-2 px-3 w-32">Probability Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className={`${
-                      isNight ? "text-white/70" : "text-gray-600"
-                    } py-6 px-3`}
-                  >
-                    Loading…
-                  </td>
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr
+                  className={`${
+                    isNight
+                      ? "text-white/80 bg-white/10"
+                      : "text-gray-700 bg-white/80"
+                  } backdrop-blur-md`}
+                >
+                  <th className="py-2 px-3 w-32 text-center">
+                    Probability (%)
+                  </th>
                 </tr>
-              ) : probability.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className={`${
-                      isNight ? "text-white/60" : "text-gray-500"
-                    } py-6 px-3`}
-                  >
-                    No Data found.
-                  </td>
-                </tr>
-              ) : (
-                probability.map((row, index) => (
-                  <tr
-                    key={index}
-                    className={`border-t ${
-                      isNight ? "border-white/10" : "border-white/60"
-                    }`}
-                  >
-                    <td className="py-2 px-3">
-                      <Input
-                        value={row.key || ""}
-                        onChange={(e) =>
-                          handleInputChange(index, "key", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        value={row.value || ""}
-                        onChange={(e) =>
-                          handleInputChange(index, "value", e.target.value)
-                        }
-                      />
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={1}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3 text-center`}
+                    >
+                      Loading…
                     </td>
                   </tr>
-                ))
-              )}
-              {!loading && probability.length > 0 && (
-                <tr>
-                  <td colSpan={2} className="py-3 px-3 text-right">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving || !hasChanges}
-                      className={
-                        !hasChanges ? "opacity-60 cursor-not-allowed" : ""
-                      }
+                ) : probability.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={1}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3 text-center`}
                     >
-                      Save
-                    </Button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CardBody>
-    </Card>
-    </>
+                      No probability values found.
+                    </td>
+                  </tr>
+                ) : (
+                  probability.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-t ${
+                        isNight ? "border-white/10" : "border-white/60"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter probability (e.g., 80%)..." : ""
+                          }
+                          value={row.PROBABILITYPCT || ""}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "PROBABILITYPCT",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+
+                {!loading && probability.length > 0 && (
+                  <tr>
+                    <td className="py-3 px-3 text-right">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !hasChanges}
+                        className={
+                          !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                        }
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </main>
   );
 }
 
+function OpportunityTypeDataTable({ currentUser, setRoute }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
+
+  const [opportunityType, setOpportunityType] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchOpportunityTypes();
+      console.log(data);
+      setOpportunityType(Array.isArray(data) ? data : []);
+      setError("");
+      setHasChanges(false);
+    } catch {
+      setOpportunityType([]);
+      setError("Failed to load product categories.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleInputChange = (index, field, value) => {
+    setOpportunityType((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setHasChanges(true);
+  };
+
+  const handleAddNewRow = () => {
+    setOpportunityType((prev) => [
+      ...prev,
+      { OPPORTUNITYKEY: "", TYPE: "", _isNew: true },
+    ]);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      console.log("Saving opportunityType data:", opportunityType);
+
+      // 🔧 Replace with actual save logic once pst and put api are given
+      // await apiSaveProductCategory(
+      //   opportunityType.map(({ _isNew, ...rest }) => rest) // remove internal flag
+      // );
+
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save product categories.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tableShell =
+    (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
+    " bg-clip-padding backdrop-blur-sm";
+
+  return (
+    <main className="relative">
+      <div
+        className={`sticky top-0 z-20 ${
+          isNight ? "bg-gray-900 border-white/10" : "bg-white border-b"
+        } shadow-sm flex items-center justify-between px-4 py-3`}
+      >
+        <CircleArrowLeft
+          size={36}
+          onClick={() => setRoute("data-tables-page")}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+        />
+        <div className="flex-1">
+          <CardHeader
+            className="!bg-transparent !border-none p-0"
+            title="Opportunity Types"
+            subtitle="Fetched from SAP Datasphere"
+            right={
+              <div className="flex gap-2">
+                <Button onClick={handleAddNewRow}>Add Row</Button>
+                <Button onClick={refresh}>Refresh</Button>
+              </div>
+            }
+          />
+        </div>
+      </div>
+
+      <Card className="max-h-[600px] overflow-y-auto mt-2">
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
+            >
+              {error}
+            </div>
+          )}
+          <div
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+          >
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr
+                  className={`${
+                    isNight
+                      ? "text-white/80 bg-white/10"
+                      : "text-gray-700 bg-white/80"
+                  } backdrop-blur-md`}
+                >
+                  <th className="py-2 px-3 w-32">Opportunity Key</th>
+                  <th className="py-2 px-3 w-32">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3`}
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                ) : opportunityType.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3`}
+                    >
+                      No Opportunities Types found.
+                    </td>
+                  </tr>
+                ) : (
+                  opportunityType.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-t ${
+                        isNight ? "border-white/10" : "border-white/60"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter Opportunity Type code..." : ""
+                          }
+                          value={row.OPPORTUNITYKEY || ""}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "OPPORTUNITYKEY",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter Opportunity Type name..." : ""
+                          }
+                          value={row.TYPE || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "TYPE", e.target.value)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {!loading && opportunityType.length > 0 && (
+                  <tr>
+                    <td colSpan={2} className="py-3 px-3 text-right">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !hasChanges}
+                        className={
+                          !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                        }
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </main>
+  );
+}
+
+function WinLoseCodesTable({ currentUser, setRoute }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
+
+  const [winLoseCodes, setWinLoseCodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const data = await apiFetchWinLoseCodes();
+      setWinLoseCodes(Array.isArray(data) ? data : []);
+      setError("");
+      setHasChanges(false);
+    } catch {
+      setWinLoseCodes([]);
+      setError("Failed to load product categories.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleInputChange = (index, field, value) => {
+    setWinLoseCodes((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setHasChanges(true);
+  };
+
+  const handleAddNewRow = () => {
+    setWinLoseCodes((prev) => [
+      ...prev,
+      { CODEKEY: "", CODE: "", _isNew: true },
+    ]);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      console.log("Saving winLoseCodes data:", winLoseCodes);
+
+      // 🔧 Replace with actual save logic once api are ready
+      // await apiSaveProductCategory(
+      //   winLoseCodes.map(({ _isNew, ...rest }) => rest) // remove internal flag
+      // );
+
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save Win lose codes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tableShell =
+    (isNight ? "bg-white/8 border-white/15" : "bg-white/40 border-white/50") +
+    " bg-clip-padding backdrop-blur-sm";
+
+  return (
+    <main className="relative">
+      <div
+        className={`sticky top-0 z-20 ${
+          isNight ? "bg-gray-900 border-white/10" : "bg-white border-b"
+        } shadow-sm flex items-center justify-between px-4 py-3`}
+      >
+        <CircleArrowLeft
+          size={36}
+          onClick={() => setRoute("data-tables-page")}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+        />
+        <div className="flex-1">
+          <CardHeader
+            className="!bg-transparent !border-none p-0"
+            title="Win Lose Codes"
+            subtitle="Fetched from SAP Datasphere"
+            right={
+              <div className="flex gap-2">
+                <Button onClick={handleAddNewRow}>Add Row</Button>
+                <Button onClick={refresh}>Refresh</Button>
+              </div>
+            }
+          />
+        </div>
+      </div>
+
+      <Card className="max-h-[600px] overflow-y-auto mt-2">
+        <CardBody>
+          {error && (
+            <div
+              className={`${
+                isNight ? "text-amber-200" : "text-amber-700"
+              } text-xs mb-2`}
+            >
+              {error}
+            </div>
+          )}
+          <div
+            className={`overflow-x-auto border rounded-2xl scroll-glass ${tableShell}`}
+          >
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr
+                  className={`${
+                    isNight
+                      ? "text-white/80 bg-white/10"
+                      : "text-gray-700 bg-white/80"
+                  } backdrop-blur-md`}
+                >
+                  <th className="py-2 px-3 w-32">CODEKEY</th>
+                  <th className="py-2 px-3 w-32">CODE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      } py-6 px-3`}
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                ) : winLoseCodes.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className={`${
+                        isNight ? "text-white/60" : "text-gray-500"
+                      } py-6 px-3`}
+                    >
+                      No Win Lose codes found.
+                    </td>
+                  </tr>
+                ) : (
+                  winLoseCodes.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-t ${
+                        isNight ? "border-white/10" : "border-white/60"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter Win Lose code Key ..." : ""
+                          }
+                          value={row.CODEKEY || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "CODEKEY", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder={
+                            row._isNew ? "Enter Win Lose code..." : ""
+                          }
+                          value={row.CODE || ""}
+                          onChange={(e) =>
+                            handleInputChange(index, "CODE", e.target.value)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {!loading && winLoseCodes.length > 0 && (
+                  <tr>
+                    <td colSpan={2} className="py-3 px-3 text-right">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving || !hasChanges}
+                        className={
+                          !hasChanges ? "opacity-60 cursor-not-allowed" : ""
+                        }
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </main>
+  );
+}
 // ---- Master Data: User Registration ----
 function UserRegistrationTable({ currentUser }) {
   const theme = useContext(ThemeContext);
@@ -3232,7 +3713,6 @@ function OverridePriceApprovalRequestsTable({ currentUser }) {
     try {
       setLoading(true);
       const data = await apiFetchOverridePrice();
-      console.log(data);
       const pendingOnly = Array.isArray(data)
         ? data.filter((r) => r.STATUS === "Pending")
         : [];
@@ -4461,6 +4941,7 @@ export default function App() {
   }));
 
   async function addOpportunity(form) {
+    console.log({form})
     const payload = {
       customerName: form.customer_Name,
       materialId: form.material_ID,
@@ -4489,7 +4970,7 @@ export default function App() {
       caseVolume: form.case_Volume_Converted,
       opportunityVolumeInput: form.opportunity_Volume_Input,
       days30Ship: form.days_30_Ship,
-      materialProjectedPrice: form.material_Projected_Price,
+      materialProjectedPrice: form.material_Price,
       overridePrice: form.override_Price,
       businessJustification: form.business_justification,
       equivalizedPipelineLbs: form.equivalized_Pipeline_LBS,
@@ -4909,9 +5390,7 @@ export default function App() {
               o.amount ||
               0
           ),
-          priceRaw: Number(
-            o.material_Projected_Price || o.materialProjectedPrice || 0
-          ),
+          priceRaw: Number(o.material_Price || o.materialProjectedPrice || 0),
         }));
         const top = dataWithRaw
           .filter((d) => d.revenueRaw > 0 || d.priceRaw > 0)
@@ -5640,10 +6119,10 @@ export default function App() {
               </main>
             )}
 
-            {route === "adminPage" && (
+            {route === "admin-page" && (
               <AdminPage setRoute={setRoute} isNight={isNight} />
             )}
-            {route === "dataTablesPage" && (
+            {route === "data-tables-page" && (
               <DataTablePage setRoute={setRoute} isNight={isNight} />
             )}
 
@@ -5684,7 +6163,7 @@ export default function App() {
               // ))
             }
             {
-              route === "salesStage" && (
+              route === "sales-stage" && (
                 // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
                   <SalesStageDataTable
@@ -5704,10 +6183,13 @@ export default function App() {
               // ))
             }
             {
-              route === "productCategory" && (
+              route === "product-category" && (
                 // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <ProductCategoryDataTable currentUser={currentUser} setRoute={setRoute} />
+                  <ProductCategoryDataTable
+                    currentUser={currentUser}
+                    setRoute={setRoute}
+                  />
                 </main>
               )
               // ) : (
@@ -5724,7 +6206,50 @@ export default function App() {
               route === "probability" && (
                 // (isAdminUser ? (
                 <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <ProbabilityDataTable currentUser={currentUser} setRoute={setRoute} />
+                  <ProbabilityDataTable
+                    currentUser={currentUser}
+                    setRoute={setRoute}
+                  />
+                </main>
+              )
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+            }
+            {
+              route === "opportunity-type" && (
+                // (isAdminUser ? (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <OpportunityTypeDataTable
+                    currentUser={currentUser}
+                    setRoute={setRoute}
+                  />
+                </main>
+              )
+              // ) : (
+              //   <div
+              //     className={`${
+              //       isNight ? "text-white/70" : "text-gray-600"
+              //     } p-6`}
+              //   >
+              //     Not authorized
+              //   </div>
+              // ))
+            }
+            {
+              route === "win-lose-codes" && (
+                // (isAdminUser ? (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <WinLoseCodesTable
+                    currentUser={currentUser}
+                    setRoute={setRoute}
+                  />
                 </main>
               )
               // ) : (
@@ -5766,7 +6291,7 @@ export default function App() {
               />
             )}
 
-            {route === "volumeAllocation" &&
+            {route === "volume-allocation" &&
               volumeAllocationArray.map((item, index) => (
                 <OpportunityVolumeAllocation key={index} form={item} />
               ))}
@@ -5855,8 +6380,8 @@ export default function App() {
               onGoMasterData={() => setRoute("masterdata")}
               onGoAnalytics={() => setRoute("analytics")}
               onGoApprovals={() => setRoute("approvals")}
-              onGoVolumeAllocation={() => setRoute("volumeAllocation")}
-              onGoAdmin={() => setRoute("adminPage")}
+              onGoVolumeAllocation={() => setRoute("volume-allocation")}
+              onGoAdmin={() => setRoute("admin-page")}
               onSignOut={() => {
                 try {
                   localStorage.removeItem("oppty_user");
@@ -6064,8 +6589,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
   const [currentSection, setCurrentSection] = useState("product");
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [materials, setMaterials] = useState([]);
@@ -6074,6 +6597,89 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const [showModal, setShowModal] = useState(false);
   const [pendingValue, setPendingValue] = useState("");
   const [errors, setErrors] = useState({});
+  const [salesStages, setSalesStages] = useState();
+  const [probability, setProbability] = useState("");
+  const [opportunityType, setOpportunityType] = useState("");
+  const [productCategory, setProductCategory] = useState("");
+  const [winLoseCode, setWinLoseCode] = useState("");
+
+  const baseUOM = useMemo(() => {
+    return [...new Set(materials.map((m) => m.BASE_UOM))].sort();
+  }, [materials]);
+
+  useEffect(() => {
+    async function loadSalesStages() {
+      try {
+        const res = await apiFetchSalesStage();
+        const formatted = res.map((item) => item.SALESSTAGE);
+        setSalesStages(formatted);
+      } catch (err) {
+        console.error("Error loading sales stages:", err);
+        setSalesStages([]);
+      }
+    }
+
+    loadSalesStages();
+  }, []);
+  useEffect(() => {
+    async function loadProbability() {
+      try {
+        const res = await apiFetchProbability();
+        const formatted = res.map((item) => item.PROBABILITYPCT);
+        setProbability(formatted);
+      } catch (err) {
+        console.error("Error loading probability:", err);
+        setProbability("");
+      }
+    }
+
+    loadProbability();
+  }, []);
+  useEffect(() => {
+    async function loadProductCategory() {
+      try {
+        const res = await apiFetchProductCategory();
+        console.log(res);
+        const formatted = res.map((item) => item.CATEGORY);
+        setProductCategory(formatted);
+      } catch (err) {
+        console.error("Error loading product category:", err);
+        setProductCategory("");
+      }
+    }
+
+    loadProductCategory();
+  }, []);
+  useEffect(() => {
+    async function loadOpportunityType() {
+      try {
+        const res = await apiFetchOpportunityTypes();
+        console.log(res);
+        const formatted = res.map((item) => item.TYPE);
+        setOpportunityType(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setOpportunityType("");
+      }
+    }
+
+    loadOpportunityType();
+  }, []);
+  useEffect(() => {
+    async function loadWinLoseCodes() {
+      try {
+        const res = await apiFetchWinLoseCodes();
+        console.log(res);
+        const formatted = res.map((item) => item.CODE);
+        setWinLoseCode(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setOpportunityType("");
+      }
+    }
+
+    loadWinLoseCodes();
+  }, []);
 
   const salesMapping = {
     Bill: "Field Sales",
@@ -6110,7 +6716,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
   const handleOverrideChange = () => {
     const override = parseFloat(form.override_Price);
-    const projected = parseFloat(form.material_Projected_Price);
+    const projected = parseFloat(form.material_Price);
     setPendingValue(override);
 
     if (override < projected && form.business_justification) {
@@ -6203,6 +6809,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     sales_Team: salesTeam,
     sales_Stage: "Lead: No Current Product Solution",
     broker_Led: false,
+    industry_Segment: "",
     probability: "0%",
     opportunity_Type: "",
     material_ID: "",
@@ -6248,8 +6855,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     contact_Title: "",
     contact_Email: "",
     contact_Phone: "",
+    isApproved: false,
   });
-
   const handleConfirmExit = () => {
     setExitConfirmOpen(false);
     onCancel();
@@ -6289,20 +6896,35 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   };
 
   useEffect(() => {
-    if (form.material_Projected_Price && form.estimated_Volume) {
-      const price = parseFloat(form.material_Projected_Price);
-      const volume = parseFloat(form.estimated_Volume);
-      if (!isNaN(price) && !isNaN(volume)) {
-        const revenue = (price * volume).toFixed(2);
-        setForm((prev) => ({ ...prev, pipeline_Projected_Revenue: revenue }));
-      }
+    const volume = parseFloat(form.estimated_Volume);
+  
+    if (isNaN(volume)) return;
+  
+    let price;
+  
+    if (form.isApproved) {
+      price = parseFloat(form.override_Price);
+    } else {
+      price = parseFloat(form.material_Price);
     }
-  }, [form.material_Projected_Price, form.estimated_Volume]);
+  
+    if (!isNaN(price)) {
+      const revenue = (price * volume).toFixed(2);
+  
+      setForm((prev) => ({
+        ...prev,
+        topline_Revenue: revenue,
+      }));
+    }
+  }, [
+    form.isApproved,          
+    form.override_Price,
+    form.material_Price,
+    form.estimated_Volume
+  ]);
+  
 
-  const fieldsOrder =
-    form.probability === "0%"
-      ? ["category", "material"]
-      : ["material", "category"];
+  const isMaterialRequired = form.probability !== "0%";
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-6 grid gap-6">
@@ -6350,15 +6972,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
         />
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* <label className="grid gap-1">
-              <Label>Opportunity ID</Label>
-              <Input
-                value="Auto-generated"
-                disabled
-                readOnly
-                className="bg-gray-100 text-gray-500"
-              />
-            </label> */}
             <label className="grid gap-1">
               <Label>Customer Name *</Label>
               <Input
@@ -6373,74 +6986,60 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               />
             </label>
             <label className="grid gap-1">
-              <Label>Sales Lead *</Label>
-              <Input
-                value={form.sales_Lead}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, sales_Lead: e.target.value }))
-                }
-                placeholder="Sales Lead"
-                readOnly
-              />
-            </label>
-            <label className="grid gap-1">
               <span className="font-medium">Broker Led</span>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.broker_Led === true}
-                    onChange={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        broker_Led: true,
-                      }))
-                    }
-                  />
-                  Yes
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.broker_Led === false}
-                    onChange={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        broker_Led: false,
-                      }))
-                    }
-                  />
-                  No
-                </label>
-              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.broker_Led === true}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      broker_Led: !prev.broker_Led,
+                    }))
+                  }
+                />
+              </label>
             </label>
             <label className="grid gap-1">
-              <Label>Sales Team</Label>
-              <Input
-                value={form.sales_Team}
-                placeholder="Sales team"
-                readOnly
+              <Label>Industry Segment</Label>
+
+              <FrostedSelect
+                value={form.industry_Segment}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, industry_Segment: v }))
+                }
+                // options={salesStages}
+                options={[
+                  "QSR",
+                  "Fast Casual",
+                  "Midscale",
+                  "Fine Dining",
+                  "Casual Dining",
+                  "Business & Industry",
+                  "Lodging",
+                  "Hospital",
+                  "LTC",
+                  "Senior Living",
+                  "K-12 (Education)",
+                  "College & University",
+                  "C-store",
+                  "Sports and Entertainment",
+                  "GPO - Multiple Segments",
+                  "Supermarket Prepared",
+                  "Other"
+                ]}
+                placeholder="Select Industry Segment"
               />
             </label>
             <label className="grid gap-1">
               <Label>Sales Stage</Label>
+
               <FrostedSelect
                 value={form.sales_Stage}
                 onChange={(v) =>
                   setForm((prev) => ({ ...prev, sales_Stage: v }))
                 }
-                options={[
-                  "Lead: No Current Product Solution",
-                  "Lead: Deprioritized Account",
-                  "Target Account",
-                  "Customer Engaged",
-                  "Proposal Submitted",
-                  "Win - Customer Verbal",
-                  "Post-pipeline: Win (order shipped)",
-                  "Post-pipeline: Loss",
-                  "Post-pipeline: On-hold",
-                ]}
+                options={salesStages}
                 placeholder="Select sales stage"
               />
             </label>
@@ -6451,140 +7050,111 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 onChange={(v) =>
                   setForm((prev) => ({ ...prev, probability: v }))
                 }
-                options={["0%", "25%", "50%", "75%", "90%", "100%"]}
+                options={probability}
                 placeholder="Select Probability"
               />
             </label>
-            <label key="category" className="grid gap-1">
+            <label className="grid gap-1">
               <Label>Opportunity Type</Label>
               <FrostedSelect
                 value={form.opportunity_Type}
                 onChange={(v) =>
                   setForm((prev) => ({ ...prev, opportunity_Type: v }))
                 }
-                options={[
-                  "New Business",
-                  "Expansion",
-                  "Renewal",
-                  "Replacement",
-                ]}
+                options={opportunityType}
                 placeholder="Select Opportunit Type"
               />
             </label>
+            <label className="grid gap-1">
+              <Label>Product Category</Label>
+              <FrostedSelect
+                value={form.product_Category}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, product_Category: v }))
+                }
+                options={productCategory}
+                placeholder="Select Product Category"
+              />
+            </label>
+            <label key="material" className="grid gap-1">
+              <Label>
+                Material ID{" "}
+                {isMaterialRequired && (
+                  <span className="text-red-500 text-sm ml-1">*</span>
+                )}
+              </Label>
 
-            {fieldsOrder.map((field) => {
-              if (field === "material") {
-                const isMaterialRequired = form.probability !== "0%";
+              {isLoadingMaterials ? (
+                <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
+                  Loading products...
+                </div>
+              ) : materialsError ? (
+                <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
+                  {materialsError}
+                </div>
+              ) : (
+                <div className="w-full max-w-2xl">
+                  <FrostedSelect
+                    value={form.material_ID}
+                    onChange={(v) => {
+                      setForm((prev) => ({ ...prev, material_ID: v }));
 
-                return (
-                  <label key="material" className="grid gap-1">
-                    <Label>
-                      Material ID{" "}
-                      {isMaterialRequired && (
-                        <span className="text-red-500 text-sm ml-1">*</span>
-                      )}
-                    </Label>
+                      if (v && materials.length > 0) {
+                        const selectedMaterial = materials.find(
+                          (m) => m.MATERIAL_ID === v
+                        );
 
-                    {isLoadingMaterials ? (
-                      <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
-                        Loading products...
-                      </div>
-                    ) : materialsError ? (
-                      <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
-                        {materialsError}
-                      </div>
-                    ) : (
-                      <div className="w-full max-w-2xl">
-                        <FrostedSelect
-                          value={form.material_ID}
-                          onChange={(v) => {
-                            setForm((prev) => ({ ...prev, material_ID: v }));
-
-                            if (v && materials.length > 0) {
-                              const selectedMaterial = materials.find(
-                                (m) => m.MATERIAL_ID === v
-                              );
-
-                              if (selectedMaterial) {
-                                setForm((prev) => ({
-                                  ...prev,
-                                  product: v,
-                                  material_ID: selectedMaterial.MATERIAL_ID,
-                                  material_Weight:
-                                    selectedMaterial.MATERIAL_WEIGHT,
-                                  product_Category:
-                                    selectedMaterial.PRODUCT_CATEGORY,
-                                  base_UoM: selectedMaterial.BASE_UOM,
-                                  material_Projected_Price:
-                                    selectedMaterial.MATERIAL_PROJECTED_PRICE,
-                                  pipeline_Projected_Revenue:
-                                    prev.estimated_Volume
-                                      ? (
-                                          parseFloat(
-                                            selectedMaterial.MATERIAL_PROJECTED_PRICE
-                                          ) * parseFloat(prev.estimated_Volume)
-                                        ).toFixed(2)
-                                      : "",
-                                }));
-                              }
-                            }
-                          }}
-                          options={materials.map((m) => m.MATERIAL_ID)}
-                          placeholder={
-                            isMaterialRequired
-                              ? "Select Material ID (Required)"
-                              : "Select Material ID"
-                          }
-                          disabled={isLoadingMaterials}
-                          className={`w-full ${
-                            isMaterialRequired && !form.material_ID
-                              ? "border border-red-400"
-                              : ""
-                          }`}
-                          style={{
-                            textOverflow: "ellipsis",
-                            overflow: "hidden",
-                            whiteSpace: "nowrap",
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {isMaterialRequired && !form.material_ID && (
-                      <p className="text-red-500 text-xs mt-1">
-                        * Material ID is required when probability is not 100%
-                      </p>
-                    )}
-                  </label>
-                );
-              }
-
-              if (field === "category") {
-                return (
-                  <label key="category" className="grid gap-1">
-                    <Label>Product Category</Label>
-                    <FrostedSelect
-                      value={form.product_Category}
-                      onChange={(v) =>
-                        setForm((prev) => ({ ...prev, product_Category: v }))
+                        if (selectedMaterial) {
+                          console.log(selectedMaterial);
+                          setForm((prev) => ({
+                            ...prev,
+                            product: v,
+                            material_Desc:
+                              selectedMaterial.PRODUCT.split("||")[0],
+                            material_ID: selectedMaterial.MATERIAL_ID,
+                            material_Weight: selectedMaterial.MATERIAL_WEIGHT,
+                            product_Category: selectedMaterial.PRODUCT_CATEGORY,
+                            base_UoM: selectedMaterial.BASE_UOM,
+                            material_Price:
+                              selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                            pipeline_Projected_Revenue: prev.estimated_Volume
+                              ? (
+                                  parseFloat(
+                                    selectedMaterial.MATERIAL_PROJECTED_PRICE
+                                  ) * parseFloat(prev.estimated_Volume)
+                                ).toFixed(2)
+                              : "",
+                          }));
+                        }
                       }
-                      options={[
-                        "SNACKING",
-                        "PANTRY",
-                        "BEVERAGE",
-                        "INDUSTRIAL/GOVT",
-                        "FROZEN",
-                        "CORE FRUITS & BEVERA",
-                      ]}
-                      placeholder="Select Product Category"
-                    />
-                  </label>
-                );
-              }
+                    }}
+                    options={materials.map((m) => m.MATERIAL_ID)}
+                    placeholder={
+                      isMaterialRequired
+                        ? "Select Material ID (Required)"
+                        : "Select Material ID"
+                    }
+                    disabled={isLoadingMaterials}
+                    className={`w-full ${
+                      isMaterialRequired && !form.material_ID
+                        ? "border border-red-400"
+                        : ""
+                    }`}
+                    style={{
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                    }}
+                  />
+                </div>
+              )}
 
-              return null;
-            })}
-
+              {isMaterialRequired && !form.material_ID && (
+                <p className="text-red-500 text-xs mt-1">
+                  * Material ID is required when probability is not 100%
+                </p>
+              )}
+            </label>
             <label className="grid gap-1">
               <Label>Material Desc</Label>
               <Input
@@ -6612,7 +7182,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               <FrostedSelect
                 value={form.base_UoM}
                 onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
-                options={["Case", "Bins", "Pallet", "Drum", "Pail"]}
+                options={[...baseUOM]} 
                 placeholder="Select UOM"
               />
             </label>
@@ -6642,6 +7212,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
           } of ${sections.length}`}
         />
         <CardBody>
+          {/*Product section */}
+
           {currentSection === "product" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
@@ -6688,39 +7260,25 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 />
               </label>
               <label className="grid gap-1">
-                <span className="font-medium">Culinary Needed</span>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.culinary_Needed === true}
-                      onChange={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          culinary_Needed: true,
-                        }))
-                      }
-                    />
-                    Yes
-                  </label>
-
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.culinary_Needed === false}
-                      onChange={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          culinary_Needed: false,
-                        }))
-                      }
-                    />
-                    No
-                  </label>
-                </div>
+              <span className="font-medium">Culinary Needed</span>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.culinary_Needed === true}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      culinary_Needed: !prev.culinary_Needed,
+                    }))
+                  }
+                />
               </label>
+            </label>
             </div>
           )}
+
+          {/* Volume and Pricing section */}
+
           {currentSection === "volume_pricing" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
@@ -6817,10 +7375,9 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 </div>
               </label>
               {!isNaN(Number(form.override_Price)) &&
-                !isNaN(Number(form.material_Projected_Price)) &&
+                !isNaN(Number(form.material_Price)) &&
                 Number(form.override_Price) > 0 &&
-                Number(form.override_Price) <
-                  Number(form.material_Projected_Price) && (
+                Number(form.override_Price) < Number(form.material_Price) && (
                   <label className="grid gap-1 md:col-span-2">
                     <Label>Business Justification</Label>
                     <Textarea
@@ -6841,69 +7398,10 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 <Input
                   type="number"
                   value={form.topline_Revenue}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      topline_Revenue: e.target.value,
-                    }))
-                  }
                   placeholder="$0.00"
                 />
               </label>
-              <label className="grid gap-1">
-                <Label>Period Rolling (Quantity)</Label>
-                <Input
-                  type="number"
-                  value={form.period_Rolling}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      period_Rolling: e.target.value,
-                    }))
-                  }
-                  placeholder="Period Rolling (Quantity)"
-                />
-              </label>
-            </div>
-          )}
-
-          {currentSection === "pricing" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Equivalized Pipeline LBS</Label>
-                <Input
-                  type="number"
-                  value={form.equivalized_Pipeline_LBS}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      equivalized_Pipeline_LBS: e.target.value,
-                    }))
-                  }
-                  placeholder="Pipeline LBS"
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Pipeline Projected Revenue</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
-                    $
-                  </span>
-                  <Input
-                    type="number"
-                    value={form.pipeline_Projected_Revenue}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        pipeline_Projected_Revenue: e.target.value,
-                      }))
-                    }
-                    className="pl-6"
-                    placeholder="0.00"
-                    readOnly
-                  />
-                </div>
-              </label>
+              
             </div>
           )}
 
@@ -6920,6 +7418,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               setShowModal(false);
             }}
           />
+
+          {/*Location and Timing section */}
 
           {currentSection === "location_timing" && (
             <div className="grid md:grid-cols-2 gap-4">
@@ -6976,10 +7476,10 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
               <label className="grid gap-1">
                 <Label>Likely Start Date</Label>
-                <FrostedDate
+                <MyPicker
                   value={form.likely_Start_Date}
                   onChange={handleAnnual_LTO}
-                  placeholder="Start Date"
+                  placeholder="Select Start Date"
                 />
               </label>
 
@@ -6990,15 +7490,14 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                     <span className="text-red-500">*</span>
                   )}
                 </div>
-
-                <FrostedDate
+                <MyPicker
                   value={form.end_Date}
                   onChange={(v) => {
                     setForm((prev) => ({ ...prev, end_Date: v }));
                     setErrors((prev) => ({ ...prev, end_Date: "" }));
                   }}
-                  placeholder="End Date"
                   required={form?.annual_Or_LTO === "LTO"}
+                  placeholder="Select End Date"
                   error={errors.end_Date}
                 />
 
@@ -7011,7 +7510,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
               <label className="grid gap-1">
                 <Label>Date of Last Meeting</Label>
-                <FrostedDate
+                <MyPicker
                   value={form.last_Meeting_Date}
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
@@ -7021,7 +7520,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
               <label className="grid gap-1">
                 <Label>Estimated Close Date</Label>
-                <FrostedDate
+                <MyPicker
                   value={form.estimated_Close_Date}
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, estimated_Close_Date: v }))
@@ -7029,8 +7528,25 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   placeholder="Select closing date"
                 />
               </label>
+              <label className="grid gap-1">
+                <Label>Period Rolling (Quantity)</Label>
+                <Input
+                  type="number"
+                  value={form.period_Rolling}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      period_Rolling: e.target.value,
+                    }))
+                  }
+                  placeholder="Period Rolling (Quantity)"
+                />
+              </label>
             </div>
           )}
+
+          {/*Outcome section */}
+
           {currentSection === "outcome" && (
             <div className="grid grid-cols-1 gap-4">
               <label className="grid gap-1">
@@ -7040,20 +7556,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, win_Loss_Reason_Code: v }))
                   }
-                  options={[
-                    "",
-                    "Price",
-                    "Product Quality",
-                    "Relationship",
-                    "Competition",
-                    "Timing",
-                    "Product Availability",
-                    "Contract Terms",
-                    "Technical Requirements",
-                    "Budget Constraints",
-                    "Internal Decision",
-                    "Other",
-                  ]}
+                  options={winLoseCode}
                   placeholder="Select reason"
                 />
               </label>
@@ -7073,52 +7576,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
             </div>
           )}
-          {/* {currentSection === "support" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Culinary Support Needed</Label>
-                <FrostedSelect
-                  value={form.culinary_Needed}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, culinary_Needed: v }))
-                  }
-                  options={["Y", "N"]}
-                  placeholder="Select"
-                />
-              </label>
-              {form.culinary_Needed === "Y" && (
-                <>
-                  <label className="grid gap-1">
-                    <Label>Culinary Support Status</Label>
-                    <Input
-                      value={form.culinary_Support_Status}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          culinary_Support_Status: e.target.value,
-                        }))
-                      }
-                      placeholder="Status"
-                    />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <Label>Culinary Support Description</Label>
-                    <Textarea
-                      value={form.culinary_Support_Description}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          culinary_Support_Description: e.target.value,
-                        }))
-                      }
-                      placeholder="Describe support needed"
-                      rows={2}
-                    />
-                  </label>
-                </>
-              )}
-            </div>
-          )} */}
+
+          {/*Customer Details section */}
           {currentSection === "customerDetails" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
@@ -7376,8 +7835,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
         days_30_Ship: opp.days_30_Ship || "N",
 
         // Pricing & Financial Impact
-        material_Projected_Price:
-          opp.material_Projected_Price || opp.materialProjectedPrice || "",
+        material_Price: opp.material_Price || opp.materialProjectedPrice || "",
         equivalized_Pipeline_LBS:
           opp.equivalized_Pipeline_LBS || opp.equalizedPipelineLbs || "",
         pipeline_Projected_Revenue:
@@ -7419,15 +7877,15 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
   };
 
   useEffect(() => {
-    if (form.material_Projected_Price && form.estimated_Volume) {
-      const price = parseFloat(form.material_Projected_Price);
+    if (form.material_Price && form.estimated_Volume) {
+      const price = parseFloat(form.material_Price);
       const volume = parseFloat(form.estimated_Volume);
       if (!isNaN(price) && !isNaN(volume)) {
         const revenue = (price * volume).toFixed(2);
         setForm((prev) => ({ ...prev, pipeline_Projected_Revenue: revenue }));
       }
     }
-  }, [form.material_Projected_Price, form.estimated_Volume]);
+  }, [form.material_Price, form.estimated_Volume]);
 
   const canEdit =
     opp &&
@@ -7668,12 +8126,11 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                               product_Category:
                                 selectedMaterial.PRODUCT_CATEGORY,
                               base_UoM: selectedMaterial.BASE_UOM,
-                              material_Projected_Price:
-                                selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                              material_Price: selectedMaterial.material_Price,
                               pipeline_Projected_Revenue: prev.estimated_Volume
                                 ? (
                                     parseFloat(
-                                      selectedMaterial.MATERIAL_PROJECTED_PRICE
+                                      selectedMaterial.material_Price
                                     ) * parseFloat(prev.estimated_Volume)
                                   ).toFixed(2)
                                 : prev.pipeline_Projected_Revenue,
@@ -7878,11 +8335,11 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   </span>
                   <Input
                     type="number"
-                    value={form.material_Projected_Price}
+                    value={form.material_Price}
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        material_Projected_Price: e.target.value,
+                        material_Price: e.target.value,
                       }))
                     }
                     className="pl-6"
@@ -7935,7 +8392,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>Likely Start Date</Label>
                 {editMode ? (
-                  <FrostedDate
+                  <MyPicker
                     value={form.likely_Start_Date}
                     onChange={(e) => handleAnnual_LTO(e)}
                     disabled={!editMode}
@@ -7947,7 +8404,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>End Date</Label>
                 {editMode ? (
-                  <FrostedDate
+                  <MyPicker
                     value={form.end_Date}
                     onChange={(v) =>
                       setForm((prev) => ({ ...prev, end_Date: v }))
@@ -7976,7 +8433,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>Date of Last Meeting</Label>
                 {editMode ? (
-                  <FrostedDate
+                  <MyPicker
                     value={form.last_Meeting_Date}
                     onChange={(v) =>
                       setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
@@ -8431,7 +8888,7 @@ function AdminPage({ setRoute, isNight }) {
               ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
               : "bg-white/60 border border-white/50 hover:bg-white"
           )}
-          onClick={() => setRoute("dataTablesPage")}
+          onClick={() => setRoute("data-tables-page")}
         >
           <CardBody className="flex flex-col items-center justify-center py-10">
             <div
@@ -8469,11 +8926,10 @@ function AdminPage({ setRoute, isNight }) {
 }
 function DataTablePage({ setRoute, isNight }) {
   return (
-    
     <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-    <CircleArrowLeft
+      <CircleArrowLeft
         size={36}
-        onClick={() => setRoute("adminPage")}
+        onClick={() => setRoute("admin-page")}
         className="cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -8484,7 +8940,7 @@ function DataTablePage({ setRoute, isNight }) {
               ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
               : "bg-white/60 border border-white/50 hover:bg-white"
           )}
-          onClick={() => setRoute("salesStage")}
+          onClick={() => setRoute("sales-stage")}
         >
           <CardBody className="flex flex-col items-center justify-center py-10">
             <div
@@ -8523,7 +8979,7 @@ function DataTablePage({ setRoute, isNight }) {
               ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
               : "bg-white/60 border border-white/50 hover:bg-white"
           )}
-          onClick={() => setRoute("productCategory")}
+          onClick={() => setRoute("product-category")}
         >
           <CardBody className="flex flex-col items-center justify-center py-10">
             <div
@@ -8591,6 +9047,84 @@ function DataTablePage({ setRoute, isNight }) {
               )}
             >
               Probability data
+            </p>
+          </CardBody>
+        </Card>
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("opportunity-type")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Opportunity Type
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Opportunity types data
+            </p>
+          </CardBody>
+        </Card>
+        <Card
+          className={clsx(
+            "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
+            isNight
+              ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
+              : "bg-white/60 border border-white/50 hover:bg-white"
+          )}
+          onClick={() => setRoute("win-lose-codes")}
+        >
+          <CardBody className="flex flex-col items-center justify-center py-10">
+            <div
+              className={clsx(
+                "p-4 rounded-full mb-4 flex items-center justify-center",
+                isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
+              )}
+            >
+              <DatabaseZap
+                size={36}
+                className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
+              />
+            </div>
+            <h2
+              className={clsx(
+                "text-lg font-semibold",
+                isNight ? "text-white" : "text-gray-800"
+              )}
+            >
+              Win Lose codes
+            </h2>
+            <p
+              className={clsx(
+                "text-sm mt-2 text-center max-w-xs",
+                isNight ? "text-white/60" : "text-gray-600"
+              )}
+            >
+              Win Lose codes data
             </p>
           </CardBody>
         </Card>

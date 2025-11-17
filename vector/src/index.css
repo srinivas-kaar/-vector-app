@@ -16,3 +16,10 @@ code {
     monospace;
 }
 
+.rdp {
+  --rdp-cell-size: 34px;
+  --rdp-accent-color: #2563eb;
+  --rdp-accent-color-dark: #1d4ed8;
+  --rdp-background-color: #e0e7ff;
+}
+
