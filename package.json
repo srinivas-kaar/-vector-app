@@ -5,6 +5,7 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "dayjs": "^1.11.18"
+    "dayjs": "^1.11.18",
+    "react-day-picker": "^9.11.1"
   }
 }

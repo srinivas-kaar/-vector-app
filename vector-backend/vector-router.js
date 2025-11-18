@@ -1121,7 +1121,7 @@ router.get('/industrysegments', withConnection, (req, res) => {
   try {
     const sql = `
       SELECT *
-      FROM "BTP_INTERFACE#BTP"."INDUSTRYSEGMENT"
+      FROM BTP_INTERFACE#BTP.INDUSTRYSEGMENTLKP
     `;
 
     req.hanaConn.exec(sql, (err, result) => {
