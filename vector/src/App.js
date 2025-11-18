@@ -411,6 +411,9 @@ async function apiCreateOpp(body) {
       INNOVATION_SUPPORT_STATUS:
         body.innovation_Support_Status || body.innovationSupportStatus || "",
       TOTAL_UNITS: body.total_Units || body.units2023 || "",
+      BROKER_LED: body.broker_Led || body.brokerLed || "",
+      MATERIAL_DESC: body.material_Desc || body.materialDesc || "",
+      WIN_PROBABILITY: body.win,
     };
 
     const res = await fetch(`${API_BASE_URL}/opportunities`, {
@@ -825,10 +828,13 @@ async function apiFetchSalesTeam(name) {
 // apiFetchSalesTeam("dan");
 
 const customerPaylod = {
+  CUSTOMERID: "001",
   CUSTOMERNAME: "Srinivas",
-  CUSTOMERTITLE: "Mr",
-  CUSTOMEREMAIL: "aasrinivas@kaartech.com",
-  CUSTOMERPHONE: "9999999999",
+  INDUSTRYSEGMENT: "fmcg",
+  CUSTOMERCONTACTNAME: "Srinivas",
+  CUSTOMERCONTACTTITLE: "Mr",
+  CUSTOMERCONTACTEMAIL: "aasrinivas@kaartech.com",
+  CUSTOMERCONTACTPHONE: "9999999999",
 };
 
 async function apiPostCustomers(payload) {
@@ -851,6 +857,26 @@ async function apiPostCustomers(payload) {
   console.log(res);
   // return data;
 }
+
+async function apiFetchIndustrySegement() {
+  const res = await fetch(`${API_BASE_URL}/industrysegments/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    mode: "cors",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `GET /industrysegments failed: ${res.status} ${await res.text()}`
+    );
+  }
+
+  const data = await res.json();
+  console.log(data);
+  return data;
+}
+// apiFetchIndustrySegement()
 
 // apiPostCustomers(customerPaylod)
 
@@ -1246,8 +1272,10 @@ function MyPicker({
   label,
   required,
   disabled = false,
-  readOnly = false
+  readOnly = false,
 }) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -1265,7 +1293,7 @@ function MyPicker({
     if (!val) return undefined;
     if (val instanceof Date) return val;
 
-    const parsed = new Date(val + "T00:00:00"); 
+    const parsed = new Date(val + "T00:00:00");
     return isNaN(parsed) ? undefined : parsed;
   };
 
@@ -1280,7 +1308,6 @@ function MyPicker({
     });
   };
 
-  // Block opening if disabled or readOnly
   const handleInputClick = () => {
     if (disabled || readOnly) return;
     setOpen((prev) => !prev);
@@ -1288,7 +1315,6 @@ function MyPicker({
 
   return (
     <div className="relative inline-block w-full" ref={ref}>
-      
       {label && (
         <label className="block mb-1 font-medium">
           {label} {required && <span className="text-red-600">*</span>}
@@ -1303,28 +1329,32 @@ function MyPicker({
         placeholder={placeholder}
         className={`
           w-full px-3 py-2 border rounded-lg bg-white cursor-pointer 
-          placeholder:font-semibold 
+          placeholder:font-semibold
           ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}
           ${readOnly ? "cursor-default" : ""}
+          ${isNight ? "bg-gray-800 border-white/25 text-white" : "bg-white border-gray-300 text-black"}
         `}
       />
 
-      {/* Calendar popover - do not show if disabled or readOnly */}
+      {/* Popover */}
       {open && !disabled && !readOnly && (
-        <div className="absolute left-0 mt-2 z-50 bg-white border rounded-xl shadow-lg">
+        <div
+          className={`
+            absolute left-0 mt-2 z-50 border rounded-xl shadow-lg
+            ${isNight ? "bg-gray-800 border-white/25 text-white" : "bg-white border-gray-300 text-black"}
+          `}
+        >
           <DayPicker
             mode="single"
             selected={selectedDate}
             onSelect={(date) => {
               if (!date) return;
 
-              // return in YYYY-MM-DD
               const y = date.getFullYear();
               const m = String(date.getMonth() + 1).padStart(2, "0");
               const d = String(date.getDate()).padStart(2, "0");
 
               onChange(`${y}-${m}-${d}`);
-
               setOpen(false);
             }}
           />
@@ -1828,17 +1858,16 @@ function FloatingNav({
       onClick: () => onSignOut?.(),
       label: "Sign Out",
     },
-    ``,
   ];
 
-  if (onGoVolumeAllocation) {
-    actions.splice(4, 0, {
-      key: "volume-allocation",
-      icon: <Database className="h-6 w-6" />,
-      onClick: () => onGoVolumeAllocation?.(),
-      label: "Volume Allocation",
-    });
-  }
+  // if (onGoVolumeAllocation) {
+  //   actions.splice(4, 0, {
+  //     key: "volume-allocation",
+  //     icon: <Database className="h-6 w-6" />,
+  //     onClick: () => onGoVolumeAllocation?.(),
+  //     label: "Volume Allocation",
+  //   });
+  // }
 
   const maxHeight = actions.length * 70 + 70;
 
@@ -2536,7 +2565,7 @@ function ProductCategoryDataTable({ currentUser, setRoute }) {
 
       // 🔧 Replace with actual save logic once post and put api are given
       // await apiSaveProductCategory(
-      //   category.map(({ _isNew, ...rest }) => rest) 
+      //   category.map(({ _isNew, ...rest }) => rest)
       // );
 
       await refresh();
@@ -4605,6 +4634,28 @@ export default function App() {
     estimatedVolume: true,
     likelyStartDate: true,
   };
+  const defaultOrder = [
+    "welcome",
+    "kpi_total",
+    "kpi_inreview",
+    "kpi_current",
+    "kpi_avg",
+    "trend",
+    "status",
+    "calendar",
+    "gantt",
+  ];
+  const defaultSizes = {
+    welcome: { col: 12, rows: 1 },
+    kpi_total: { col: 3, rows: 1 },
+    kpi_inreview: { col: 3, rows: 1 },
+    kpi_current: { col: 3, rows: 1 },
+    kpi_avg: { col: 3, rows: 1 },
+    trend: { col: 4, rows: 2 },
+    status: { col: 4, rows: 2 },
+    calendar: { col: 4, rows: 2 },
+    gantt: { col: 12, rows: 4 },
+  };
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       return localStorage.getItem("oppty_user") || "";
@@ -4629,6 +4680,50 @@ export default function App() {
     key: "customerName",
     direction: "asc",
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  useEffect(() => {
+    const now = new Date();
+    setSelectedDate(now);
+    try {
+      localStorage.setItem("oppty_selectedDate", now.toISOString());
+    } catch {}
+  }, []);
+  const [route, setRoute] = useState("dashboard");
+  const [detailId, setDetailId] = useState(null);
+
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_themeMode") || "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const [ownerScope, setOwnerScope] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_ownerScope") || "me";
+    } catch {
+      return "me";
+    }
+  });
+  const [windowMonths, setWindowMonths] = useState(() => {
+    try {
+      return Number(localStorage.getItem("oppty_windowMonths") || 6);
+    } catch {
+      return 6;
+    }
+  });
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_avatar") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [layoutOrder, setLayoutOrder] = useState(defaultOrder);
+  const [sizeMap, setSizeMap] = useState(defaultSizes);
 
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return <ChevronsUpDown size={14} />;
@@ -4684,25 +4779,6 @@ export default function App() {
     }
   }
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  useEffect(() => {
-    const now = new Date();
-    setSelectedDate(now);
-    try {
-      localStorage.setItem("oppty_selectedDate", now.toISOString());
-    } catch {}
-  }, []);
-
-  const [route, setRoute] = useState("dashboard");
-  const [detailId, setDetailId] = useState(null);
-
-  const [themeMode, setThemeMode] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_themeMode") || "auto";
-    } catch {
-      return "auto";
-    }
-  });
   const getAutoTheme = () => {
     const hour = new Date().getHours();
     return hour >= 7 && hour < 19 ? "sunrise" : "sunset";
@@ -4723,14 +4799,6 @@ export default function App() {
     }
   }, [themeMode]);
 
-  const [ownerScope, setOwnerScope] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_ownerScope") || "me";
-    } catch {
-      return "me";
-    }
-  });
-
   useEffect(() => {
     const saved = localStorage.getItem("visibleColumns");
     if (saved) setVisibleColumns(JSON.parse(saved));
@@ -4750,55 +4818,12 @@ export default function App() {
       localStorage.setItem("oppty_ownerScope", ownerScope);
     } catch {}
   }, [ownerScope]);
-
-  const [windowMonths, setWindowMonths] = useState(() => {
-    try {
-      return Number(localStorage.getItem("oppty_windowMonths") || 6);
-    } catch {
-      return 6;
-    }
-  });
+  
   useEffect(() => {
     try {
       localStorage.setItem("oppty_windowMonths", String(windowMonths));
     } catch {}
   }, [windowMonths]);
-
-  const [avatarUrl, setAvatarUrl] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_avatar") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
-
-  const defaultOrder = [
-    "welcome",
-    "kpi_total",
-    "kpi_inreview",
-    "kpi_current",
-    "kpi_avg",
-    "trend",
-    "status",
-    "calendar",
-    "gantt",
-  ];
-  const [layoutOrder, setLayoutOrder] = useState(defaultOrder);
-  const defaultSizes = {
-    welcome: { col: 12, rows: 1 },
-    kpi_total: { col: 3, rows: 1 },
-    kpi_inreview: { col: 3, rows: 1 },
-    kpi_current: { col: 3, rows: 1 },
-    kpi_avg: { col: 3, rows: 1 },
-    trend: { col: 4, rows: 2 },
-    status: { col: 4, rows: 2 },
-    calendar: { col: 4, rows: 2 },
-    gantt: { col: 12, rows: 4 },
-  };
-  const [sizeMap, setSizeMap] = useState(defaultSizes);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -4828,6 +4853,8 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  console.log({ opps });
 
   const scopedOpps = useMemo(
     () =>
@@ -4941,7 +4968,7 @@ export default function App() {
   }));
 
   async function addOpportunity(form) {
-    console.log({form})
+    console.log({ form });
     const payload = {
       customerName: form.customer_Name,
       materialId: form.material_ID,
@@ -4985,6 +5012,10 @@ export default function App() {
       culinaryNeeded: form.culinary_Needed,
       culinarySupportDescription: form.culinary_Support_Description,
       culinarySupportStatus: form.culinary_Support_Status,
+      brokerLed: form.broker_Led,
+      materialDesc: form.material_Desc,
+      probability: form.probability,
+      poundVolume: form.pound_Volume,
     };
     try {
       const created = await apiCreateOpp(payload);
@@ -5050,24 +5081,24 @@ export default function App() {
     }
   }
 
-  function toggleSelect(id) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-  function toggleSelectAll() {
-    const allVisible = myOppsOnly
-      .slice()
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map((o) => o.id);
-    setSelectedIds((prev) => {
-      const allSelected =
-        allVisible.length > 0 && allVisible.every((id) => prev.has(id));
-      return allSelected ? new Set() : new Set(allVisible);
-    });
-  }
+  // function toggleSelect(id) {
+  //   setSelectedIds((prev) => {
+  //     const next = new Set(prev);
+  //     next.has(id) ? next.delete(id) : next.add(id);
+  //     return next;
+  //   });
+  // }
+  // function toggleSelectAll() {
+  //   const allVisible = myOppsOnly
+  //     .slice()
+  //     .sort((a, b) => b.createdAt - a.createdAt)
+  //     .map((o) => o.id);
+  //   setSelectedIds((prev) => {
+  //     const allSelected =
+  //       allVisible.length > 0 && allVisible.every((id) => prev.has(id));
+  //     return allSelected ? new Set() : new Set(allVisible);
+  //   });
+  // }
   async function performDelete() {
     if (confirmText !== "DELETE" || selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
@@ -5597,122 +5628,164 @@ export default function App() {
     "bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white shadow-md";
 
   return (
-    <ThemeContext.Provider value={theme}>
-      <GlobalStyles />
-      {!currentUser || currentUser.trim() === "" ? (
-        <LoginPage onSubmit={handleLogin} onSignup={handleSignup} />
-      ) : (
-        <div
-          className={`min-h-screen flex ${
-            isNight ? "theme-sunset text-white" : "theme-sunrise text-gray-900"
-          }`}
-          style={{
-            background: isNight
-              ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
-              : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
-          }}
-        >
-          <div className="flex-1 min-w-0 w-full">
-            <header
-              className={`sticky top-0 z-10 ${
-                isNight ? "bg-[#0b1740]/50" : "bg-white/30"
-              } backdrop-blur-xl ${isNight ? "" : "border-b border-white/45"} ${
-                isNight ? "" : "shadow-[0_1px_0_rgba(255,255,255,0.6)]"
-              }`}
-            >
-              <div
-                className={`h-1 w-full ${
-                  isNight
-                    ? "bg-gradient-to-r from-[#C8102E] via-[#F6E500] to-transparent"
-                    : "bg-gradient-to-r from-[#F6E500] via-[#39B4E8] to-transparent"
-                }`}
-              />
-              <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/vector.png"
-                    alt="Vector"
-                    className="h-16 cursor-pointer transition-transform hover:scale-105 relative top-[2px]"
-                    onClick={() => setRoute("dashboard")}
-                    title="Go to Dashboard"
-                  />
-                  <div>
-                    <div className="text-left">
-                      <h1
-                        className={`text-2xl md:text-3xl font-semibold tracking-tight ${
-                          isNight ? "text-white" : ""
-                        }`}
-                      >
-                        Vector
-                      </h1>
-                      <h2
-                        className={`text-sm md:text-base font-medium tracking-wide mt-1 ${
-                          isNight ? "text-white/80" : "text-gray-600"
-                        }`}
-                      >
-                        Your Opportunity Pipeline Hub
-                      </h2>
+    <div>
+
+      <ThemeContext.Provider value={theme}>
+        <GlobalStyles />
+        {!currentUser || currentUser.trim() === "" ? (
+          <LoginPage onSubmit={handleLogin} onSignup={handleSignup} />
+        ) : (
+          <div
+            className={`min-h-screen flex ${
+              isNight
+                ? "theme-sunset text-white"
+                : "theme-sunrise text-gray-900"
+            }`}
+            style={{
+              background: isNight
+                ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
+                : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
+            }}
+          >
+            <div className="flex-1 min-w-0 w-full">
+              <header
+                className={`sticky top-0 z-10 ${
+                  isNight ? "bg-[#0b1740]/50" : "bg-white/30"
+                } backdrop-blur-xl ${
+                  isNight ? "" : "border-b border-white/45"
+                } ${isNight ? "" : "shadow-[0_1px_0_rgba(255,255,255,0.6)]"}`}
+              >
+                <div
+                  className={`h-1 w-full ${
+                    isNight
+                      ? "bg-gradient-to-r from-[#C8102E] via-[#F6E500] to-transparent"
+                      : "bg-gradient-to-r from-[#F6E500] via-[#39B4E8] to-transparent"
+                  }`}
+                />
+                <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/vector.png"
+                      alt="Vector"
+                      className="h-16 cursor-pointer transition-transform hover:scale-105 relative top-[2px]"
+                      onClick={() => setRoute("dashboard")}
+                      title="Go to Dashboard"
+                    />
+                    <div>
+                      <div className="text-left">
+                        <h1
+                          className={`text-2xl md:text-3xl font-semibold tracking-tight ${
+                            isNight ? "text-white" : ""
+                          }`}
+                        >
+                          Vector
+                        </h1>
+                        <h2
+                          className={`text-sm md:text-base font-medium tracking-wide mt-1 ${
+                            isNight ? "text-white/80" : "text-gray-600"
+                          }`}
+                        >
+                          Your Opportunity Pipeline Hub
+                        </h2>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`${headerPillCls(theme)} relative group`}>
-                    {[
-                      {
-                        k: "auto",
-                        icon: <Clock className="h-3.5 w-3.5" />,
-                        tooltip: "Auto (7AM-7PM: Day, 7PM-7AM: Night)",
-                      },
-                      {
-                        k: "sunrise",
-                        icon: <Sun className="h-3.5 w-3.5" />,
-                        tooltip: "Sunrise theme",
-                      },
-                      {
-                        k: "sunset",
-                        icon: <Moon className="h-3.5 w-3.5" />,
-                        tooltip: "Sunset theme",
-                      },
-                    ].map((opt) => (
-                      <button
-                        key={opt.k}
-                        onClick={() => setThemeMode(opt.k)}
-                        className={`p-1.5 rounded-xl inline-flex items-center justify-center transition ${
-                          themeMode === opt.k
-                            ? selectedPill(theme)
-                            : "hover:bg-white/10"
-                        } group/btn relative`}
-                      >
-                        {opt.icon}
-                        <div
-                          className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
-                            isNight
-                              ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
-                              : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
-                          } shadow-lg z-50`}
+                  <div className="flex items-center gap-2">
+                    <div className={`${headerPillCls(theme)} relative group`}>
+                      {[
+                        {
+                          k: "auto",
+                          icon: <Clock className="h-3.5 w-3.5" />,
+                          tooltip: "Auto (7AM-7PM: Day, 7PM-7AM: Night)",
+                        },
+                        {
+                          k: "sunrise",
+                          icon: <Sun className="h-3.5 w-3.5" />,
+                          tooltip: "Sunrise theme",
+                        },
+                        {
+                          k: "sunset",
+                          icon: <Moon className="h-3.5 w-3.5" />,
+                          tooltip: "Sunset theme",
+                        },
+                      ].map((opt) => (
+                        <button
+                          key={opt.k}
+                          onClick={() => setThemeMode(opt.k)}
+                          className={`p-1.5 rounded-xl inline-flex items-center justify-center transition ${
+                            themeMode === opt.k
+                              ? selectedPill(theme)
+                              : "hover:bg-white/10"
+                          } group/btn relative`}
                         >
-                          {opt.tooltip}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                          {opt.icon}
+                          <div
+                            className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
+                              isNight
+                                ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
+                                : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
+                            } shadow-lg z-50`}
+                          >
+                            {opt.tooltip}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
 
-                  {route === "dashboard" && (
-                    <>
+                    {route === "dashboard" && (
+                      <>
+                        <div
+                          className={`${headerPillCls(theme)} relative group`}
+                        >
+                          {[
+                            {
+                              k: "me",
+                              label: "My",
+                              tooltip: "My Opportunities",
+                            },
+                            {
+                              k: "all",
+                              label: "All",
+                              tooltip: "All Opportunities",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.k}
+                              onClick={() => setOwnerScope(opt.k)}
+                              className={`px-3 py-1 rounded-xl transition text-xs ${
+                                ownerScope === opt.k
+                                  ? selectedPill(theme)
+                                  : "hover:bg-white/10"
+                              } group/btn relative`}
+                            >
+                              {opt.label}
+                              <div
+                                className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
+                                  isNight
+                                    ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
+                                    : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
+                                } shadow-lg z-50`}
+                              >
+                                {opt.tooltip}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {route === "dashboard" && (
                       <div className={`${headerPillCls(theme)} relative group`}>
                         {[
-                          { k: "me", label: "My", tooltip: "My Opportunities" },
-                          {
-                            k: "all",
-                            label: "All",
-                            tooltip: "All Opportunities",
-                          },
+                          { value: 3, label: "3M", tooltip: "3 Months" },
+                          { value: 6, label: "6M", tooltip: "6 Months" },
+                          { value: 12, label: "12M", tooltip: "12 Months" },
                         ].map((opt) => (
                           <button
-                            key={opt.k}
-                            onClick={() => setOwnerScope(opt.k)}
+                            key={opt.value}
+                            onClick={() => setWindowMonths(opt.value)}
                             className={`px-3 py-1 rounded-xl transition text-xs ${
-                              ownerScope === opt.k
+                              windowMonths === opt.value
                                 ? selectedPill(theme)
                                 : "hover:bg-white/10"
                             } group/btn relative`}
@@ -5730,184 +5803,154 @@ export default function App() {
                           </button>
                         ))}
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {route === "dashboard" && (
-                    <div className={`${headerPillCls(theme)} relative group`}>
-                      {[
-                        { value: 3, label: "3M", tooltip: "3 Months" },
-                        { value: 6, label: "6M", tooltip: "6 Months" },
-                        { value: 12, label: "12M", tooltip: "12 Months" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setWindowMonths(opt.value)}
-                          className={`px-3 py-1 rounded-xl transition text-xs ${
-                            windowMonths === opt.value
-                              ? selectedPill(theme)
-                              : "hover:bg-white/10"
-                          } group/btn relative`}
-                        >
-                          {opt.label}
-                          <div
-                            className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
-                              isNight
-                                ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
-                                : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
-                            } shadow-lg z-50`}
-                          >
-                            {opt.tooltip}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {route !== "add" && (
-                    <>
-                      <Button onClick={() => setRoute("add")}>
-                        <Plus className="h-4 w-4" />{" "}
-                        <span className="hidden sm:inline">
-                          Add Opportunity
-                        </span>
-                      </Button>
-                      <Button onClick={() => setSearchModalOpen(true)}>
-                        <Search className="h-4 w-4" /> Search
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-              {error && (
-                <div
-                  className={`max-w-6xl mx-auto px-6 pb-2 text-xs ${
-                    isNight ? "text-amber-200" : "text-amber-700"
-                  }`}
-                >
-                  {error}
-                </div>
-              )}
-            </header>
-
-            {route === "dashboard" && (
-              <main className="max-w-6xl mx-auto px-6 py-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="grid grid-cols-1">
-                    {tiles.welcome.render()}
+                    {route !== "add" && (
+                      <>
+                        <Button onClick={() => setRoute("add")}>
+                          <Plus className="h-4 w-4" />{" "}
+                          <span className="hidden sm:inline">
+                            Add Opportunity
+                          </span>
+                        </Button>
+                        <Button onClick={() => setSearchModalOpen(true)}>
+                          <Search className="h-4 w-4" /> Search
+                        </Button>
+                      </>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {tiles.kpi_total.render()}
-                    {tiles.kpi_inreview.render()}
-                    {tiles.kpi_current.render()}
-                    {tiles.kpi_avg.render()}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {tiles.trend.render()}
-                    {tiles.calendar.render()}
-                    {tiles.status.render()}
-                  </div>
-                  <div className="grid grid-cols-1">{tiles.gantt.render()}</div>
                 </div>
-                {loading && (
+                {error && (
                   <div
-                    className={`text-xs mt-4 ${
-                      isNight ? "text-white/70" : "text-gray-600"
+                    className={`max-w-6xl mx-auto px-6 pb-2 text-xs ${
+                      isNight ? "text-amber-200" : "text-amber-700"
                     }`}
                   >
-                    Loading…
+                    {error}
                   </div>
                 )}
-              </main>
-            )}
+              </header>
 
-            {route === "opps" && (
-              <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                <Card>
-                  <CardHeader
-                    title="Opportunities"
-                    right={
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setShowModal(true)}
-                          className={clsx(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition",
-                            isNight
-                              ? "bg-slate-700 hover:bg-slate-600 text-white"
-                              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                          )}
-                        >
-                          <Settings size={16} />
-                        </button>
-                        <div
-                          className={`rounded-2xl ${
-                            isNight
-                              ? "bg-white/10 border border-white/20"
-                              : "bg-white/40 border border-white/45"
-                          } px-1 py-1 text-xs`}
-                        >
-                          <button
-                            onClick={() => setOwnerScope("me")}
-                            className={`px-3 py-1 rounded-xl transition text-xs ${
-                              ownerScope === "me"
-                                ? isNight
-                                  ? "bg-[#F6E500] text-black"
-                                  : "bg-[#00205C] text-white"
-                                : "hover:bg-white/10"
-                            }`}
-                          >
-                            My
-                          </button>
-                          <button
-                            onClick={() => setOwnerScope("all")}
-                            className={`px-3 py-1 rounded-xl transition text-xs ${
-                              ownerScope === "all"
-                                ? isNight
-                                  ? "bg-[#F6E500] text:black"
-                                  : "bg-[#00205C] text-white"
-                                : "hover:bg-white/10"
-                            }`}
-                          >
-                            All
-                          </button>
-                        </div>
-                        <Button
-                          variant="danger"
-                          disabled={selectedIds.size === 0}
-                          onClick={() => setConfirmOpen(true)}
-                        >
-                          <Trash2 className="h-4 w-4" /> Delete (
-                          {selectedIds.size})
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setRoute("dashboard")}
-                        >
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    }
-                  />
-                  <CardBody>
+              {route === "dashboard" && (
+                <main className="max-w-6xl mx-auto px-6 py-6">
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1">
+                      {tiles.welcome.render()}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      {tiles.kpi_total.render()}
+                      {tiles.kpi_inreview.render()}
+                      {tiles.kpi_current.render()}
+                      {tiles.kpi_avg.render()}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {tiles.trend.render()}
+                      {tiles.calendar.render()}
+                      {tiles.status.render()}
+                    </div>
+                    <div className="grid grid-cols-1">
+                      {tiles.gantt.render()}
+                    </div>
+                  </div>
+                  {loading && (
                     <div
-                      className={`border rounded-2xl ${
-                        isNight
-                          ? "bg-white/8 border-white/15"
-                          : "bg-white/40 border-white/50"
-                      } bg-clip-padding backdrop-blur-sm`}
-                      style={{ height: "1000px" }}
+                      className={`text-xs mt-4 ${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      }`}
                     >
-                      <div className="overflow-auto scroll-glass h-full">
-                        <table className="min-w-full text-sm">
-                          <thead className="sticky top-0 z-10">
-                            <tr
-                              className={`${
-                                isNight
-                                  ? "text-white/70 bg-slate-800/90"
-                                  : "text-gray-600 bg-white/90"
-                              } backdrop-blur-sm`}
+                      Loading…
+                    </div>
+                  )}
+                </main>
+              )}
+
+              {route === "opps" && (
+                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                  <Card>
+                    <CardHeader
+                      title="Opportunities"
+                      right={
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShowModal(true)}
+                            className={clsx(
+                              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition",
+                              isNight
+                                ? "bg-slate-700 hover:bg-slate-600 text-white"
+                                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            )}
+                          >
+                            <Settings size={16} />
+                          </button>
+                          <div
+                            className={`rounded-2xl ${
+                              isNight
+                                ? "bg-white/10 border border-white/20"
+                                : "bg-white/40 border border-white/45"
+                            } px-1 py-1 text-xs`}
+                          >
+                            <button
+                              onClick={() => setOwnerScope("me")}
+                              className={`px-3 py-1 rounded-xl transition text-xs ${
+                                ownerScope === "me"
+                                  ? isNight
+                                    ? "bg-[#F6E500] text-black"
+                                    : "bg-[#00205C] text-white"
+                                  : "hover:bg-white/10"
+                              }`}
                             >
-                              {/*just hiding Opportunity ID from UI if we want to use them in future can just uncomment this/* <th className="py-2 pr-3 w-8 text-left">
+                              My
+                            </button>
+                            <button
+                              onClick={() => setOwnerScope("all")}
+                              className={`px-3 py-1 rounded-xl transition text-xs ${
+                                ownerScope === "all"
+                                  ? isNight
+                                    ? "bg-[#F6E500] text:black"
+                                    : "bg-[#00205C] text-white"
+                                  : "hover:bg-white/10"
+                              }`}
+                            >
+                              All
+                            </button>
+                          </div>
+                          <Button
+                            variant="danger"
+                            disabled={selectedIds.size === 0}
+                            onClick={() => setConfirmOpen(true)}
+                          >
+                            <Trash2 className="h-4 w-4" /> Delete (
+                            {selectedIds.size})
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setRoute("dashboard")}
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      }
+                    />
+                    <CardBody>
+                      <div
+                        className={`border rounded-2xl ${
+                          isNight
+                            ? "bg-white/8 border-white/15"
+                            : "bg-white/40 border-white/50"
+                        } bg-clip-padding backdrop-blur-sm`}
+                        style={{ height: "1000px" }}
+                      >
+                        <div className="overflow-auto scroll-glass h-full">
+                          <table className="min-w-full text-sm">
+                            <thead className="sticky top-0 z-10">
+                              <tr
+                                className={`${
+                                  isNight
+                                    ? "text-white/70 bg-slate-800/90"
+                                    : "text-gray-600 bg-white/90"
+                                } backdrop-blur-sm`}
+                              >
+                                {/*just hiding Opportunity ID from UI if we want to use them in future can just uncomment this/* <th className="py-2 pr-3 w-8 text-left">
                                 <input
                                   type="checkbox"
                                   onChange={toggleSelectAll}
@@ -5920,70 +5963,77 @@ export default function App() {
                                   }
                                 />
                               </th> */}
-                              {/* <th className="py-2 pr-4 text-left">
+                                {/* <th className="py-2 pr-4 text-left">
                                 Opportunity ID
                               </th> */}
-                              {visibleColumns.salesLead && (
-                                <th onClick={() => handleSort("salesLead")}>
-                                  <div className="flex items-center gap-1">
-                                    Sales Leads {getSortIcon("salesLead")}
-                                  </div>
-                                </th>
-                              )}
-                              {visibleColumns.customerName && (
-                                <th onClick={() => handleSort("customerName")}>
-                                  <div className="flex items-center gap-1">
-                                    Customer Name {getSortIcon("customerName")}
-                                  </div>
-                                </th>
-                              )}
-                              {visibleColumns.product && (
-                                <th onClick={() => handleSort("product")}>
-                                  <div className="flex items-center gap-1">
-                                    Product {getSortIcon("product")}
-                                  </div>
-                                </th>
-                              )}
-                              {visibleColumns.status && (
-                                <th onClick={() => handleSort("status")}>
-                                  <div className="flex items-center gap-1">
-                                    Status {getSortIcon("status")}
-                                  </div>
-                                </th>
-                              )}
-                              {visibleColumns.estimatedVolume && (
-                                <th
-                                  onClick={() => handleSort("estimatedVolume")}
+                                {visibleColumns.salesLead && (
+                                  <th onClick={() => handleSort("salesLead")}>
+                                    <div className="flex items-center gap-1">
+                                      Sales Leads {getSortIcon("salesLead")}
+                                    </div>
+                                  </th>
+                                )}
+                                {visibleColumns.customerName && (
+                                  <th
+                                    onClick={() => handleSort("customerName")}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      Customer Name{" "}
+                                      {getSortIcon("customerName")}
+                                    </div>
+                                  </th>
+                                )}
+                                {visibleColumns.product && (
+                                  <th onClick={() => handleSort("product")}>
+                                    <div className="flex items-center gap-1">
+                                      Product {getSortIcon("product")}
+                                    </div>
+                                  </th>
+                                )}
+                                {visibleColumns.status && (
+                                  <th onClick={() => handleSort("status")}>
+                                    <div className="flex items-center gap-1">
+                                      Status {getSortIcon("status")}
+                                    </div>
+                                  </th>
+                                )}
+                                {visibleColumns.estimatedVolume && (
+                                  <th
+                                    onClick={() =>
+                                      handleSort("estimatedVolume")
+                                    }
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      Estimated Volume{" "}
+                                      {getSortIcon("estimatedVolume")}
+                                    </div>
+                                  </th>
+                                )}
+                                {visibleColumns.likelyStartDate && (
+                                  <th
+                                    onClick={() =>
+                                      handleSort("likelyStartDate")
+                                    }
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      Likely Start Date{" "}
+                                      {getSortIcon("likelyStartDate")}
+                                    </div>
+                                  </th>
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sortedOpportunities.map((o) => (
+                                <tr
+                                  key={o.id}
+                                  className={`border-t ${
+                                    isNight
+                                      ? "border-white/10 hover:bg-white/5"
+                                      : "hover:bg.black/5"
+                                  }`}
                                 >
-                                  <div className="flex items-center gap-1">
-                                    Estimated Volume{" "}
-                                    {getSortIcon("estimatedVolume")}
-                                  </div>
-                                </th>
-                              )}
-                              {visibleColumns.likelyStartDate && (
-                                <th
-                                  onClick={() => handleSort("likelyStartDate")}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    Likely Start Date{" "}
-                                    {getSortIcon("likelyStartDate")}
-                                  </div>
-                                </th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedOpportunities.map((o) => (
-                              <tr
-                                key={o.id}
-                                className={`border-t ${
-                                  isNight
-                                    ? "border-white/10 hover:bg-white/5"
-                                    : "hover:bg.black/5"
-                                }`}
-                              >
-                                {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
+                                  {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
                                   <td className="py-2 pr-3 w-8">
                                     <input
                                       type="checkbox"
@@ -5991,7 +6041,7 @@ export default function App() {
                                       onChange={() => toggleSelect(o.id)}
                                     />
                                   </td> */}
-                                {/* <td className="py-2 pr-4">
+                                  {/* <td className="py-2 pr-4">
                                     <button
                                       onClick={() => {
                                         setDetailId(o.id);
@@ -6006,397 +6056,401 @@ export default function App() {
                                       #{o.id}
                                     </button>
                                   </td> */}
-                                {visibleColumns.salesLead && (
-                                  <td className="py-2 pr-4">
-                                    {o.doleSalesLead || o.sales_Lead || "-"}
-                                  </td>
-                                )}
-                                {visibleColumns.customerName && (
-                                  <td className="py-2 pr-4 font-medium">
-                                    {o.customerName || o.customer_Name || "-"}
-                                  </td>
-                                )}
-                                {visibleColumns.product && (
-                                  <td className="py-2 pr-4">
-                                    {o.product || "-"}
-                                  </td>
-                                )}
-                                {visibleColumns.status && (
-                                  <td className="py-2 pr-4">
-                                    <span
-                                      className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
-                                      style={{
-                                        background: `${
-                                          STATUS_COLORS[o.status] || "#999"
-                                        }22`,
-                                        color:
-                                          STATUS_COLORS[o.status] || "#999",
-                                      }}
-                                    >
-                                      {o.status || o.salesStage || "-"}
-                                    </span>
-                                  </td>
-                                )}
-                                {visibleColumns.estimatedVolume && (
-                                  <td className="py-2 pr-4">
-                                    {o.estimatedVolume ||
-                                      o.estimated_Volume ||
-                                      "-"}
-                                  </td>
-                                )}
-                                {visibleColumns.likelyStartDate && (
-                                  <td className="py-2">
-                                    {o.likely_Start_Date
-                                      ? new Date(
-                                          o.likely_Start_Date
-                                        ).toLocaleDateString()
-                                      : o.likelyStartDate
-                                      ? new Date(
-                                          o.likelyStartDate
-                                        ).toLocaleDateString()
-                                      : new Date(
-                                          o.createdAt
-                                        ).toLocaleDateString()}
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {showModal && (
-                          <div className="fixed inset-0 bg-black/50 flex items-start py-3 justify-center z-50">
-                            <div
-                              className={clsx(
-                                "w-full max-w-sm rounded-lg shadow-lg p-6",
-                                isNight
-                                  ? "bg-slate-800 text-white"
-                                  : "bg-white text-gray-800"
-                              )}
-                            >
-                              <h2 className="text-lg font-semibold mb-4">
-                                Select Visible Columns
-                              </h2>
-                              <div className="space-y-2">
-                                {Object.keys(visibleColumns).map((key) => (
-                                  <label
-                                    key={key}
-                                    className="flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={visibleColumns[key]}
-                                      onChange={() => toggleColumn(key)}
-                                    />
-                                    {key
-                                      .replace(/([A-Z])/g, " $1")
-                                      .replace(/^./, (str) =>
-                                        str.toUpperCase()
-                                      )}
-                                  </label>
-                                ))}
-                              </div>
-
-                              <div className="flex justify-end mt-6 gap-3">
-                                <button
-                                  onClick={() => setShowModal(false)}
-                                  className={clsx(
-                                    "px-4 py-2 rounded-md text-sm",
-                                    isNight
-                                      ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                  {visibleColumns.salesLead && (
+                                    <td className="py-2 pr-4">
+                                      {o.doleSalesLead || o.sales_Lead || "-"}
+                                    </td>
                                   )}
-                                >
-                                  Close
-                                </button>
+                                  {visibleColumns.customerName && (
+                                    <td className="py-2 pr-4 font-medium">
+                                      {o.customerName || o.customer_Name || "-"}
+                                    </td>
+                                  )}
+                                  {visibleColumns.product && (
+                                    <td className="py-2 pr-4">
+                                      {o.product || "-"}
+                                    </td>
+                                  )}
+                                  {visibleColumns.status && (
+                                    <td className="py-2 pr-4">
+                                      <span
+                                        className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
+                                        style={{
+                                          background: `${
+                                            STATUS_COLORS[o.status] || "#999"
+                                          }22`,
+                                          color:
+                                            STATUS_COLORS[o.status] || "#999",
+                                        }}
+                                      >
+                                        {o.status || o.salesStage || "-"}
+                                      </span>
+                                    </td>
+                                  )}
+                                  {visibleColumns.estimatedVolume && (
+                                    <td className="py-2 pr-4">
+                                      {o.estimatedVolume ||
+                                        o.estimated_Volume ||
+                                        "-"}
+                                    </td>
+                                  )}
+                                  {visibleColumns.likelyStartDate && (
+                                    <td className="py-2">
+                                      {o.likely_Start_Date
+                                        ? new Date(
+                                            o.likely_Start_Date
+                                          ).toLocaleDateString()
+                                        : o.likelyStartDate
+                                        ? new Date(
+                                            o.likelyStartDate
+                                          ).toLocaleDateString()
+                                        : new Date(
+                                            o.createdAt
+                                          ).toLocaleDateString()}
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {showModal && (
+                            <div className="fixed inset-0 bg-black/50 flex items-start py-3 justify-center z-50">
+                              <div
+                                className={clsx(
+                                  "w-full max-w-sm rounded-lg shadow-lg p-6",
+                                  isNight
+                                    ? "bg-slate-800 text-white"
+                                    : "bg-white text-gray-800"
+                                )}
+                              >
+                                <h2 className="text-lg font-semibold mb-4">
+                                  Select Visible Columns
+                                </h2>
+                                <div className="space-y-2">
+                                  {Object.keys(visibleColumns).map((key) => (
+                                    <label
+                                      key={key}
+                                      className="flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={visibleColumns[key]}
+                                        onChange={() => toggleColumn(key)}
+                                      />
+                                      {key
+                                        .replace(/([A-Z])/g, " $1")
+                                        .replace(/^./, (str) =>
+                                          str.toUpperCase()
+                                        )}
+                                    </label>
+                                  ))}
+                                </div>
+
+                                <div className="flex justify-end mt-6 gap-3">
+                                  <button
+                                    onClick={() => setShowModal(false)}
+                                    className={clsx(
+                                      "px-4 py-2 rounded-md text-sm",
+                                      isNight
+                                        ? "bg-slate-700 hover:bg-slate-600 text-white"
+                                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                    )}
+                                  >
+                                    Close
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardBody>
-                </Card>
-              </main>
-            )}
+                    </CardBody>
+                  </Card>
+                </main>
+              )}
 
-            {route === "admin-page" && (
-              <AdminPage setRoute={setRoute} isNight={isNight} />
-            )}
-            {route === "data-tables-page" && (
-              <DataTablePage setRoute={setRoute} isNight={isNight} />
-            )}
+              {route === "admin-page" && (
+                <AdminPage setRoute={setRoute} isNight={isNight} />
+              )}
+              {route === "data-tables-page" && (
+                <DataTablePage setRoute={setRoute} isNight={isNight} />
+              )}
 
-            {
-              route === "masterdata" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <UserRegistrationTable currentUser={currentUser} />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "approvals" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <OverridePriceApprovalRequestsTable
-                    currentUser={currentUser}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "sales-stage" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <SalesStageDataTable
-                    currentUser={currentUser}
-                    setRoute={setRoute}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "product-category" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <ProductCategoryDataTable
-                    currentUser={currentUser}
-                    setRoute={setRoute}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "probability" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <ProbabilityDataTable
-                    currentUser={currentUser}
-                    setRoute={setRoute}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "opportunity-type" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <OpportunityTypeDataTable
-                    currentUser={currentUser}
-                    setRoute={setRoute}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
-            {
-              route === "win-lose-codes" && (
-                // (isAdminUser ? (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <WinLoseCodesTable
-                    currentUser={currentUser}
-                    setRoute={setRoute}
-                  />
-                </main>
-              )
-              // ) : (
-              //   <div
-              //     className={`${
-              //       isNight ? "text-white/70" : "text-gray-600"
-              //     } p-6`}
-              //   >
-              //     Not authorized
-              //   </div>
-              // ))
-            }
+              {
+                route === "masterdata" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <UserRegistrationTable currentUser={currentUser} />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "approvals" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <OverridePriceApprovalRequestsTable
+                      currentUser={currentUser}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "sales-stage" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <SalesStageDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "product-category" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <ProductCategoryDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "probability" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <ProbabilityDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "opportunity-type" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <OpportunityTypeDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "win-lose-codes" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <WinLoseCodesTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
 
-            {route === "analytics" && (
-              <main className="max-w-7xl mx-auto">
-                <AnalyticsPage opps={opps} currentUser={currentUser} />
-              </main>
-            )}
+              {route === "analytics" && (
+                <main className="max-w-7xl mx-auto">
+                  <AnalyticsPage opps={opps} currentUser={currentUser} />
+                </main>
+              )}
 
-            {route === "details" && (
-              <OpportunityDetailsPage
-                opp={opps.find((o) => o.id === detailId)}
-                onBack={() => setRoute("opps")}
-                onSave={(updatedOpp) => {
-                  setOpps((prev) =>
-                    prev.map((o) => (o.id === updatedOpp.id ? updatedOpp : o))
-                  );
+              {route === "details" && (
+                <OpportunityDetailsPage
+                  opp={opps.find((o) => o.id === detailId)}
+                  onBack={() => setRoute("opps")}
+                  onSave={(updatedOpp) => {
+                    setOpps((prev) =>
+                      prev.map((o) => (o.id === updatedOpp.id ? updatedOpp : o))
+                    );
+                  }}
+                />
+              )}
+              {route === "add" && (
+                <AddOpportunityPage
+                  onCancel={() => setRoute("dashboard")}
+                  onSave={async (form) => {
+                    await addOpportunity(form);
+                    setRoute("dashboard");
+                  }}
+                  currentUser={currentUser}
+                />
+              )}
+
+              {route === "volume-allocation" &&
+                volumeAllocationArray.map((item, index) => (
+                  <OpportunityVolumeAllocation key={index} form={item} />
+                ))}
+
+              {confirmOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg.white/10 backdrop-blur-2xl backdrop-saturate-150"
+                    onClick={() => setConfirmOpen(false)}
+                  />
+                  <div
+                    className={`relative w-full max-w-md rounded-3xl ${
+                      isNight
+                        ? "bg-white/10 border-white/20"
+                        : "bg-white/20 border-white/40"
+                    } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden`}
+                  >
+                    <CardHeader
+                      title="Confirm Deletion"
+                      right={
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirmOpen(false)}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    <CardBody>
+                      <p
+                        className={`text-sm ${
+                          isNight ? "text-white/80" : "text-gray-700"
+                        }`}
+                      >
+                        Type <span className="font-semibold">DELETE</span> to
+                        permanently remove{" "}
+                        <span className="font-semibold">
+                          {selectedIds.size}
+                        </span>{" "}
+                        selected opportunit
+                        {selectedIds.size === 1 ? "y" : "ies"}.
+                      </p>
+                      <input
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                        className={`mt-3 w-full rounded-2xl border px-3 py-2 focus:ring-2 outline-none ${
+                          isNight
+                            ? "bg-white/12 border-white/25 text.white focus:ring-[#F6E500]"
+                            : "bg-white/60 focus:ring-[#39B4E8]"
+                        }`}
+                      />
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirmOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={performDelete}
+                          disabled={
+                            confirmText !== "DELETE" || selectedIds.size === 0
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </Button>
+                      </div>
+                    </CardBody>
+                  </div>
+                </div>
+              )}
+
+              <SearchModal
+                isOpen={searchModalOpen}
+                onClose={() => setSearchModalOpen(false)}
+                opps={opps}
+                onViewDetails={(oppId) => {
+                  setDetailId(oppId);
+                  setRoute("details");
+                  setSearchModalOpen(false);
                 }}
               />
-            )}
-            {route === "add" && (
-              <AddOpportunityPage
-                onCancel={() => setRoute("dashboard")}
-                onSave={async (form) => {
-                  await addOpportunity(form);
+              <FloatingNav
+                goOpps={() => setRoute("opps")}
+                onGoDashboard={() => setRoute("dashboard")}
+                onSearch={() => setSearchModalOpen(true)}
+                onGoMasterData={() => setRoute("masterdata")}
+                onGoAnalytics={() => setRoute("analytics")}
+                onGoApprovals={() => setRoute("approvals")}
+                onGoVolumeAllocation={() => setRoute("volume-allocation")}
+                onGoAdmin={() => setRoute("admin-page")}
+                onSignOut={() => {
+                  try {
+                    localStorage.removeItem("oppty_user");
+                    localStorage.removeItem("oppty_is_admin");
+                  } catch {}
+                  setCurrentUser("");
+                  setIsAdminUser(false);
                   setRoute("dashboard");
                 }}
-                currentUser={currentUser}
+                isAdminUser={isAdminUser}
               />
-            )}
-
-            {route === "volume-allocation" &&
-              volumeAllocationArray.map((item, index) => (
-                <OpportunityVolumeAllocation key={index} form={item} />
-              ))}
-
-            {confirmOpen && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                <div
-                  className="absolute inset-0 bg.white/10 backdrop-blur-2xl backdrop-saturate-150"
-                  onClick={() => setConfirmOpen(false)}
-                />
-                <div
-                  className={`relative w-full max-w-md rounded-3xl ${
-                    isNight
-                      ? "bg-white/10 border-white/20"
-                      : "bg-white/20 border-white/40"
-                  } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden`}
-                >
-                  <CardHeader
-                    title="Confirm Deletion"
-                    right={
-                      <Button
-                        variant="ghost"
-                        onClick={() => setConfirmOpen(false)}
-                      >
-                        <XIcon className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <CardBody>
-                    <p
-                      className={`text-sm ${
-                        isNight ? "text-white/80" : "text-gray-700"
-                      }`}
-                    >
-                      Type <span className="font-semibold">DELETE</span> to
-                      permanently remove{" "}
-                      <span className="font-semibold">{selectedIds.size}</span>{" "}
-                      selected opportunit{selectedIds.size === 1 ? "y" : "ies"}.
-                    </p>
-                    <input
-                      value={confirmText}
-                      onChange={(e) => setConfirmText(e.target.value)}
-                      placeholder="DELETE"
-                      className={`mt-3 w-full rounded-2xl border px-3 py-2 focus:ring-2 outline-none ${
-                        isNight
-                          ? "bg-white/12 border-white/25 text.white focus:ring-[#F6E500]"
-                          : "bg-white/60 focus:ring-[#39B4E8]"
-                      }`}
-                    />
-                    <div className="mt-4 flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setConfirmOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={performDelete}
-                        disabled={
-                          confirmText !== "DELETE" || selectedIds.size === 0
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" /> Delete
-                      </Button>
-                    </div>
-                  </CardBody>
-                </div>
-              </div>
-            )}
-
-            <SearchModal
-              isOpen={searchModalOpen}
-              onClose={() => setSearchModalOpen(false)}
-              opps={opps}
-              onViewDetails={(oppId) => {
-                setDetailId(oppId);
-                setRoute("details");
-                setSearchModalOpen(false);
-              }}
-            />
-            <FloatingNav
-              goOpps={() => setRoute("opps")}
-              onGoDashboard={() => setRoute("dashboard")}
-              onSearch={() => setSearchModalOpen(true)}
-              onGoMasterData={() => setRoute("masterdata")}
-              onGoAnalytics={() => setRoute("analytics")}
-              onGoApprovals={() => setRoute("approvals")}
-              onGoVolumeAllocation={() => setRoute("volume-allocation")}
-              onGoAdmin={() => setRoute("admin-page")}
-              onSignOut={() => {
-                try {
-                  localStorage.removeItem("oppty_user");
-                  localStorage.removeItem("oppty_is_admin");
-                } catch {}
-                setCurrentUser("");
-                setIsAdminUser(false);
-                setRoute("dashboard");
-              }}
-              isAdminUser={isAdminUser}
-            />
+            </div>
           </div>
-        </div>
-      )}
-    </ThemeContext.Provider>
+        )}
+      </ThemeContext.Provider>
+    </div>
   );
 }
 
@@ -6897,32 +6951,31 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
   useEffect(() => {
     const volume = parseFloat(form.estimated_Volume);
-  
+
     if (isNaN(volume)) return;
-  
+
     let price;
-  
+
     if (form.isApproved) {
       price = parseFloat(form.override_Price);
     } else {
       price = parseFloat(form.material_Price);
     }
-  
+
     if (!isNaN(price)) {
       const revenue = (price * volume).toFixed(2);
-  
+
       setForm((prev) => ({
         ...prev,
         topline_Revenue: revenue,
       }));
     }
   }, [
-    form.isApproved,          
+    form.isApproved,
     form.override_Price,
     form.material_Price,
-    form.estimated_Volume
+    form.estimated_Volume,
   ]);
-  
 
   const isMaterialRequired = form.probability !== "0%";
 
@@ -7026,7 +7079,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   "Sports and Entertainment",
                   "GPO - Multiple Segments",
                   "Supermarket Prepared",
-                  "Other"
+                  "Other",
                 ]}
                 placeholder="Select Industry Segment"
               />
@@ -7182,7 +7235,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               <FrostedSelect
                 value={form.base_UoM}
                 onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
-                options={[...baseUOM]} 
+                options={[...baseUOM]}
                 placeholder="Select UOM"
               />
             </label>
@@ -7260,20 +7313,20 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 />
               </label>
               <label className="grid gap-1">
-              <span className="font-medium">Culinary Needed</span>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.culinary_Needed === true}
-                  onChange={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      culinary_Needed: !prev.culinary_Needed,
-                    }))
-                  }
-                />
+                <span className="font-medium">Culinary Needed</span>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.culinary_Needed === true}
+                    onChange={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        culinary_Needed: !prev.culinary_Needed,
+                      }))
+                    }
+                  />
+                </label>
               </label>
-            </label>
             </div>
           )}
 
@@ -7401,7 +7454,6 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   placeholder="$0.00"
                 />
               </label>
-              
             </div>
           )}
 
