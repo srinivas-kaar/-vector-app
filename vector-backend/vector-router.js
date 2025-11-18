@@ -918,5 +918,237 @@ router.get('/salesstage', withConnection, (req, res) => {
     }
 }, cleanupConnection);
 
+router.get('/opportunitytypes', withConnection, (req, res) => {
+    console.log('Fetching all opportunity types from BTP_INTERFACE#BTP.OPPORTUNITYTYPELKP');
+
+    try {
+        const sql = `
+            SELECT * 
+            FROM "BTP_INTERFACE#BTP"."OPPORTUNITYTYPELKP"
+        `;
+
+        req.hanaConn.exec(sql, (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch opportunity type data',
+                    details: err.message
+                });
+            }
+
+            if (!result || result.length === 0) {
+                return res.status(404).json({
+                    message: 'No records found in OPPORTUNITYTYPELKP'
+                });
+            }
+
+            console.log(`Fetched ${result.length} records from OPPORTUNITYTYPELKP`);
+            res.json(result);
+        });
+    } catch (error) {
+        console.error('Error processing opportunity type request:', error);
+        return res.status(500).json({
+            error: 'Failed to process opportunity type request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+router.get('/salesteam/:name', withConnection, (req, res) => {
+    const { name } = req.params;
+    console.log(`Fetching sales team data for name: ${name}`);
+
+    try {
+        if (!name) {
+            return res.status(400).json({
+                error: 'Missing required path parameter: name'
+            });
+        }
+
+
+        const sql = `
+            SELECT "DOLESALESLEAD", "SALESTEAM"
+            FROM "BTP_INTERFACE#BTP"."DIMSALES"
+            WHERE UPPER("SALESTEAM") = UPPER(?)
+        `;
+
+        req.hanaConn.exec(sql, [name], (err, result) => {
+            if (err) {
+                console.error('Query error:', err);
+                return res.status(500).json({
+                    error: 'Failed to fetch sales team data',
+                    details: err.message
+                });
+            }
+
+            if (!result || result.length === 0) {
+                return res.status(404).json({
+                    message: `No sales team found for name: ${name}`
+                });
+            }
+
+            console.log(`Successfully fetched ${result.length} record(s) for sales team: ${name}`);
+            res.json(result);
+        });
+    } catch (error) {
+        console.error('Error processing sales team request:', error);
+        return res.status(500).json({
+            error: 'Failed to process sales team request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
+router.post('/customer', withConnection, async (req, res) => {
+  const {
+    CUSTOMERNAME,
+    INDUSTRYSEGMENT,
+    CUSTOMERCONTACTNAME,
+    CUSTOMERCONTACTTITLE,
+    CUSTOMERCONTACTEMAIL,
+    CUSTOMERCONTACTPHONE
+  } = req.body;
+
+  if (!CUSTOMERNAME) {
+    return res.status(400).json({
+      error: 'Missing required field: CUSTOMERNAME'
+    });
+  }
+
+  try {
+
+    const seqSql = `SELECT NEXT VALUE FOR "BTP_INTERFACE#BTP"."CUSTOMER_SEQ" AS ID FROM DUMMY`;
+    const seqResult = await new Promise((resolve, reject) =>
+      req.hanaConn.exec(seqSql, (err, result) => (err ? reject(err) : resolve(result)))
+    );
+    const CUSTOMERID = seqResult[0].ID;
+
+
+    const checkSql = `
+      SELECT COUNT(*) AS CNT
+      FROM "BTP_INTERFACE#BTP"."DIMCUSTOMER"
+      WHERE "CUSTOMERNAME" = ?
+    `;
+    const checkResult = await new Promise((resolve, reject) =>
+      req.hanaConn.exec(checkSql, [CUSTOMERNAME], (err, result) => (err ? reject(err) : resolve(result)))
+    );
+
+    if (checkResult[0].CNT > 0) {
+      return res.status(200).json({
+        message: `Customer '${CUSTOMERNAME}' already exists — no new record created.`
+      });
+    }
+
+   
+    const insertSql = `
+      INSERT INTO "BTP_INTERFACE#BTP"."DIMCUSTOMER"
+      (
+        "CUSTOMERID",
+        "CUSTOMERNAME",
+        "INDUSTRYSEGMENT",
+        "CUSTOMERCONTACTNAME",
+        "CUSTOMERCONTACTTITLE",
+        "CUSTOMERCONTACTEMAIL",
+        "CUSTOMERCONTACTPHONE"
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [
+      CUSTOMERID,
+      CUSTOMERNAME,
+      INDUSTRYSEGMENT || null,
+      CUSTOMERCONTACTNAME || null,
+      CUSTOMERCONTACTTITLE || null,
+      CUSTOMERCONTACTEMAIL || null,
+      CUSTOMERCONTACTPHONE || null
+    ];
+
+    await new Promise((resolve, reject) =>
+      req.hanaConn.exec(insertSql, params, (err) => (err ? reject(err) : resolve()))
+    );
+
+    console.log(`Customer ${CUSTOMERID} inserted successfully`);
+    res.status(201).json({
+      message: 'Customer added successfully',
+      CUSTOMERID
+    });
+  } catch (error) {
+    console.error('Error processing customer insert:', error);
+    res.status(500).json({
+      error: 'Failed to add customer',
+      details: error.message
+    });
+  }
+}, cleanupConnection);
+router.get('/winlosscodes', withConnection, (req, res) => {
+  console.log('Fetching all records from WINLOSSCODELKP');
+
+  try {
+    const sql = `
+      SELECT *
+      FROM "BTP_INTERFACE#BTP"."WINLOSSCODELKP"
+    `;
+
+    req.hanaConn.exec(sql, (err, result) => {
+      if (err) {
+        console.error('Query error:', err);
+        return res.status(500).json({
+          error: 'Failed to fetch data from WINLOSSCODELKP',
+          details: err.message
+        });
+      }
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({
+          message: 'No records found in WINLOSSCODELKP'
+        });
+      }
+
+      console.log(`Fetched ${result.length} record(s) from WINLOSSCODELKP`);
+      res.json(result);
+    });
+  } catch (error) {
+    console.error('Error processing WINLOSSCODELKP request:', error);
+    return res.status(500).json({
+      error: 'Failed to process WINLOSSCODELKP request',
+      details: error.message
+    });
+  }
+}, cleanupConnection);
+
+router.get('/industrysegments', withConnection, (req, res) => {
+  console.log('Fetching all records from INDUSTRYSEGMENT');
+
+  try {
+    const sql = `
+      SELECT *
+      FROM "BTP_INTERFACE#BTP"."INDUSTRYSEGMENT"
+    `;
+
+    req.hanaConn.exec(sql, (err, result) => {
+      if (err) {
+        console.error('Query error:', err);
+        return res.status(500).json({
+          error: 'Failed to fetch data from INDUSTRYSEGMENT',
+          details: err.message
+        });
+      }
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({
+          message: 'No records found in INDUSTRYSEGMENT'
+        });
+      }
+
+      console.log(`Fetched ${result.length} record(s) from INDUSTRYSEGMENT`);
+      res.json(result);
+    });
+  } catch (error) {
+    console.error('Error processing INDUSTRYSEGMENT request:', error);
+    return res.status(500).json({
+      error: 'Failed to process INDUSTRYSEGMENT request',
+      details: error.message
+    });
+  }
+}, cleanupConnection);
 
 module.exports = router;
