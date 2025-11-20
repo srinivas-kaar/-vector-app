@@ -66,6 +66,7 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { createPortal } from "react-dom";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -876,7 +877,6 @@ async function apiFetchIndustrySegement() {
   console.log(data);
   return data;
 }
-// apiFetchIndustrySegement()
 
 // apiPostCustomers(customerPaylod)
 
@@ -1129,143 +1129,239 @@ function FrostedSelect({
   );
 }
 
-// ---------------- Frosted Date Picker ----------------
+function FrostedSelectMaterialID({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "Select option",
+  disabled = false,
+  required = false,
+}) {
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
 
-// function MyPicker({
-//   label,
-//   value,
-//   onChange,
-//   placeholder,
-//   className,
-//   required,
-//   disabled,
-//   error,
-//   errorMessage,
-//   onOpenChange,
-// }) {
-//   const [open, setOpen] = useState(false);
-//   const [view, setView] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [highlightIndex, setHighlightIndex] = useState(0);
 
-//   // CRITICAL FIX — prevents view resetting after date select
-//   const shouldSyncView = useRef(true);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    maxHeight: 260,
+  });
+  const [shouldOpenUpward, setShouldOpenUpward] = useState(false);
 
-//   function getTodayMonth() {
-//     const t = new Date();
-//     return new Date(t.getFullYear(), t.getMonth(), 1);
-//   }
+  const ref = useRef(null);
+  const dropdownRef = useRef(null);
 
-//   useEffect(() => {
-//     // Only sync if allowed AND if opening or initial load
-//     if (!open && shouldSyncView.current) {
-//       if (value) {
-//         const d = new Date(value);
-//         setView(new Date(d.getFullYear(), d.getMonth(), 1));
-//       } else {
-//         setView(getTodayMonth());
-//       }
-//     }
-//   }, [value, open]);
+  const normalizedOptions = Array.isArray(options)
+    ? options
+    : Array.isArray(options?.materials)
+    ? options.materials
+    : [];
 
-//   return (
-//     <div className="relative w-full">
-//       {label && (
-//         <label className="block mb-1 font-medium">
-//           {label} {required && <span className="text-red-600">*</span>}
-//         </label>
-//       )}
+  const getLabel = (opt) => {
+    if (!opt) return "";
+    if (typeof opt === "string") return opt;
+    return opt.MATERIAL_ID || opt.label || "";
+  };
 
-//       <div
-//         className={`w-full px-3 py-2 rounded-lg border bg-white cursor-pointer ${
-//           disabled ? "opacity-50 cursor-not-allowed" : ""
-//         } ${className}`}
-//         onClick={() => {
-//           if (disabled) return;
+  const filtered = normalizedOptions.filter((opt) =>
+    getLabel(opt).toLowerCase().includes(search.toLowerCase())
+  );
 
-//           const next = !open;
+  const wrapperCls = `inline-flex w-full min-w-0 max-w-full items-center justify-between rounded-2xl border px-3 py-2 cursor-pointer overflow-hidden glass-select ${
+    isNight
+      ? "border-white/25 text-white focus:ring-[#F6E500]"
+      : "border-white/65 text-black focus:ring-[#39B4E8]"
+  } ${disabled ? "opacity-60 pointer-events-none" : ""}`;
 
-//           if (next === true) {
-//             // Opening calendar → allow syncing view only now
-//             shouldSyncView.current = true;
-//           }
+  const listCls = `rounded-2xl border bg-clip-padding backdrop-blur-xl ${
+    isNight
+      ? "bg-white/12 border-white/20 text-white"
+      : "bg-white/80 border-white/60 text-black"
+  } shadow-[0_12px_30px_rgba(0,0,0,0.18)] overflow-y-auto scroll-glass`;
 
-//           setOpen(next);
-//           onOpenChange?.(next);
-//         }}
-//       >
-//         {value
-//           ? dayjs(value).format("DD-MM-YYYY")
-//           : placeholder || "Select date"}
-//       </div>
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        open &&
+        ref.current &&
+        !ref.current.contains(e.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
-//       {open && (
-//         <div className="absolute z-50 bg-white shadow-xl p-2 rounded-xl mt-2">
-//           <MiniCalendar
-//             view={view}
-//             setView={setView}
-//             value={value ? dayjs(value).toDate() : null}
-//             onChange={(d) => {
-//               shouldSyncView.current = false; // IMPORTANT FIX
-//               onChange(dayjs(d).toISOString());
-//               setOpen(false);
-//               onOpenChange?.(false);
-//             }}
-//           />
-//         </div>
-//       )}
+  const handleKeyDown = (e) => {
+    if (!open) return;
 
-//       {error && <p className="text-red-600 mt-1 text-sm">{errorMessage}</p>}
-//     </div>
-//   );
-// }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filtered[highlightIndex]) selectOption(filtered[highlightIndex]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
 
-// //                  MINI CALENDAR
+  const computePosition = useCallback(() => {
+    if (!open || !ref.current) return;
 
-// function MiniCalendar({ view, setView, value, onChange }) {
-//   const start = dayjs(view).startOf("month");
-//   const end = dayjs(view).endOf("month");
+    const rect = ref.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < 300 && spaceAbove > spaceBelow;
 
-//   const days = [];
+    setShouldOpenUpward(openUp);
+    setDropdownPosition({
+      top: openUp ? rect.top - 8 : rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+      maxHeight: openUp
+        ? Math.min(spaceAbove - 20, 300)
+        : Math.min(spaceBelow - 20, 300),
+    });
+  }, [open]);
 
-//   for (let i = start.date(); i <= end.date(); i++) {
-//     days.push(start.date(i));
-//   }
+  useEffect(() => {
+    computePosition();
+  }, [open, computePosition]);
 
-//   return (
-//     <div className="w-64">
-//       {/* Header */}
-//       <div className="flex items-center justify-between mb-2">
-//         <button
-//           onClick={() => setView(dayjs(view).subtract(1, "month").toDate())}
-//         >
-//           ◀
-//         </button>
-//         <strong>{dayjs(view).format("MMMM YYYY")}</strong>
-//         <button onClick={() => setView(dayjs(view).add(1, "month").toDate())}>
-//           ▶
-//         </button>
-//       </div>
+  useEffect(() => {
+    if (!open) return;
+    const listener = () => computePosition();
+    window.addEventListener("resize", listener);
+    window.addEventListener("scroll", listener, true);
+    return () => {
+      window.removeEventListener("resize", listener);
+      window.removeEventListener("scroll", listener, true);
+    };
+  }, [open, computePosition]);
 
-//       {/* Days Grid */}
-//       <div className="grid grid-cols-7 gap-1 text-center">
-//         {days.map((d) => (
-//           <div
-//             key={d.format("YYYY-MM-DD")} // FIXED UNIQUE KEY
-//             onClick={() => onChange(d.toDate())}
-//             className={`p-2 rounded cursor-pointer ${
-//               value && dayjs(value).isSame(d, "day")
-//                 ? "bg-blue-500 text-white"
-//                 : "hover:bg-gray-200"
-//             }`}
-//           >
-//             {d.date()}
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
+  const selectOption = (opt) => {
+    onChange(getLabel(opt));
+    setOpen(false);
+    setSearch("");
+    setHighlightIndex(0);
+  };
 
-function MyPicker({
+  return (
+    <div className="flex flex-col gap-1 relative w-full">
+      {label && (
+        <label className="font-medium text-sm">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+
+      <div
+        ref={ref}
+        className={wrapperCls}
+        onClick={() => !disabled && setOpen((p) => !p)}
+      >
+        <span className="truncate">
+          {value ? value : placeholder}
+        </span>
+        <ChevronDown
+          className={`ml-2 h-4 w-4 opacity-60 transition-transform ${
+            open && shouldOpenUpward ? "rotate-180" : ""
+          }`}
+        />
+      </div>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0"
+            style={{
+              zIndex: 9998,
+              backdropFilter: "blur(0.5px)",
+              WebkitBackdropFilter: "blur(0.5px)",
+              backgroundColor: isNight
+                ? "rgba(0,0,0,0.05)"
+                : "rgba(0,0,0,0.03)",
+            }}
+            onClick={() => setOpen(false)}
+          />
+
+          {ReactDOM.createPortal(
+            <div
+              ref={dropdownRef}
+              onKeyDown={handleKeyDown}
+              className={listCls}
+              style={{
+                position: "fixed",
+                top: shouldOpenUpward
+                  ? "auto"
+                  : `${dropdownPosition.top}px`,
+                bottom: shouldOpenUpward
+                  ? `${window.innerHeight - dropdownPosition.top + 8}px`
+                  : "auto",
+                left: `${dropdownPosition.left}px`,
+                width: `${dropdownPosition.width}px`,
+                maxHeight: `${dropdownPosition.maxHeight}px`,
+                zIndex: 9999,
+              }}
+            >
+              <div className="sticky top-0 bg-white/90 backdrop-blur-md">
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full px-3 py-2 border-b border-gray-300 bg-transparent outline-none"
+                />
+              </div>
+
+              {filtered.length === 0 && (
+                <div className="px-3 py-2 text-gray-500 text-sm">
+                  No options
+                </div>
+              )}
+
+              {filtered.map((opt, idx) => (
+                <div
+                  key={idx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectOption(opt);
+                  }}
+                  className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
+                    idx === highlightIndex
+                      ? isNight
+                        ? "bg-white/15"
+                        : "bg-blue-600 text-white"
+                      : isNight
+                      ? "hover:bg-white/10"
+                      : "hover:bg-white/60"
+                  }`}
+                >
+                  {getLabel(opt)}
+                </div>
+              ))}
+            </div>,
+            document.body
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function FrostedDate({
   value,
   onChange,
   placeholder = "Select date",
@@ -1332,7 +1428,11 @@ function MyPicker({
           placeholder:font-semibold
           ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}
           ${readOnly ? "cursor-default" : ""}
-          ${isNight ? "bg-gray-800 border-white/25 text-white" : "bg-white border-gray-300 text-black"}
+          ${
+            isNight
+              ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
+              : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
+          }
         `}
       />
 
@@ -1341,7 +1441,11 @@ function MyPicker({
         <div
           className={`
             absolute left-0 mt-2 z-50 border rounded-xl shadow-lg
-            ${isNight ? "bg-gray-800 border-white/25 text-white" : "bg-white border-gray-300 text-black"}
+            ${
+              isNight
+                ? "bg-gray-800 border-white/25 text-white"
+                : "bg-white border-gray-300 text-black"
+            }
           `}
         >
           <DayPicker
@@ -1363,7 +1467,6 @@ function MyPicker({
     </div>
   );
 }
-
 
 function MiniCalendarWithAgenda({
   value,
@@ -4818,7 +4921,7 @@ export default function App() {
       localStorage.setItem("oppty_ownerScope", ownerScope);
     } catch {}
   }, [ownerScope]);
-  
+
   useEffect(() => {
     try {
       localStorage.setItem("oppty_windowMonths", String(windowMonths));
@@ -6341,11 +6444,6 @@ export default function App() {
                 />
               )}
 
-              {route === "volume-allocation" &&
-                volumeAllocationArray.map((item, index) => (
-                  <OpportunityVolumeAllocation key={index} form={item} />
-                ))}
-
               {confirmOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                   <div
@@ -6433,7 +6531,6 @@ export default function App() {
                 onGoMasterData={() => setRoute("masterdata")}
                 onGoAnalytics={() => setRoute("analytics")}
                 onGoApprovals={() => setRoute("approvals")}
-                onGoVolumeAllocation={() => setRoute("volume-allocation")}
                 onGoAdmin={() => setRoute("admin-page")}
                 onSignOut={() => {
                   try {
@@ -6487,155 +6584,181 @@ function ConfirmationModal({
   );
 }
 
-function OpportunityVolumeAllocation({ form }) {
-  const periods = [
-    { key: "P1", start: "23-03-2025", end: "19-04-2025" },
-    { key: "P2", start: "20-04-2025", end: "17-05-2025" },
-    { key: "P3", start: "18-05-2025", end: "14-06-2025" },
-    { key: "P4", start: "15-06-2025", end: "12-07-2025" },
-    { key: "P5", start: "13-07-2025", end: "09-08-2025" },
-    { key: "P6", start: "10-08-2025", end: "06-09-2025" },
-    { key: "P7", start: "07-09-2025", end: "04-10-2025" },
-    { key: "P8", start: "05-10-2025", end: "01-11-2025" },
-    { key: "P9", start: "02-11-2025", end: "29-11-2025" },
-    { key: "P10", start: "30-11-2025", end: "27-12-2025" },
-    { key: "P11", start: "28-12-2025", end: "24-01-2026" },
-    { key: "P12", start: "25-01-2026", end: "21-02-2026" },
-    { key: "P13", start: "22-02-2026", end: "21-03-2026" },
-  ];
+function QuantityModal({ open, onClose, start_date, volume }) {
+  const modalRef = useRef(null);
+  const theme = useContext(ThemeContext);
+  const isNight = theme === "sunset";
 
   const [loading, setLoading] = useState(false);
-  const [zDate, setzDate] = useState(null);
+  const [zDate, setZdate] = useState(null);
   const [error, setError] = useState("");
 
-  async function refresh() {
-    try {
-      setLoading(true);
-      const data = await apiFetchZdate(formatDateToYYYYMMDD(form.start_date));
-      setzDate(data);
-      setError("");
-    } catch {
-      setzDate();
-      setError("Failed to load approval requests.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const missingStart = !start_date;
+  const missingVolume = !volume;
+  const hasMissingInputs = missingStart || missingVolume;
 
   useEffect(() => {
-    refresh();
-  }, []);
+    if (!open || hasMissingInputs) return;
 
-  const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    const d = dayjs(dateStr, "DD-MM-YYYY");
-    return d.isValid() ? d : null;
-  };
+    const fetchData = async () => {
+      try {
+        setLoading(true);
 
-  const likelyStart = dayjs(form?.start_date, "YYYY-MM-DD");
-  const likelyEnd = dayjs(form?.end_date, "YYYY-MM-DD");
-
-  const volumes = useMemo(() => {
-    const total = Number(form?.volume) || 0;
-    const type = form?.opportunity_Type;
-    if (!total || !type) return {};
-
-    const totalDays = 364; // Total ficsal period (adjust if needed)
-    const dailyVolume = total / totalDays;
-    const result = {};
-
-    periods.forEach((period, i) => {
-      const startDate = parseDate(period.start);
-      const endDate = parseDate(period.end);
-      if (!startDate || !endDate) {
-        result[period.key] = "-";
-        return;
+        const formatted = formatDateToYYYYMMDD(start_date);
+        const data = await apiFetchZdate(formatted);
+        setZdate(data);
+        setError("");
+      } catch (err) {
+        setError("Failed to load zDate.");
+        setZdate(null);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      let activeDays = endDate.diff(startDate, "day") + 1;
+    fetchData();
+  }, [open, start_date, volume]);
 
-      // Adjust if the likely start falls in this period
-      if (
-        likelyStart &&
-        // likelyStart.isSameOrAfter(startDate) &&
-        // likelyStart.isSameOrBefore(endDate) &&
-        i === 0
-      ) {
-        activeDays = endDate.diff(likelyStart, "day") + 1;
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        onClose();
       }
+    };
 
-      // Adjust if the likely end falls in this period
-      if (
-        likelyEnd &&
-        // likelyEnd.isSameOrAfter(startDate) &&
-        // likelyEnd.isSameOrBefore(endDate) &&
-        i === periods.length - 1
-      ) {
-        activeDays = likelyEnd.diff(startDate, "day") + 1;
-      }
+    const handleEsc = (e) => {
+      if (e.key === "Escape") onClose();
+    };
 
-      result[period.key] = Math.round(dailyVolume * activeDays);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  if (open && hasMissingInputs) {
+    return (
+      <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div
+          ref={modalRef}
+          className={`rounded-xl shadow-xl p-6 w-[400px] text-center
+          ${isNight ? "bg-[#1E1E1E] text-white" : "bg-white text-gray-900"}`}
+        >
+          <h2 className="text-lg font-semibold mb-3">Missing Information</h2>
+
+          {missingStart && <p className="mb-1">Start Date is required.</p>}
+          {missingVolume && <p className="mb-1">Volume is required.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !zDate) {
+    return (
+      <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+        <div
+          ref={modalRef}
+          className={`p-6 rounded-xl shadow-xl
+           ${isNight ? "bg-[#1E1E1E] text-white" : "bg-white text-gray-900"}`}
+        >
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
+  const daysPassed = Number(zDate.DAYS_PASSED);
+  const startPeriod = Number(zDate.ZIFISCPER.slice(4));
+  const startYear = Number(zDate.ZIFISCPER.slice(0, 4));
+
+  const perDayVolume = volume / 364;
+
+  let periods = [];
+
+  const remainingDays = 28 - daysPassed;
+  periods.push({
+    year: startYear,
+    period: startPeriod,
+    days: remainingDays,
+    volume: Number(perDayVolume * remainingDays).toFixed(2),
+  });
+
+  let currentYear = startYear;
+  let currentPeriod = startPeriod;
+
+  for (let i = 1; i < 13; i++) {
+    currentPeriod++;
+    if (currentPeriod > 13) {
+      currentPeriod = 1;
+      currentYear++;
+    }
+
+    periods.push({
+      year: currentYear,
+      period: currentPeriod,
+      days: 28,
+      volume: Number(perDayVolume * 28).toFixed(2),
     });
+  }
 
-    return result;
-  }, [form]);
+  const finalYear = periods[periods.length - 1].year;
+  periods.push({
+    year: finalYear,
+    period: startPeriod,
+    days: daysPassed,
+    volume: Number(perDayVolume * daysPassed).toFixed(2),
+  });
 
   return (
-    <Card className="w-full">
-      <CardContent>
-        <div className="grid gap-4">
-          <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 mb-4">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-gray-500">Total Volume:</Label>
-              <span className="text-base font-semibold text-gray-900 dark:text-white">
-                {form.volume || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-gray-500">Opportunity Type:</Label>
-              <Badge
-                variant={
-                  form.opportunity_Type === "Annual" ? "success" : "secondary"
-                }
-                className="px-3 py-1 text-sm font-medium"
-              >
-                {form.opportunity_Type || "N/A"}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Period Table */}
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="min-w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-muted/60 text-left">
-                  <th className="py-2 px-3 w-24 font-medium">Period</th>
-                  {periods.map((p) => (
-                    <th
-                      key={p.key}
-                      className="py-2 px-3 text-center font-medium"
-                    >
-                      {p.key}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-2 px-3 font-medium">Volume</td>
-                  {periods.map((p) => (
-                    <td key={p.key} className="py-2 px-3 text-center">
-                      {volumes[p.key] ?? "-"}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
+    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+      <div
+        ref={modalRef}
+        className={`
+          rounded-xl shadow-xl p-6 w-[95%] max-w-[1100px] animate-slideUp
+          ${
+            isNight
+              ? "bg-[#1E1E1E] border border-white/20 text-white"
+              : "bg-white border border-gray-300 text-gray-900"
+          }
+        `}
+      >
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-semibold">Period Rolling</h2>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="grid grid-cols-7 gap-6 auto-rows-auto">
+          {periods.map((p, i) => (
+            <div key={i} className="flex flex-col items-center gap-2 w-full">
+              <label className="text-sm opacity-80">
+                {p.year} P{p.period}
+              </label>
+
+              <input
+                type="text"
+                disabled
+                value={p.volume}
+                className={`
+                  text-sm px-3 py-2 border rounded-lg text-center w-full
+                  break-words whitespace-normal
+                  ${
+                    isNight
+                      ? "bg-white/10 border-white/30 text-white"
+                      : "bg-gray-50 border-gray-300 text-gray-900"
+                  }
+                `}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -6656,10 +6779,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const [opportunityType, setOpportunityType] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [winLoseCode, setWinLoseCode] = useState("");
-
-  const baseUOM = useMemo(() => {
-    return [...new Set(materials.map((m) => m.BASE_UOM))].sort();
-  }, [materials]);
+  const [quantityModal, setQuantityModal] = useState(false);
+  const [industrySegment, setIndustrySegment] = useState("");
 
   useEffect(() => {
     async function loadSalesStages() {
@@ -6728,11 +6849,26 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
         setWinLoseCode(formatted);
       } catch (err) {
         console.error("Error loading opportunity type:", err);
-        setOpportunityType("");
+        setWinLoseCode("");
       }
     }
 
     loadWinLoseCodes();
+  }, []);
+  useEffect(() => {
+    async function loadIndustrySegment() {
+      try {
+        const res = await apiFetchIndustrySegement();
+        console.log(res);
+        const formatted = res.map((item) => item.SEGMENT);
+        setIndustrySegment(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setIndustrySegment("");
+      }
+    }
+
+    loadIndustrySegment();
   }, []);
 
   const salesMapping = {
@@ -6829,23 +6965,12 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
         const data = await apiFetchMaterials();
         console.log("Materials data received:", data);
-        console.log(
-          "Data length:",
-          Array.isArray(data) ? data.length : "Not an array"
-        );
-        console.log("=== COMPONENT STATE DEBUG ===");
-        console.log("Materials state:", materials);
-        console.log("Materials length:", materials.length);
-        console.log("Is loading:", isLoadingMaterials);
-        console.log("Materials type:", typeof materials);
 
-        if (Array.isArray(data) && data.length > 0) {
-          console.log("First material:", data[0]);
-          console.log("Available fields:", Object.keys(data[0]));
-        }
+        const materialsArray = Array.isArray(data) ? data : [];
 
-        setMaterials(data);
-        console.log("Materials state updated with:", data);
+        setMaterials(materialsArray);
+
+        console.log("Materials state updated with:", materialsArray);
       } catch (error) {
         console.error("Failed to fetch materials:", error);
       } finally {
@@ -6978,6 +7103,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   ]);
 
   const isMaterialRequired = form.probability !== "0%";
+  const startDate = form.likely_Start_Date;
+  const volume = form.estimated_Volume;
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-6 grid gap-6">
@@ -7019,10 +7146,30 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
       </div>
 
       <Card noClip>
-        <CardHeader
-          title="Core Details"
-          subtitle="Essential opportunity information"
-        />
+        <div
+          className={`relative flex justify-between items-start p-4 border-b rounded-t-lg
+    ${
+      isNight
+        ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
+        : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
+    }`}
+        >
+          <CardHeader
+            title="Core Details"
+            subtitle="Essential opportunity information"
+          />
+
+          <div className="text-right px-3 py-2 rounded-lg transition-colors">
+            <h3 className="text-lg font-semibold leading-tight">
+              Opportunity ID: <span className="text-blue-600">#123</span>
+            </h3>
+
+            <h4 className="text-xs mt-1 opacity-80">
+              Last updated: Sep 12, 2025 · 3:45 PM
+            </h4>
+          </div>
+        </div>
+
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <label className="grid gap-1">
@@ -7038,9 +7185,24 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 placeholder="Enter customer name"
               />
             </label>
-            <label className="grid gap-1">
-              <span className="font-medium">Broker Led</span>
-              <label className="flex items-center gap-2">
+            {currentSection === "product" ? (
+              <label className="grid gap-1">
+                <Label>Sales Lead *</Label>
+                <Input
+                  value={form.sales_Lead}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, sales_Lead: e.target.value }))
+                  }
+                  placeholder="Sales Lead"
+                  readOnly
+                />
+              </label>
+            ) : (
+              ""
+            )}
+
+            <div className="flex items-center gap-1">
+              <label className="flex items-center gap-1 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.broker_Led === true}
@@ -7051,8 +7213,10 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                     }))
                   }
                 />
+                <Label>Broker Led</Label>
               </label>
-            </label>
+            </div>
+
             <label className="grid gap-1">
               <Label>Industry Segment</Label>
 
@@ -7061,29 +7225,26 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 onChange={(v) =>
                   setForm((prev) => ({ ...prev, industry_Segment: v }))
                 }
-                // options={salesStages}
-                options={[
-                  "QSR",
-                  "Fast Casual",
-                  "Midscale",
-                  "Fine Dining",
-                  "Casual Dining",
-                  "Business & Industry",
-                  "Lodging",
-                  "Hospital",
-                  "LTC",
-                  "Senior Living",
-                  "K-12 (Education)",
-                  "College & University",
-                  "C-store",
-                  "Sports and Entertainment",
-                  "GPO - Multiple Segments",
-                  "Supermarket Prepared",
-                  "Other",
-                ]}
+                options={industrySegment}
                 placeholder="Select Industry Segment"
               />
             </label>
+            {currentSection === "product" ? (
+              <label className="grid gap-1">
+                <Label>Sales Team *</Label>
+                <Input
+                  value={form.sales_Team}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, sales_Team: e.target.value }))
+                  }
+                  placeholder="Sales Team"
+                  readOnly
+                />
+              </label>
+            ) : (
+              ""
+            )}
+
             <label className="grid gap-1">
               <Label>Sales Stage</Label>
 
@@ -7147,23 +7308,22 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 </div>
               ) : (
                 <div className="w-full max-w-2xl">
-                  <FrostedSelect
+                  <FrostedSelectMaterialID
                     value={form.material_ID}
                     onChange={(v) => {
                       setForm((prev) => ({ ...prev, material_ID: v }));
 
-                      if (v && materials.length > 0) {
+                      if (v && materials?.length > 0) {
                         const selectedMaterial = materials.find(
                           (m) => m.MATERIAL_ID === v
                         );
 
                         if (selectedMaterial) {
-                          console.log(selectedMaterial);
                           setForm((prev) => ({
                             ...prev,
                             product: v,
                             material_Desc:
-                              selectedMaterial.PRODUCT.split("||")[0],
+                              selectedMaterial.PRODUCT?.split("||")[0] || "",
                             material_ID: selectedMaterial.MATERIAL_ID,
                             material_Weight: selectedMaterial.MATERIAL_WEIGHT,
                             product_Category: selectedMaterial.PRODUCT_CATEGORY,
@@ -7173,31 +7333,26 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                             pipeline_Projected_Revenue: prev.estimated_Volume
                               ? (
                                   parseFloat(
-                                    selectedMaterial.MATERIAL_PROJECTED_PRICE
-                                  ) * parseFloat(prev.estimated_Volume)
+                                    selectedMaterial.MATERIAL_PROJECTED_PRICE ||
+                                      0
+                                  ) * parseFloat(prev.estimated_Volume || 0)
                                 ).toFixed(2)
                               : "",
                           }));
                         }
                       }
                     }}
-                    options={materials.map((m) => m.MATERIAL_ID)}
+                    options={
+                      Array.isArray(materials)
+                        ? materials.map((m) => m.MATERIAL_ID)
+                        : []
+                    }
                     placeholder={
                       isMaterialRequired
                         ? "Select Material ID (Required)"
                         : "Select Material ID"
                     }
                     disabled={isLoadingMaterials}
-                    className={`w-full ${
-                      isMaterialRequired && !form.material_ID
-                        ? "border border-red-400"
-                        : ""
-                    }`}
-                    style={{
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                    }}
                   />
                 </div>
               )}
@@ -7231,11 +7386,11 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               />
             </label>
             <label className="grid gap-1">
-              <Label>Base UoM</Label>
+              <Label>UoM</Label>
               <FrostedSelect
                 value={form.base_UoM}
                 onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
-                options={[...baseUOM]}
+                options={["Case", "LBS"]}
                 placeholder="Select UOM"
               />
             </label>
@@ -7312,9 +7467,8 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                   disabled
                 />
               </label>
-              <label className="grid gap-1">
-                <span className="font-medium">Culinary Needed</span>
-                <label className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.culinary_Needed === true}
@@ -7325,8 +7479,9 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                       }))
                     }
                   />
+                  <Label>Culinary Needed</Label>
                 </label>
-              </label>
+              </div>
             </div>
           )}
 
@@ -7350,11 +7505,11 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Unit of Measure</Label>
+                <Label>Base UoM</Label>
                 <FrostedSelect
                   value={form.uoM}
                   onChange={(v) => setForm((prev) => ({ ...prev, uoM: v }))}
-                  options={["Case", "Pallet", "Each", "Pound", "Kilogram"]}
+                  options={["Case", "LBS"]}
                   placeholder="Select UoM"
                 />
               </label>
@@ -7528,7 +7683,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
               <label className="grid gap-1">
                 <Label>Likely Start Date</Label>
-                <MyPicker
+                <FrostedDate
                   value={form.likely_Start_Date}
                   onChange={handleAnnual_LTO}
                   placeholder="Select Start Date"
@@ -7542,7 +7697,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                     <span className="text-red-500">*</span>
                   )}
                 </div>
-                <MyPicker
+                <FrostedDate
                   value={form.end_Date}
                   onChange={(v) => {
                     setForm((prev) => ({ ...prev, end_Date: v }));
@@ -7562,7 +7717,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 
               <label className="grid gap-1">
                 <Label>Date of Last Meeting</Label>
-                <MyPicker
+                <FrostedDate
                   value={form.last_Meeting_Date}
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
@@ -7572,7 +7727,7 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
               <label className="grid gap-1">
                 <Label>Estimated Close Date</Label>
-                <MyPicker
+                <FrostedDate
                   value={form.estimated_Close_Date}
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, estimated_Close_Date: v }))
@@ -7582,21 +7737,31 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
               </label>
               <label className="grid gap-1">
                 <Label>Period Rolling (Quantity)</Label>
-                <Input
-                  type="number"
-                  value={form.period_Rolling}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      period_Rolling: e.target.value,
-                    }))
-                  }
-                  placeholder="Period Rolling (Quantity)"
-                />
+                <div className="relative w-full">
+                  <Input
+                    type="number"
+                    value={form.rollingQuantity}
+                    disabled
+                    className="w-full border rounded px-3 py-2 bg-gray-100 text-center"
+                  />
+
+                  <button
+                    onClick={() => setQuantityModal(true)}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 underline text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    View Quantity
+                  </button>
+                </div>
               </label>
             </div>
           )}
 
+          <QuantityModal
+            open={quantityModal}
+            onClose={() => setQuantityModal(false)}
+            start_date={startDate}
+            volume={volume}
+          />
           {/*Outcome section */}
 
           {currentSection === "outcome" && (
@@ -7785,6 +7950,22 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
   const [materials, setMaterials] = useState([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
   const [materialsError, setMaterialsError] = useState(null);
+  const [salesStages, setSalesStages] = useState("");
+
+  useEffect(() => {
+    async function loadSalesStages() {
+      try {
+        const res = await apiFetchSalesStage();
+        const formatted = res.map((item) => item.SALESSTAGE);
+        setSalesStages(formatted);
+      } catch (err) {
+        console.error("Error loading sales stages:", err);
+        setSalesStages([]);
+      }
+    }
+
+    loadSalesStages();
+  }, []);
 
   const handleAnnual_LTO = (e) => {
     const startDate = typeof e === "string" ? e : e?.target?.value;
@@ -7831,11 +8012,10 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
 
   const sections = [
     { key: "product", label: "Product", icon: "📦" },
-    { key: "volume", label: "Volume", icon: "📊" },
-    { key: "pricing", label: "Pricing", icon: "💰" },
-    { key: "timing", label: "Timing", icon: "📅" },
+    { key: "volume_pricing", label: "Volume & Pricing", icon: "📊" },
+    { key: "location_timing", label: "Location and Timing", icon: "📅" },
     { key: "outcome", label: "Outcome", icon: "📝" },
-    { key: "support", label: "Culinary", icon: "🤝" },
+    { key: "customerDetails", label: "Customer Details", icon: "🤝" },
   ];
   const getSectionIndex = (key) => sections.findIndex((s) => s.key === key);
   const canGoNext = getSectionIndex(currentSection) < sections.length - 1;
@@ -8011,16 +8191,31 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
       )}
 
       <Card noClip>
-        <CardHeader
-          title="Core Details"
-          subtitle="Essential opportunity information"
-        />
+        <div
+          className={`relative flex justify-between items-start p-4 border-b rounded-t-lg
+    ${
+      isNight
+        ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
+        : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
+    }`}
+        >
+          <CardHeader
+            title="Core Details"
+            subtitle="Essential opportunity information"
+          />
+
+          <div className="text-right px-3 py-2 rounded-lg transition-colors">
+            <h3 className="text-lg font-semibold leading-tight">
+              Opportunity ID: <span className="text-blue-600">#123</span>
+            </h3>
+
+            <h4 className="text-xs mt-1 opacity-80">
+              Last updated: Sep 12, 2025 · 3:45 PM
+            </h4>
+          </div>
+        </div>
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="grid gap-1">
-              <Label>Opportunity ID</Label>
-              <Input value={form.opportunity_ID} disabled readOnly />
-            </label>
             <label className="grid gap-1">
               <Label>Customer Name</Label>
               <Input
@@ -8036,45 +8231,83 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               />
             </label>
             <label className="grid gap-1">
-              <Label>Sales Lead</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.sales_Lead}
-                  onChange={(v) => {
-                    setForm((prev) => ({ ...prev, sales_Lead: v }));
-                  }}
-                  options={[
-                    "Bill",
-                    "Broker",
-                    "Canada",
-                    "Diana",
-                    "Gregg",
-                    "Jayne",
-                    "Dan",
-                    "Larry",
-                    "Meredith",
-                    "Michael J",
-                    "Mike K",
-                    "Steve",
-                    "UNKNOWN",
-                  ]}
-                  disabled={!editMode}
+              <span className="font-medium">Broker Led</span>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.broker_Led === true}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      broker_Led: !prev.broker_Led,
+                    }))
+                  }
                 />
-              ) : (
-                <Input value={form.sales_Lead} disabled readOnly />
-              )}
+              </label>
             </label>
             <label className="grid gap-1">
-              <Label>Sales Team</Label>
-              <Input
-                value={form.sales_Team}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, sales_Team: e.target.value }))
+              <Label>Industry Segment</Label>
+
+              <FrostedSelect
+                value={form.industry_Segment}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, industry_Segment: v }))
                 }
-                disabled={!editMode}
-                readOnly={!editMode}
+                // options={salesStages}
+                options={[
+                  "QSR",
+                  "Fast Casual",
+                  "Midscale",
+                  "Fine Dining",
+                  "Casual Dining",
+                  "Business & Industry",
+                  "Lodging",
+                  "Hospital",
+                  "LTC",
+                  "Senior Living",
+                  "K-12 (Education)",
+                  "College & University",
+                  "C-store",
+                  "Sports and Entertainment",
+                  "GPO - Multiple Segments",
+                  "Supermarket Prepared",
+                  "Other",
+                ]}
+                placeholder="Select Industry Segment"
               />
             </label>
+            {currentSection === "product" ? (
+              <label className="grid gap-1">
+                <Label>Sales Lead</Label>
+                <Input
+                  value={form.sales_Lead}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, sales_Lead: e.target.value }))
+                  }
+                  placeholder="Sales Lead"
+                  disabled={!editMode}
+                  readOnly
+                />
+              </label>
+            ) : (
+              ""
+            )}
+            {currentSection === "product" ? (
+              <label className="grid gap-1">
+                <Label>Sales Team</Label>
+                <Input
+                  value={form.sales_Team}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, sales_Team: e.target.value }))
+                  }
+                  disabled={!editMode}
+                  readOnly={!editMode}
+                />
+              </label>
+            ) : (
+              ""
+            )}
+
             <label className="grid gap-1">
               <Label>Sales Stage</Label>
               {editMode ? (
@@ -8083,17 +8316,8 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, sales_Stage: v }))
                   }
-                  options={[
-                    "Lead: No Current Product Solution",
-                    "Lead: Deprioritized Account",
-                    "Target Account",
-                    "Customer Engaged",
-                    "Proposal Submitted",
-                    "Win - Customer Verbal",
-                    "Post-pipeline: Win (order shipped)",
-                    "Post-pipeline: Loss",
-                    "Post-pipeline: On-hold",
-                  ]}
+                  options={salesStages}
+                  placeholder="Select sales stage"
                   disabled={!editMode}
                 />
               ) : (
@@ -8444,7 +8668,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>Likely Start Date</Label>
                 {editMode ? (
-                  <MyPicker
+                  <FrostedDate
                     value={form.likely_Start_Date}
                     onChange={(e) => handleAnnual_LTO(e)}
                     disabled={!editMode}
@@ -8456,7 +8680,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>End Date</Label>
                 {editMode ? (
-                  <MyPicker
+                  <FrostedDate
                     value={form.end_Date}
                     onChange={(v) =>
                       setForm((prev) => ({ ...prev, end_Date: v }))
@@ -8485,7 +8709,7 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
               <label className="grid gap-1">
                 <Label>Date of Last Meeting</Label>
                 {editMode ? (
-                  <MyPicker
+                  <FrostedDate
                     value={form.last_Meeting_Date}
                     onChange={(v) =>
                       setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
