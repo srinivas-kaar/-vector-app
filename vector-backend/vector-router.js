@@ -1150,5 +1150,83 @@ router.get('/industrysegments', withConnection, (req, res) => {
     });
   }
 }, cleanupConnection);
+router.get('/getItochuperiod/:date', withConnection, async (req, res) => {
+    console.log('Fetching Itochu period details');
+
+    const inputDate = req.params.date;
+
+    try {
+
+
+        const sql = `
+            SELECT "ZDATE", "ZIFISCPER"
+            FROM "BTP_INTERFACE"."DIM_ZDATE_BTP"
+            WHERE "ZDATE" = ?
+        `;
+
+        const periodData = await new Promise((resolve, reject) => {
+            req.hanaConn.exec(sql, [inputDate], (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        });
+
+        if (!periodData || periodData.length === 0) {
+            return res.status(404).json({ message: 'No data found for the given date' });
+        }
+
+        const { ZDATE, ZIFISCPER } = periodData[0];
+
+
+        const sqlStart = `
+            SELECT MIN("ZDATE") AS PERIOD_START
+            FROM "BTP_INTERFACE"."DIM_ZDATE_BTP"
+            WHERE "ZIFISCPER" = ?
+        `;
+
+        const startResult = await new Promise((resolve, reject) => {
+            req.hanaConn.exec(sqlStart, [ZIFISCPER], (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        });
+
+        const periodStart = startResult[0]?.PERIOD_START;
+        if (!periodStart) {
+            return res.status(500).json({ error: 'Could not determine period start date' });
+        }
+
+
+        const parseToDate = (yyyymmdd) => {
+            const year = parseInt(yyyymmdd.substring(0, 4), 10);
+            const month = parseInt(yyyymmdd.substring(4, 6), 10) - 1; // JS months start at 0 
+            const day = parseInt(yyyymmdd.substring(6, 8), 10);
+            return new Date(year, month, day);
+        };
+
+        const startDateObj = parseToDate(periodStart);
+        const inputDateObj = parseToDate(inputDate);
+
+
+        const diffMs = inputDateObj - startDateObj; 
+        const daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+
+        console.log('Successfully calculated period data');
+
+        return res.status(200).json({
+            ZDATE,
+            ZIFISCPER,
+            PERIOD_START: periodStart,
+            DAYS_PASSED: daysPassed
+        });
+
+    } catch (error) {
+        console.error('Error processing request:', error);
+        return res.status(500).json({
+            error: 'Failed to process Itochu period request',
+            details: error.message
+        });
+    }
+}, cleanupConnection);
 
 module.exports = router;
