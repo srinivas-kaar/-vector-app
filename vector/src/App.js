@@ -66,7 +66,6 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { createPortal } from "react-dom";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -911,13 +910,6 @@ function formatMonthDisplay(monthStr) {
   ][parseInt(month) - 1];
   return `${m} '${year.slice(2)}`;
 }
-// function isSameDay(a, b) {
-//   return (
-//     a.getFullYear() === b.getFullYear() &&
-//     a.getMonth() === b.getMonth() &&
-//     a.getDate() === b.getDate()
-//   );
-// }
 
 function isSameDay(d1, d2) {
   return (
@@ -1271,9 +1263,7 @@ function FrostedSelectMaterialID({
         className={wrapperCls}
         onClick={() => !disabled && setOpen((p) => !p)}
       >
-        <span className="truncate">
-          {value ? value : placeholder}
-        </span>
+        <span className="truncate">{value ? value : placeholder}</span>
         <ChevronDown
           className={`ml-2 h-4 w-4 opacity-60 transition-transform ${
             open && shouldOpenUpward ? "rotate-180" : ""
@@ -1303,9 +1293,7 @@ function FrostedSelectMaterialID({
               className={listCls}
               style={{
                 position: "fixed",
-                top: shouldOpenUpward
-                  ? "auto"
-                  : `${dropdownPosition.top}px`,
+                top: shouldOpenUpward ? "auto" : `${dropdownPosition.top}px`,
                 bottom: shouldOpenUpward
                   ? `${window.innerHeight - dropdownPosition.top + 8}px`
                   : "auto",
@@ -4728,1829 +4716,6 @@ function TileGrid({
   );
 }
 
-export default function App() {
-  const defaultColumns = {
-    salesLead: true,
-    customerName: true,
-    product: true,
-    status: true,
-    estimatedVolume: true,
-    likelyStartDate: true,
-  };
-  const defaultOrder = [
-    "welcome",
-    "kpi_total",
-    "kpi_inreview",
-    "kpi_current",
-    "kpi_avg",
-    "trend",
-    "status",
-    "calendar",
-    "gantt",
-  ];
-  const defaultSizes = {
-    welcome: { col: 12, rows: 1 },
-    kpi_total: { col: 3, rows: 1 },
-    kpi_inreview: { col: 3, rows: 1 },
-    kpi_current: { col: 3, rows: 1 },
-    kpi_avg: { col: 3, rows: 1 },
-    trend: { col: 4, rows: 2 },
-    status: { col: 4, rows: 2 },
-    calendar: { col: 4, rows: 2 },
-    gantt: { col: 12, rows: 4 },
-  };
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_user") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [isAdminUser, setIsAdminUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("oppty_is_admin") || "false");
-    } catch {
-      return false;
-    }
-  });
-  const [opps, setOpps] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
-  const [showModal, setShowModal] = useState(false);
-  const [sortConfig, setSortConfig] = useState({
-    key: "customerName",
-    direction: "asc",
-  });
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  useEffect(() => {
-    const now = new Date();
-    setSelectedDate(now);
-    try {
-      localStorage.setItem("oppty_selectedDate", now.toISOString());
-    } catch {}
-  }, []);
-  const [route, setRoute] = useState("dashboard");
-  const [detailId, setDetailId] = useState(null);
-
-  const [themeMode, setThemeMode] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_themeMode") || "auto";
-    } catch {
-      return "auto";
-    }
-  });
-  const [ownerScope, setOwnerScope] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_ownerScope") || "me";
-    } catch {
-      return "me";
-    }
-  });
-  const [windowMonths, setWindowMonths] = useState(() => {
-    try {
-      return Number(localStorage.getItem("oppty_windowMonths") || 6);
-    } catch {
-      return 6;
-    }
-  });
-  const [avatarUrl, setAvatarUrl] = useState(() => {
-    try {
-      return localStorage.getItem("oppty_avatar") || "";
-    } catch {
-      return "";
-    }
-  });
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
-  const [layoutOrder, setLayoutOrder] = useState(defaultOrder);
-  const [sizeMap, setSizeMap] = useState(defaultSizes);
-
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ChevronsUpDown size={14} />;
-    return sortConfig.direction === "asc" ? (
-      <ChevronUp size={14} />
-    ) : (
-      <ChevronDown size={14} />
-    );
-  };
-
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  async function handleSignup(user) {
-    try {
-      await apiCreatePendingUser({
-        ...user,
-        preferredName: user.preferredName || "",
-        isRsm: false,
-        isAll: false,
-        isAdmin: false,
-      });
-      return true;
-    } catch (e) {
-      console.error("Signup error:", e);
-      return e?.message || "Signup failed";
-    }
-  }
-
-  async function handleLogin(email) {
-    try {
-      const user = await apiGetUserByEmail(email); // returns user or null
-      if (!user) return false;
-      const admin = !!(
-        user.isAdmin === true ||
-        user.isAdmin === 1 ||
-        user.isAdmin === "1"
-      );
-      setCurrentUser(user.email);
-      setIsAdminUser(admin);
-      try {
-        localStorage.setItem("oppty_user", user.email);
-        localStorage.setItem("oppty_is_admin", JSON.stringify(admin));
-      } catch {}
-      setRoute("dashboard");
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  const getAutoTheme = () => {
-    const hour = new Date().getHours();
-    return hour >= 7 && hour < 19 ? "sunrise" : "sunset";
-  };
-  const theme = themeMode === "auto" ? getAutoTheme() : themeMode;
-  useEffect(() => {
-    try {
-      localStorage.setItem("oppty_themeMode", themeMode);
-    } catch {}
-  }, [themeMode]);
-  useEffect(() => {
-    if (themeMode === "auto") {
-      const i = setInterval(
-        () => setThemeMode((p) => (p === "auto" ? "auto" : p)),
-        60000
-      );
-      return () => clearInterval(i);
-    }
-  }, [themeMode]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("visibleColumns");
-    if (saved) setVisibleColumns(JSON.parse(saved));
-  }, []);
-
-  // Save preferences whenever changed
-  useEffect(() => {
-    localStorage.setItem("visibleColumns", JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-  useEffect(() => {}, [route]);
-
-  const toggleColumn = (key) => {
-    setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-  useEffect(() => {
-    try {
-      localStorage.setItem("oppty_ownerScope", ownerScope);
-    } catch {}
-  }, [ownerScope]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("oppty_windowMonths", String(windowMonths));
-    } catch {}
-  }, [windowMonths]);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await apiFetchOpps();
-      setOpps(
-        (data || []).map((d, i) => ({
-          id: d.id ?? i + 1,
-          title: d.title ?? `Opp ${i + 1}`,
-          amount: Number(d.amount ?? 0),
-          status: d.status ?? STATUSES[0],
-          owner: d.owner ?? currentUser,
-          createdAt: d.createdAt ? new Date(d.createdAt) : new Date(),
-          closeDate: d.closeDate ? new Date(d.closeDate) : new Date(),
-          ...d,
-        }))
-      );
-    } catch (e) {
-      console.error("loadData() failed →", e);
-      setOpps(seedOpps());
-      setError("API unavailable. See console for details.");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  console.log({ opps });
-
-  const scopedOpps = useMemo(
-    () =>
-      ownerScope === "me" ? opps.filter((o) => o.owner === currentUser) : opps,
-    [opps, ownerScope, currentUser]
-  );
-
-  const sortedOpportunities = useMemo(() => {
-    if (!sortConfig.key) return scopedOpps;
-
-    const normalizeValue = (item, key) => {
-      switch (key) {
-        case "salesLead":
-          return item.doleSalesLead || item.sales_Lead || "";
-        case "customerName":
-          return item.customerName || item.customer_Name || "";
-        case "estimatedVolume":
-          return item.estimatedVolume || item.estimated_Volume || "";
-        case "likelyStartDate":
-          return (
-            item.likelyStartDate ||
-            item.likely_Start_Date ||
-            item.createdAt ||
-            ""
-          );
-        default:
-          return item[key] || "";
-      }
-    };
-
-    return [...scopedOpps].sort((a, b) => {
-      const aValue = normalizeValue(a, sortConfig.key);
-      const bValue = normalizeValue(b, sortConfig.key);
-
-      // Handle numbers
-      if (!isNaN(aValue) && !isNaN(bValue)) {
-        return sortConfig.direction === "asc"
-          ? aValue - bValue
-          : bValue - aValue;
-      }
-
-      // Handle dates
-      const dateFormats = [
-        "YYYY-MM-DD",
-        "DD-MM-YYYY",
-        "YYYY/MM/DD",
-        "DD/MM/YYYY",
-        "MM/DD/YYYY",
-      ];
-
-      if (
-        dayjs(aValue, dateFormats, true).isValid() &&
-        dayjs(bValue, dateFormats, true).isValid()
-      ) {
-        const aDate = dayjs(aValue, dateFormats, true);
-        const bDate = dayjs(bValue, dateFormats, true);
-
-        return sortConfig.direction === "asc"
-          ? aDate.diff(bDate)
-          : bDate.diff(aDate);
-      }
-
-      // Handle text (case-insensitive)
-      return sortConfig.direction === "asc"
-        ? String(aValue)
-            .toLowerCase()
-            .localeCompare(String(bValue).toLowerCase())
-        : String(bValue)
-            .toLowerCase()
-            .localeCompare(String(aValue).toLowerCase());
-    });
-  }, [scopedOpps, sortConfig]);
-
-  const myOppsOnly = useMemo(
-    () => opps.filter((o) => o.owner === currentUser),
-    [opps, currentUser]
-  );
-  const kpiTotal = scopedOpps.length;
-  const kpiInStatus = useMemo(
-    () => scopedOpps.filter((o) => o.status === "In Review").length,
-    [scopedOpps]
-  );
-  const trendData = useMemo(() => {
-    const map = new Map();
-    scopedOpps.forEach((o) => {
-      const key = monthKey(o.createdAt);
-      map.set(key, (map.get(key) || 0) + 1);
-    });
-    return [...map.keys()].sort().map((k) => ({
-      month: formatMonthDisplay(k),
-      monthKey: k,
-      total: map.get(k),
-    }));
-  }, [scopedOpps]);
-  const statusData = useMemo(() => {
-    const m = new Map();
-    scopedOpps.forEach((o) => m.set(o.status, (m.get(o.status) || 0) + 1));
-    return STATUSES.map((s) => ({ name: s, value: m.get(s) || 0 }));
-  }, [scopedOpps]);
-  const latestFive = useMemo(
-    () => pickLatestByCreated(scopedOpps, 5),
-    [scopedOpps]
-  );
-
-  const volumeAllocationArray = opps.map((o) => ({
-    opportunity_ID: o.OPPORTUNITY_ID,
-    opportunity_Type: o.ANNUAL_OR_LTO,
-    volume: o.ESTIMATED_VOLUME,
-    start_date: o.LIKELY_START_DATE,
-    end_Date: o.END_DATE,
-  }));
-
-  async function addOpportunity(form) {
-    console.log({ form });
-    const payload = {
-      customerName: form.customer_Name,
-      materialId: form.material_ID,
-      title: form.title || `${form.customer_Name} - ${form.product}`,
-      amount: Number(form.pipeline_Projected_Revenue || form.amount || 0),
-      status:
-        form.sales_Stage || form.status || "Lead: No Current Product Solution",
-      owner: currentUser,
-      closeDate: form.end_Date ? new Date(form.end_Date) : new Date(),
-      opportunity_ID:
-        form.opportunity_ID || Math.max(0, ...opps.map((o) => o.id)) + 1,
-      salesLead: form.sales_Lead,
-      salesTeam: form.sales_Team,
-      salesStage: form.sales_Stage,
-      opportunityType: form.opportunity_Type,
-      opportunitySummary: form.opportunity_Summary,
-      product: form.product,
-      material_ID: form.material_ID,
-      productCategory: form.product_Category,
-      baseUoM: form.base_UoM,
-      materialWeight: form.material_Weight,
-      productSourceLocation: form.product_Source_Location,
-      likelyDistributors: form.likely_Distributors,
-      estimatedVolume: form.estimated_Volume,
-      uoM: form.uoM,
-      caseVolume: form.case_Volume_Converted,
-      opportunityVolumeInput: form.opportunity_Volume_Input,
-      days30Ship: form.days_30_Ship,
-      materialProjectedPrice: form.material_Price,
-      overridePrice: form.override_Price,
-      businessJustification: form.business_justification,
-      equivalizedPipelineLbs: form.equivalized_Pipeline_LBS,
-      pipelineProjectedRevenue: form.pipeline_Projected_Revenue,
-      likelyStartDate: form.likely_Start_Date,
-      annualOrLTO: form.annual_Or_LTO,
-      endDate: form.end_Date,
-      lastMeetingDate: form.last_Meeting_Date,
-      nextStepDescription: form.next_Step_Description,
-      winLossReasonCode: form.win_Loss_Reason_Code,
-      winLossComments: form.win_Loss_Comments,
-      culinaryNeeded: form.culinary_Needed,
-      culinarySupportDescription: form.culinary_Support_Description,
-      culinarySupportStatus: form.culinary_Support_Status,
-      brokerLed: form.broker_Led,
-      materialDesc: form.material_Desc,
-      probability: form.probability,
-      poundVolume: form.pound_Volume,
-    };
-    try {
-      const created = await apiCreateOpp(payload);
-      const createdNorm = {
-        id: created.id ?? Math.max(0, ...opps.map((o) => o.id)) + 1,
-        title: created.title ?? payload.title,
-        amount: Number(created.amount ?? payload.amount),
-        status: created.status ?? payload.status,
-        owner: created.owner ?? payload.owner,
-        createdAt: created.createdAt ? new Date(created.createdAt) : new Date(),
-        closeDate: created.closeDate
-          ? new Date(created.closeDate)
-          : new Date(payload.endDate || Date.now()),
-        customer_Name: created.customerName || created.customer_Name,
-        sales_Lead: created.salesLead || created.sales_Lead,
-        sales_Team: created.salesTeam || created.sales_Team,
-        sales_Stage: created.salesStage || created.sales_Stage,
-        opportunity_Type: created.opportunityType || created.opportunity_Type,
-        product: created.product,
-        material_ID: created.materialId || created.material_ID,
-        estimated_Volume: created.estimatedVolume || created.estimated_Volume,
-        pipeline_Projected_Revenue:
-          created.pipelineProjectedRevenue ||
-          created.pipeline_Projected_Revenue,
-        likely_Start_Date: created.likelyStartDate || created.likely_Start_Date,
-        end_Date: created.endDate || created.end_Date,
-        ...payload,
-        ...created,
-      };
-      setOpps((prev) => [createdNorm, ...prev]);
-      return createdNorm;
-    } catch {
-      const id = Math.max(0, ...opps.map((o) => o.id)) + 1;
-      const createdAt = new Date();
-      const closeDate =
-        form.end_Date ||
-        new Date(
-          createdAt.getFullYear(),
-          createdAt.getMonth(),
-          createdAt.getDate() + 14
-        );
-      const newOpp = {
-        id,
-        createdAt,
-        closeDate,
-        owner: currentUser,
-        title: payload.title,
-        amount: payload.amount,
-        status: payload.status,
-        customer_Name: payload.customerName,
-        sales_Lead: payload.salesLead,
-        sales_Team: payload.salesTeam,
-        product: payload.product,
-        material_ID: payload.materialId,
-        estimated_Volume: payload.estimatedVolume,
-        pipeline_Projected_Revenue: payload.pipelineProjectedRevenue,
-        likely_Start_Date: payload.likelyStartDate,
-        end_Date: payload.endDate,
-        ...payload,
-      };
-      setOpps((prev) => [newOpp, ...prev]);
-      return newOpp;
-    }
-  }
-
-  // function toggleSelect(id) {
-  //   setSelectedIds((prev) => {
-  //     const next = new Set(prev);
-  //     next.has(id) ? next.delete(id) : next.add(id);
-  //     return next;
-  //   });
-  // }
-  // function toggleSelectAll() {
-  //   const allVisible = myOppsOnly
-  //     .slice()
-  //     .sort((a, b) => b.createdAt - a.createdAt)
-  //     .map((o) => o.id);
-  //   setSelectedIds((prev) => {
-  //     const allSelected =
-  //       allVisible.length > 0 && allVisible.every((id) => prev.has(id));
-  //     return allSelected ? new Set() : new Set(allVisible);
-  //   });
-  // }
-  async function performDelete() {
-    if (confirmText !== "DELETE" || selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    setOpps((prev) => prev.filter((o) => !selectedIds.has(o.id)));
-    setConfirmOpen(false);
-    setConfirmText("");
-    setSelectedIds(new Set());
-    try {
-      await apiDeleteOpps(ids);
-    } catch {}
-  }
-
-  const isNight = theme === "sunset";
-  const themeChart = isNight
-    ? {
-        chartLine: CHART_COLORS.teal,
-        axisStroke: "rgba(255,255,255,0.7)",
-        gridStroke: "rgba(255,255,255,0.12)",
-        tooltipBg: "rgba(11,23,64,0.90)",
-        tooltipBorder: "1px solid rgba(255,255,255,0.2)",
-        tooltipColor: "#fff",
-      }
-    : {
-        chartLine: CHART_COLORS.teal,
-        axisStroke: CHART_COLORS.grayAxis,
-        gridStroke: "#e5e7eb",
-        tooltipBg: "rgba(255,255,255,0.90)",
-        tooltipBorder: "1px solid rgba(0,0,0,0.06)",
-        tooltipColor: "#111",
-      };
-  const { axisStroke, gridStroke, tooltipBg, tooltipBorder, tooltipColor } =
-    themeChart;
-
-  const tiles = {
-    welcome: {
-      colLg: 12,
-      rows: 1,
-      render: () => (
-        <Card className="h-full">
-          <CardBody className="h-full flex items-center justify-between gap-4">
-            <WelcomeCard
-              currentUser={currentUser}
-              avatarUrl={avatarUrl}
-              setAvatarUrl={setAvatarUrl}
-              upcomingOpps={myOppsOnly || []}
-            />
-            <img
-              src="/welcome-bg2.png"
-              alt="Welcome"
-              className="h-[136px] w-auto object-contain"
-              style={{ transform: "translate(-15px, 10px)" }}
-            />
-          </CardBody>
-        </Card>
-      ),
-    },
-    kpi_total: {
-      colLg: 3,
-      rows: 1,
-      render: (handle) => (
-        <Card>
-          <CardHeader
-            title="Total Opportunities"
-            dragHandle={<span className="cursor-grab">{handle}</span>}
-          />
-          <CardBody>
-            <div className="mt-2 flex items-end gap-2">
-              <div
-                className={`text-3xl font-bold ${
-                  isNight ? "text-white" : "text-black"
-                }`}
-              >
-                {kpiTotal}
-              </div>
-              <div
-                className={`text-xs ${
-                  isNight ? "text-white/70" : "text-gray-500"
-                }`}
-              >
-                {ownerScope === "me" ? "for you" : "all"}
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      ),
-    },
-    kpi_inreview: {
-      colLg: 3,
-      rows: 1,
-      render: () => (
-        <Card>
-          <CardHeader title="In Review" />
-          <CardBody>
-            <div
-              className={`mt-2 text-3xl font-bold ${
-                isNight ? "text-white" : "text-black"
-              }`}
-            >
-              {kpiInStatus}
-            </div>
-          </CardBody>
-        </Card>
-      ),
-    },
-    kpi_current: {
-      colLg: 3,
-      rows: 1,
-      render: () => (
-        <Card>
-          <CardHeader title="Current Month" />
-          <CardBody>
-            <div className="mt-2 flex items-center gap-2">
-              <TrendingUp
-                className={`${isNight ? "text-white" : ""} h-5 w-5`}
-              />
-              <div
-                className={`text-3xl font-bold ${
-                  isNight ? "text-white" : "text-black"
-                }`}
-              >
-                {trendData.at(-1)?.total ?? 0}
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      ),
-    },
-    kpi_avg: {
-      colLg: 3,
-      rows: 1,
-      render: () => (
-        <Card>
-          <CardHeader title="Avg Deal Size" />
-          <CardBody>
-            <div
-              className={`mt-2 text-3xl font-bold ${
-                isNight ? "text-white" : "text-black"
-              }`}
-            >
-              {"$" +
-                Math.round(
-                  scopedOpps.reduce((s, o) => s + (Number(o.amount) || 0), 0) /
-                    Math.max(1, scopedOpps.length)
-                ).toLocaleString()}
-            </div>
-          </CardBody>
-        </Card>
-      ),
-    },
-    trend: {
-      colLg: 4,
-      rows: 2,
-      render: () => (
-        <Card className="h-full">
-          <CardHeader title="Trend — Opportunities by Month" />
-          <CardBody className="h-full flex flex-col">
-            <div className="flex-1 min-h-0" style={{ height: "250px" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={trendData}
-                  margin={{ left: 10, right: 10, top: 10, bottom: 30 }}
-                >
-                  <defs>
-                    <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor={CHART_COLORS.blue}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={CHART_COLORS.blue}
-                        stopOpacity={0.0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11, fill: axisStroke }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    axisLine={{ stroke: axisStroke }}
-                    tickLine={{ stroke: axisStroke }}
-                    tickMargin={6}
-                  />
-                  <YAxis
-                    width={30}
-                    allowDecimals={false}
-                    tick={{ fontSize: 12, fill: axisStroke }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: tooltipBg,
-                      border: tooltipBorder,
-                      borderRadius: 12,
-                      color: tooltipColor,
-                    }}
-                    cursor={{
-                      fill: isNight
-                        ? "rgba(255,255,255,0.05)"
-                        : "rgba(0,0,0,0.02)",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke={CHART_COLORS.blue}
-                    strokeWidth={2.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    fill="url(#colorArea)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardBody>
-        </Card>
-      ),
-    },
-    status: {
-      colLg: 4,
-      rows: 2,
-      render: () => {
-        const size = 160;
-        return (
-          <Card className="h-full">
-            <CardHeader title="Opportunity Status Mix" />
-            <CardBody>
-              <div className="flex items-center gap-4">
-                <div className="shrink-0" style={{ width: size, height: size }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={size / 2 - 35}
-                        outerRadius={size / 2 - 22}
-                        paddingAngle={3}
-                        cornerRadius={10}
-                        strokeWidth={0}
-                      >
-                        {statusData.map((entry, idx) => (
-                          <Cell
-                            key={`c-${idx}`}
-                            fill={STATUS_COLORS[entry.name] || "#e5e7eb"}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: tooltipBg,
-                          border: tooltipBorder,
-                          borderRadius: 12,
-                          color: tooltipColor,
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex-1 space-y-2">
-                  {statusData.map((s) => {
-                    const pct = kpiTotal
-                      ? Math.round((Number(s.value) / Number(kpiTotal)) * 100)
-                      : 0;
-                    return (
-                      <div
-                        key={s.name}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              background: STATUS_COLORS[s.name] || "#e5e7eb",
-                            }}
-                          />
-                          <span
-                            className={`${
-                              isNight ? "text-white" : "text-gray-700"
-                            }`}
-                          >
-                            {s.name}
-                          </span>
-                        </div>
-                        <span
-                          className={`${
-                            isNight ? "text-white/70" : "text-gray-500"
-                          }`}
-                        >
-                          {pct}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        );
-      },
-    },
-    calendar: {
-      colLg: 4,
-      rows: 2,
-      render: () => {
-        const dataWithRaw = scopedOpps.map((o) => ({
-          name: (o.customerName || o.title || `#${o.id}`)
-            .toString()
-            .slice(0, 18),
-          revenueRaw: Number(
-            o.pipeline_Projected_Revenue ||
-              o.pipelineProjectedRevenue ||
-              o.amount ||
-              0
-          ),
-          priceRaw: Number(o.material_Price || o.materialProjectedPrice || 0),
-        }));
-        const top = dataWithRaw
-          .filter((d) => d.revenueRaw > 0 || d.priceRaw > 0)
-          .sort((a, b) => b.revenueRaw - a.revenueRaw)
-          .slice(0, 7);
-        const maxRev = Math.max(0, ...top.map((d) => d.revenueRaw));
-        const maxPrice = Math.max(0, ...top.map((d) => d.priceRaw));
-        const exponent = 0.55;
-        const radarData = top.map((d) => ({
-          name: d.name,
-          revenue: maxRev
-            ? Math.round(100 * Math.pow(d.revenueRaw / maxRev, exponent))
-            : 0,
-          price: maxPrice
-            ? Math.round(100 * Math.pow(d.priceRaw / maxPrice, exponent))
-            : 0,
-          revenueRaw: d.revenueRaw,
-          priceRaw: d.priceRaw,
-        }));
-        const radarRevenueColor = CHART_COLORS.purple;
-        const radarPriceColor = CHART_COLORS.cyan;
-
-        const RadarTt = ({ active, payload, label }) => {
-          if (!active || !payload?.length) return null;
-          const d = payload[0].payload;
-          return (
-            <div
-              style={{
-                background: tooltipBg,
-                border: tooltipBorder,
-                borderRadius: 12,
-                padding: 8,
-                color: tooltipColor,
-              }}
-            >
-              <div className="font-medium">{label}</div>
-              <div>Revenue: ${Number(d.revenueRaw).toLocaleString()}</div>
-              {d.priceRaw > 0 && (
-                <div>Price: ${Number(d.priceRaw).toLocaleString()}</div>
-              )}
-            </div>
-          );
-        };
-
-        return (
-          <Card className="h-full">
-            <CardHeader
-              title="Financial Impact"
-              right={
-                <TrendingUp
-                  className={`h-4 w-4 ${
-                    isNight ? "text-white/70" : "text-gray-500"
-                  }`}
-                />
-              }
-            />
-            <CardBody className="h-full flex flex-col">
-              {radarData.length === 0 ? (
-                <div
-                  className={`text-sm ${
-                    isNight ? "text-white/70" : "text-gray-600"
-                  }`}
-                >
-                  No financial data available
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0" style={{ height: "250px" }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart
-                      data={radarData}
-                      outerRadius="85%"
-                      margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
-                      allowDuplicatedCategory
-                    >
-                      <defs>
-                        <linearGradient
-                          id="radarRevenue"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor={radarRevenueColor}
-                            stopOpacity={0.35}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor={radarRevenueColor}
-                            stopOpacity={0.06}
-                          />
-                        </linearGradient>
-                        <linearGradient
-                          id="radarPrice"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor={radarPriceColor}
-                            stopOpacity={0.25}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor={radarPriceColor}
-                            stopOpacity={0.05}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <PolarGrid
-                        gridType="circle"
-                        radialLines={true}
-                        stroke={
-                          isNight
-                            ? "rgba(255,255,255,0.10)"
-                            : "rgba(17,24,39,0.10)"
-                        }
-                      />
-                      <PolarAngleAxis
-                        dataKey="name"
-                        tick={{
-                          fontSize: 10,
-                          fill: isNight
-                            ? "rgba(255,255,255,0.60)"
-                            : "rgba(17,24,39,0.60)",
-                        }}
-                        tickLine={false}
-                      />
-                      <PolarRadiusAxis
-                        domain={[0, 100]}
-                        tickCount={4}
-                        tick={{
-                          fontSize: 9,
-                          fill: isNight
-                            ? "rgba(255,255,255,0.45)"
-                            : "rgba(17,24,39,0.45)",
-                        }}
-                        stroke={
-                          isNight
-                            ? "rgba(255,255,255,0.10)"
-                            : "rgba(17,24,39,0.10)"
-                        }
-                      />
-                      <Radar
-                        name="Revenue"
-                        dataKey="revenue"
-                        stroke={radarRevenueColor}
-                        strokeWidth={2.6}
-                        fill="url(#radarRevenue)"
-                        style={{ mixBlendMode: "multiply" }}
-                        isAnimationActive
-                        animationDuration={600}
-                      />
-                      <Radar
-                        name="Price"
-                        dataKey="price"
-                        stroke={radarPriceColor}
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        fill="url(#radarPrice)"
-                        fillOpacity={0.22}
-                        style={{ mixBlendMode: "multiply" }}
-                        isAnimationActive
-                        animationDuration={600}
-                      />
-                      <Tooltip content={<RadarTt />} />
-                      <Legend
-                        verticalAlign="top"
-                        height={20}
-                        iconType="circle"
-                        wrapperStyle={{ fontSize: 11 }}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        );
-      },
-    },
-    gantt: {
-      colLg: 12,
-      rows: 4,
-      render: () => (
-        <Card>
-          <CardHeader title="Timeline — Latest 5 (Created → Close)" />
-          <CardBody>
-            <GanttMonth items={latestFive} monthDate={selectedDate} rows={2} />
-          </CardBody>
-        </Card>
-      ),
-    },
-  };
-
-  const headerPillCls = (theme) =>
-    theme === "sunset"
-      ? "rounded-2xl bg-white/10 border border-white/20 px-1 py-1 text-xs text-white"
-      : "rounded-2xl bg-white/40 border px-1 py-1 text-xs";
-  const selectedPill = () =>
-    "bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white shadow-md";
-
-  return (
-    <div>
-
-      <ThemeContext.Provider value={theme}>
-        <GlobalStyles />
-        {!currentUser || currentUser.trim() === "" ? (
-          <LoginPage onSubmit={handleLogin} onSignup={handleSignup} />
-        ) : (
-          <div
-            className={`min-h-screen flex ${
-              isNight
-                ? "theme-sunset text-white"
-                : "theme-sunrise text-gray-900"
-            }`}
-            style={{
-              background: isNight
-                ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
-                : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
-            }}
-          >
-            <div className="flex-1 min-w-0 w-full">
-              <header
-                className={`sticky top-0 z-10 ${
-                  isNight ? "bg-[#0b1740]/50" : "bg-white/30"
-                } backdrop-blur-xl ${
-                  isNight ? "" : "border-b border-white/45"
-                } ${isNight ? "" : "shadow-[0_1px_0_rgba(255,255,255,0.6)]"}`}
-              >
-                <div
-                  className={`h-1 w-full ${
-                    isNight
-                      ? "bg-gradient-to-r from-[#C8102E] via-[#F6E500] to-transparent"
-                      : "bg-gradient-to-r from-[#F6E500] via-[#39B4E8] to-transparent"
-                  }`}
-                />
-                <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="/vector.png"
-                      alt="Vector"
-                      className="h-16 cursor-pointer transition-transform hover:scale-105 relative top-[2px]"
-                      onClick={() => setRoute("dashboard")}
-                      title="Go to Dashboard"
-                    />
-                    <div>
-                      <div className="text-left">
-                        <h1
-                          className={`text-2xl md:text-3xl font-semibold tracking-tight ${
-                            isNight ? "text-white" : ""
-                          }`}
-                        >
-                          Vector
-                        </h1>
-                        <h2
-                          className={`text-sm md:text-base font-medium tracking-wide mt-1 ${
-                            isNight ? "text-white/80" : "text-gray-600"
-                          }`}
-                        >
-                          Your Opportunity Pipeline Hub
-                        </h2>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`${headerPillCls(theme)} relative group`}>
-                      {[
-                        {
-                          k: "auto",
-                          icon: <Clock className="h-3.5 w-3.5" />,
-                          tooltip: "Auto (7AM-7PM: Day, 7PM-7AM: Night)",
-                        },
-                        {
-                          k: "sunrise",
-                          icon: <Sun className="h-3.5 w-3.5" />,
-                          tooltip: "Sunrise theme",
-                        },
-                        {
-                          k: "sunset",
-                          icon: <Moon className="h-3.5 w-3.5" />,
-                          tooltip: "Sunset theme",
-                        },
-                      ].map((opt) => (
-                        <button
-                          key={opt.k}
-                          onClick={() => setThemeMode(opt.k)}
-                          className={`p-1.5 rounded-xl inline-flex items-center justify-center transition ${
-                            themeMode === opt.k
-                              ? selectedPill(theme)
-                              : "hover:bg-white/10"
-                          } group/btn relative`}
-                        >
-                          {opt.icon}
-                          <div
-                            className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
-                              isNight
-                                ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
-                                : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
-                            } shadow-lg z-50`}
-                          >
-                            {opt.tooltip}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    {route === "dashboard" && (
-                      <>
-                        <div
-                          className={`${headerPillCls(theme)} relative group`}
-                        >
-                          {[
-                            {
-                              k: "me",
-                              label: "My",
-                              tooltip: "My Opportunities",
-                            },
-                            {
-                              k: "all",
-                              label: "All",
-                              tooltip: "All Opportunities",
-                            },
-                          ].map((opt) => (
-                            <button
-                              key={opt.k}
-                              onClick={() => setOwnerScope(opt.k)}
-                              className={`px-3 py-1 rounded-xl transition text-xs ${
-                                ownerScope === opt.k
-                                  ? selectedPill(theme)
-                                  : "hover:bg-white/10"
-                              } group/btn relative`}
-                            >
-                              {opt.label}
-                              <div
-                                className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
-                                  isNight
-                                    ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
-                                    : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
-                                } shadow-lg z-50`}
-                              >
-                                {opt.tooltip}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    {route === "dashboard" && (
-                      <div className={`${headerPillCls(theme)} relative group`}>
-                        {[
-                          { value: 3, label: "3M", tooltip: "3 Months" },
-                          { value: 6, label: "6M", tooltip: "6 Months" },
-                          { value: 12, label: "12M", tooltip: "12 Months" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setWindowMonths(opt.value)}
-                            className={`px-3 py-1 rounded-xl transition text-xs ${
-                              windowMonths === opt.value
-                                ? selectedPill(theme)
-                                : "hover:bg-white/10"
-                            } group/btn relative`}
-                          >
-                            {opt.label}
-                            <div
-                              className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
-                                isNight
-                                  ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
-                                  : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
-                              } shadow-lg z-50`}
-                            >
-                              {opt.tooltip}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {route !== "add" && (
-                      <>
-                        <Button onClick={() => setRoute("add")}>
-                          <Plus className="h-4 w-4" />{" "}
-                          <span className="hidden sm:inline">
-                            Add Opportunity
-                          </span>
-                        </Button>
-                        <Button onClick={() => setSearchModalOpen(true)}>
-                          <Search className="h-4 w-4" /> Search
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {error && (
-                  <div
-                    className={`max-w-6xl mx-auto px-6 pb-2 text-xs ${
-                      isNight ? "text-amber-200" : "text-amber-700"
-                    }`}
-                  >
-                    {error}
-                  </div>
-                )}
-              </header>
-
-              {route === "dashboard" && (
-                <main className="max-w-6xl mx-auto px-6 py-6">
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="grid grid-cols-1">
-                      {tiles.welcome.render()}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      {tiles.kpi_total.render()}
-                      {tiles.kpi_inreview.render()}
-                      {tiles.kpi_current.render()}
-                      {tiles.kpi_avg.render()}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {tiles.trend.render()}
-                      {tiles.calendar.render()}
-                      {tiles.status.render()}
-                    </div>
-                    <div className="grid grid-cols-1">
-                      {tiles.gantt.render()}
-                    </div>
-                  </div>
-                  {loading && (
-                    <div
-                      className={`text-xs mt-4 ${
-                        isNight ? "text-white/70" : "text-gray-600"
-                      }`}
-                    >
-                      Loading…
-                    </div>
-                  )}
-                </main>
-              )}
-
-              {route === "opps" && (
-                <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                  <Card>
-                    <CardHeader
-                      title="Opportunities"
-                      right={
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setShowModal(true)}
-                            className={clsx(
-                              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition",
-                              isNight
-                                ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                            )}
-                          >
-                            <Settings size={16} />
-                          </button>
-                          <div
-                            className={`rounded-2xl ${
-                              isNight
-                                ? "bg-white/10 border border-white/20"
-                                : "bg-white/40 border border-white/45"
-                            } px-1 py-1 text-xs`}
-                          >
-                            <button
-                              onClick={() => setOwnerScope("me")}
-                              className={`px-3 py-1 rounded-xl transition text-xs ${
-                                ownerScope === "me"
-                                  ? isNight
-                                    ? "bg-[#F6E500] text-black"
-                                    : "bg-[#00205C] text-white"
-                                  : "hover:bg-white/10"
-                              }`}
-                            >
-                              My
-                            </button>
-                            <button
-                              onClick={() => setOwnerScope("all")}
-                              className={`px-3 py-1 rounded-xl transition text-xs ${
-                                ownerScope === "all"
-                                  ? isNight
-                                    ? "bg-[#F6E500] text:black"
-                                    : "bg-[#00205C] text-white"
-                                  : "hover:bg-white/10"
-                              }`}
-                            >
-                              All
-                            </button>
-                          </div>
-                          <Button
-                            variant="danger"
-                            disabled={selectedIds.size === 0}
-                            onClick={() => setConfirmOpen(true)}
-                          >
-                            <Trash2 className="h-4 w-4" /> Delete (
-                            {selectedIds.size})
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => setRoute("dashboard")}
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      }
-                    />
-                    <CardBody>
-                      <div
-                        className={`border rounded-2xl ${
-                          isNight
-                            ? "bg-white/8 border-white/15"
-                            : "bg-white/40 border-white/50"
-                        } bg-clip-padding backdrop-blur-sm`}
-                        style={{ height: "1000px" }}
-                      >
-                        <div className="overflow-auto scroll-glass h-full">
-                          <table className="min-w-full text-sm">
-                            <thead className="sticky top-0 z-10">
-                              <tr
-                                className={`${
-                                  isNight
-                                    ? "text-white/70 bg-slate-800/90"
-                                    : "text-gray-600 bg-white/90"
-                                } backdrop-blur-sm`}
-                              >
-                                {/*just hiding Opportunity ID from UI if we want to use them in future can just uncomment this/* <th className="py-2 pr-3 w-8 text-left">
-                                <input
-                                  type="checkbox"
-                                  onChange={toggleSelectAll}
-                                  checked={
-                                    scopedOpps.length > 0 &&
-                                    scopedOpps
-                                      .slice()
-                                      .sort((a, b) => b.createdAt - a.createdAt)
-                                      .every((o) => selectedIds.has(o.id))
-                                  }
-                                />
-                              </th> */}
-                                {/* <th className="py-2 pr-4 text-left">
-                                Opportunity ID
-                              </th> */}
-                                {visibleColumns.salesLead && (
-                                  <th onClick={() => handleSort("salesLead")}>
-                                    <div className="flex items-center gap-1">
-                                      Sales Leads {getSortIcon("salesLead")}
-                                    </div>
-                                  </th>
-                                )}
-                                {visibleColumns.customerName && (
-                                  <th
-                                    onClick={() => handleSort("customerName")}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      Customer Name{" "}
-                                      {getSortIcon("customerName")}
-                                    </div>
-                                  </th>
-                                )}
-                                {visibleColumns.product && (
-                                  <th onClick={() => handleSort("product")}>
-                                    <div className="flex items-center gap-1">
-                                      Product {getSortIcon("product")}
-                                    </div>
-                                  </th>
-                                )}
-                                {visibleColumns.status && (
-                                  <th onClick={() => handleSort("status")}>
-                                    <div className="flex items-center gap-1">
-                                      Status {getSortIcon("status")}
-                                    </div>
-                                  </th>
-                                )}
-                                {visibleColumns.estimatedVolume && (
-                                  <th
-                                    onClick={() =>
-                                      handleSort("estimatedVolume")
-                                    }
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      Estimated Volume{" "}
-                                      {getSortIcon("estimatedVolume")}
-                                    </div>
-                                  </th>
-                                )}
-                                {visibleColumns.likelyStartDate && (
-                                  <th
-                                    onClick={() =>
-                                      handleSort("likelyStartDate")
-                                    }
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      Likely Start Date{" "}
-                                      {getSortIcon("likelyStartDate")}
-                                    </div>
-                                  </th>
-                                )}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {sortedOpportunities.map((o) => (
-                                <tr
-                                  key={o.id}
-                                  className={`border-t ${
-                                    isNight
-                                      ? "border-white/10 hover:bg-white/5"
-                                      : "hover:bg.black/5"
-                                  }`}
-                                >
-                                  {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
-                                  <td className="py-2 pr-3 w-8">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedIds.has(o.id)}
-                                      onChange={() => toggleSelect(o.id)}
-                                    />
-                                  </td> */}
-                                  {/* <td className="py-2 pr-4">
-                                    <button
-                                      onClick={() => {
-                                        setDetailId(o.id);
-                                        setRoute("details"); 
-                                      }}
-                                      className={`${
-                                        isNight
-                                          ? "text-white hover:text-[#F6E500]"
-                                          : "text-gray-900 hover:text-blue-700"
-                                      } transition-colors`}
-                                    >
-                                      #{o.id}
-                                    </button>
-                                  </td> */}
-                                  {visibleColumns.salesLead && (
-                                    <td className="py-2 pr-4">
-                                      {o.doleSalesLead || o.sales_Lead || "-"}
-                                    </td>
-                                  )}
-                                  {visibleColumns.customerName && (
-                                    <td className="py-2 pr-4 font-medium">
-                                      {o.customerName || o.customer_Name || "-"}
-                                    </td>
-                                  )}
-                                  {visibleColumns.product && (
-                                    <td className="py-2 pr-4">
-                                      {o.product || "-"}
-                                    </td>
-                                  )}
-                                  {visibleColumns.status && (
-                                    <td className="py-2 pr-4">
-                                      <span
-                                        className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
-                                        style={{
-                                          background: `${
-                                            STATUS_COLORS[o.status] || "#999"
-                                          }22`,
-                                          color:
-                                            STATUS_COLORS[o.status] || "#999",
-                                        }}
-                                      >
-                                        {o.status || o.salesStage || "-"}
-                                      </span>
-                                    </td>
-                                  )}
-                                  {visibleColumns.estimatedVolume && (
-                                    <td className="py-2 pr-4">
-                                      {o.estimatedVolume ||
-                                        o.estimated_Volume ||
-                                        "-"}
-                                    </td>
-                                  )}
-                                  {visibleColumns.likelyStartDate && (
-                                    <td className="py-2">
-                                      {o.likely_Start_Date
-                                        ? new Date(
-                                            o.likely_Start_Date
-                                          ).toLocaleDateString()
-                                        : o.likelyStartDate
-                                        ? new Date(
-                                            o.likelyStartDate
-                                          ).toLocaleDateString()
-                                        : new Date(
-                                            o.createdAt
-                                          ).toLocaleDateString()}
-                                    </td>
-                                  )}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          {showModal && (
-                            <div className="fixed inset-0 bg-black/50 flex items-start py-3 justify-center z-50">
-                              <div
-                                className={clsx(
-                                  "w-full max-w-sm rounded-lg shadow-lg p-6",
-                                  isNight
-                                    ? "bg-slate-800 text-white"
-                                    : "bg-white text-gray-800"
-                                )}
-                              >
-                                <h2 className="text-lg font-semibold mb-4">
-                                  Select Visible Columns
-                                </h2>
-                                <div className="space-y-2">
-                                  {Object.keys(visibleColumns).map((key) => (
-                                    <label
-                                      key={key}
-                                      className="flex items-center gap-2 cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={visibleColumns[key]}
-                                        onChange={() => toggleColumn(key)}
-                                      />
-                                      {key
-                                        .replace(/([A-Z])/g, " $1")
-                                        .replace(/^./, (str) =>
-                                          str.toUpperCase()
-                                        )}
-                                    </label>
-                                  ))}
-                                </div>
-
-                                <div className="flex justify-end mt-6 gap-3">
-                                  <button
-                                    onClick={() => setShowModal(false)}
-                                    className={clsx(
-                                      "px-4 py-2 rounded-md text-sm",
-                                      isNight
-                                        ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                                    )}
-                                  >
-                                    Close
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardBody>
-                  </Card>
-                </main>
-              )}
-
-              {route === "admin-page" && (
-                <AdminPage setRoute={setRoute} isNight={isNight} />
-              )}
-              {route === "data-tables-page" && (
-                <DataTablePage setRoute={setRoute} isNight={isNight} />
-              )}
-
-              {
-                route === "masterdata" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <UserRegistrationTable currentUser={currentUser} />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "approvals" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <OverridePriceApprovalRequestsTable
-                      currentUser={currentUser}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "sales-stage" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <SalesStageDataTable
-                      currentUser={currentUser}
-                      setRoute={setRoute}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "product-category" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <ProductCategoryDataTable
-                      currentUser={currentUser}
-                      setRoute={setRoute}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "probability" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <ProbabilityDataTable
-                      currentUser={currentUser}
-                      setRoute={setRoute}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "opportunity-type" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <OpportunityTypeDataTable
-                      currentUser={currentUser}
-                      setRoute={setRoute}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-              {
-                route === "win-lose-codes" && (
-                  // (isAdminUser ? (
-                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
-                    <WinLoseCodesTable
-                      currentUser={currentUser}
-                      setRoute={setRoute}
-                    />
-                  </main>
-                )
-                // ) : (
-                //   <div
-                //     className={`${
-                //       isNight ? "text-white/70" : "text-gray-600"
-                //     } p-6`}
-                //   >
-                //     Not authorized
-                //   </div>
-                // ))
-              }
-
-              {route === "analytics" && (
-                <main className="max-w-7xl mx-auto">
-                  <AnalyticsPage opps={opps} currentUser={currentUser} />
-                </main>
-              )}
-
-              {route === "details" && (
-                <OpportunityDetailsPage
-                  opp={opps.find((o) => o.id === detailId)}
-                  onBack={() => setRoute("opps")}
-                  onSave={(updatedOpp) => {
-                    setOpps((prev) =>
-                      prev.map((o) => (o.id === updatedOpp.id ? updatedOpp : o))
-                    );
-                  }}
-                />
-              )}
-              {route === "add" && (
-                <AddOpportunityPage
-                  onCancel={() => setRoute("dashboard")}
-                  onSave={async (form) => {
-                    await addOpportunity(form);
-                    setRoute("dashboard");
-                  }}
-                  currentUser={currentUser}
-                />
-              )}
-
-              {confirmOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                  <div
-                    className="absolute inset-0 bg.white/10 backdrop-blur-2xl backdrop-saturate-150"
-                    onClick={() => setConfirmOpen(false)}
-                  />
-                  <div
-                    className={`relative w-full max-w-md rounded-3xl ${
-                      isNight
-                        ? "bg-white/10 border-white/20"
-                        : "bg-white/20 border-white/40"
-                    } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden`}
-                  >
-                    <CardHeader
-                      title="Confirm Deletion"
-                      right={
-                        <Button
-                          variant="ghost"
-                          onClick={() => setConfirmOpen(false)}
-                        >
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                    <CardBody>
-                      <p
-                        className={`text-sm ${
-                          isNight ? "text-white/80" : "text-gray-700"
-                        }`}
-                      >
-                        Type <span className="font-semibold">DELETE</span> to
-                        permanently remove{" "}
-                        <span className="font-semibold">
-                          {selectedIds.size}
-                        </span>{" "}
-                        selected opportunit
-                        {selectedIds.size === 1 ? "y" : "ies"}.
-                      </p>
-                      <input
-                        value={confirmText}
-                        onChange={(e) => setConfirmText(e.target.value)}
-                        placeholder="DELETE"
-                        className={`mt-3 w-full rounded-2xl border px-3 py-2 focus:ring-2 outline-none ${
-                          isNight
-                            ? "bg-white/12 border-white/25 text.white focus:ring-[#F6E500]"
-                            : "bg-white/60 focus:ring-[#39B4E8]"
-                        }`}
-                      />
-                      <div className="mt-4 flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => setConfirmOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={performDelete}
-                          disabled={
-                            confirmText !== "DELETE" || selectedIds.size === 0
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" /> Delete
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </div>
-                </div>
-              )}
-
-              <SearchModal
-                isOpen={searchModalOpen}
-                onClose={() => setSearchModalOpen(false)}
-                opps={opps}
-                onViewDetails={(oppId) => {
-                  setDetailId(oppId);
-                  setRoute("details");
-                  setSearchModalOpen(false);
-                }}
-              />
-              <FloatingNav
-                goOpps={() => setRoute("opps")}
-                onGoDashboard={() => setRoute("dashboard")}
-                onSearch={() => setSearchModalOpen(true)}
-                onGoMasterData={() => setRoute("masterdata")}
-                onGoAnalytics={() => setRoute("analytics")}
-                onGoApprovals={() => setRoute("approvals")}
-                onGoAdmin={() => setRoute("admin-page")}
-                onSignOut={() => {
-                  try {
-                    localStorage.removeItem("oppty_user");
-                    localStorage.removeItem("oppty_is_admin");
-                  } catch {}
-                  setCurrentUser("");
-                  setIsAdminUser(false);
-                  setRoute("dashboard");
-                }}
-                isAdminUser={isAdminUser}
-              />
-            </div>
-          </div>
-        )}
-      </ThemeContext.Provider>
-    </div>
-  );
-}
-
 function ConfirmationModal({
   isOpen,
   title = "Approval Required",
@@ -7945,12 +6110,25 @@ function AddOpportunityPage({ onCancel, onSave, currentUser }) {
 function OpportunityDetailsPage({ opp, onBack, onSave }) {
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
+  const [form, setForm] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [currentSection, setCurrentSection] = useState("product");
   const [materials, setMaterials] = useState([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
   const [materialsError, setMaterialsError] = useState(null);
   const [salesStages, setSalesStages] = useState("");
+  const [industrySegment, setIndustrySegment] = useState("");
+  const [probability, setProbability] = useState("");
+  const [opportunityType, setOpportunityType] = useState("");
+  const [productCategory, setProductCategory] = useState("");
+  const [winLoseCode, setWinLoseCode] = useState("");
+  // const [quantityModal, setQuantityModal] = useState(false);
+
+  const isMaterialRequired = form.probability !== "0%";
+  const startDate = form.likely_Start_Date;
+  const volume = form.estimated_Volume;
+
+  console.log({ form });
 
   useEffect(() => {
     async function loadSalesStages() {
@@ -7965,6 +6143,81 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
     }
 
     loadSalesStages();
+  }, []);
+
+  useEffect(() => {
+    async function loadProbability() {
+      try {
+        const res = await apiFetchProbability();
+        const formatted = res.map((item) => item.PROBABILITYPCT);
+        setProbability(formatted);
+      } catch (err) {
+        console.error("Error loading probability:", err);
+        setProbability("");
+      }
+    }
+
+    loadProbability();
+  }, []);
+  useEffect(() => {
+    async function loadProductCategory() {
+      try {
+        const res = await apiFetchProductCategory();
+        console.log(res);
+        const formatted = res.map((item) => item.CATEGORY);
+        setProductCategory(formatted);
+      } catch (err) {
+        console.error("Error loading product category:", err);
+        setProductCategory("");
+      }
+    }
+
+    loadProductCategory();
+  }, []);
+  useEffect(() => {
+    async function loadOpportunityType() {
+      try {
+        const res = await apiFetchOpportunityTypes();
+        console.log(res);
+        const formatted = res.map((item) => item.TYPE);
+        setOpportunityType(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setOpportunityType("");
+      }
+    }
+
+    loadOpportunityType();
+  }, []);
+  useEffect(() => {
+    async function loadWinLoseCodes() {
+      try {
+        const res = await apiFetchWinLoseCodes();
+        console.log(res);
+        const formatted = res.map((item) => item.CODE);
+        setWinLoseCode(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setWinLoseCode("");
+      }
+    }
+
+    loadWinLoseCodes();
+  }, []);
+  useEffect(() => {
+    async function loadIndustrySegment() {
+      try {
+        const res = await apiFetchIndustrySegement();
+        console.log(res);
+        const formatted = res.map((item) => item.SEGMENT);
+        setIndustrySegment(formatted);
+      } catch (err) {
+        console.error("Error loading opportunity type:", err);
+        setIndustrySegment("");
+      }
+    }
+
+    loadIndustrySegment();
   }, []);
 
   const handleAnnual_LTO = (e) => {
@@ -8029,69 +6282,60 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
     if (idx > 0) setCurrentSection(sections[idx - 1].key);
   };
 
-  const [form, setForm] = useState({});
   useEffect(() => {
     if (opp) {
       setForm({
         // Core Details
         opportunity_ID: opp.opportunity_ID || opp.id || "",
-        sales_Lead: opp.sales_Lead || opp.doleSalesLead || "",
-        sales_Team: opp.sales_Team || opp.salesTeam || "",
         customer_Name: opp.customer_Name || opp.customerName || "",
+        sales_Lead: opp.sales_Lead || opp.doleSalesLead || "",
+        broker_Led: opp.broker_Led || "",
+        industry_Segment: opp.industry_Segment || "",
+        sales_Team: opp.sales_Team || opp.salesTeam || "",
         sales_Stage:
           opp.sales_Stage ||
           opp.salesStage ||
           opp.status ||
           "Lead: No Current Product Solution",
+        probability: opp.probability || "",
         opportunity_Type: opp.opportunity_Type || opp.opportunityType || "",
+        product_Category: opp.product_Category || opp.productCategory || "",
+        material_ID: opp.material_ID || opp.materialId || "",
+        material_Desc: opp.material_Desc || "",
+        estimated_Volume: opp.estimated_Volume || opp.estimatedVolume || "",
+        uoM: opp.uoM || opp.uom || "Case",
         opportunity_Summary:
           opp.opportunity_Summary || opp.opportunitySummary || "",
 
         // Product & Material
         product: opp.product || "",
-        material_ID: opp.material_ID || opp.materialId || "",
-        product_Category: opp.product_Category || opp.productCategory || "",
-        base_UoM: opp.base_UoM || opp.materialBaseUnit || "Case",
-        material_Weight: opp.material_Weight || opp.materialNetWeightLbs || "",
-        product_Source_Location:
-          opp.product_Source_Location || opp.productSourceLocation || "",
-        likely_Distributors:
-          opp.likely_Distributors || opp.likelyDistributors || "",
-
-        // Volume & Units
-        estimated_Volume: opp.estimated_Volume || opp.estimatedVolume || "",
-        uoM: opp.uoM || opp.uom || "Case",
         case_Volume_Converted:
           opp.case_Volume_Converted || opp.caseVolume || "",
-        opportunity_Volume_Input: opp.opportunity_Volume_Input || "",
-        days_30_Ship: opp.days_30_Ship || "N",
-
-        // Pricing & Financial Impact
-        material_Price: opp.material_Price || opp.materialProjectedPrice || "",
-        equivalized_Pipeline_LBS:
-          opp.equivalized_Pipeline_LBS || opp.equalizedPipelineLbs || "",
-        pipeline_Projected_Revenue:
-          opp.pipeline_Projected_Revenue ||
-          opp.pipelineProjectedRevenue ||
-          opp.amount ||
-          "",
-
-        // Timing & Lifecycle
+        culinary_Needed: opp.culinary_Needed,
+        base_UoM: opp.base_UoM || opp.materialBaseUnit || "Case",
+        case_Volume: form.case_Volume || "",
+        pound_Volume: form.pound_Volume || "",
+        material_Price: opp.material_Price || "",
+        override_Price: form.override_Price || "",
+        topline_Revenue: form.topline_Revenue || "",
+        ship_DC: form.ship_DC || "",
+        likely_Distributors:
+          opp.likely_Distributors || opp.likelyDistributors || "",
+        annual_Or_LTO: opp.annual_Or_LTO || "Annual",
         likely_Start_Date:
           opp.likely_Start_Date || toISODate(opp.createdAt) || "",
-        annual_Or_LTO: opp.annual_Or_LTO || "Annual",
         end_Date: opp.end_Date || toISODate(opp.closeDate) || "",
         last_Meeting_Date: opp.last_Meeting_Date || "",
-        next_Step_Description: opp.next_Step_Description || "",
-
+        estimated_Close_Date: form.estimated_Close_Date || "",
+        period_Rolling: form.period_Rolling || "",
         // Outcome & Notes
         win_Loss_Reason_Code: opp.win_Loss_Reason_Code || "",
         win_Loss_Comments: opp.win_Loss_Comments || "",
-
-        // Support & Enablement
-        culinary_Needed: opp.culinary_Needed || "N",
-        culinary_Support_Description: opp.culinary_Support_Description || "",
-        culinary_Support_Status: opp.culinary_Support_Status || "",
+        // Customer Details
+        customer_Contact_Name: form.customer_Contact_Name || "",
+        customer_Contact_Title: form.customer_Contact_Title || "",
+        customer_Contact_Email: form.costumer_Contact_Email || "",
+        customer_Contact_Phone: form.customer_Customer_Phone || "",
       });
     }
   }, [opp]);
@@ -8218,63 +6462,19 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <label className="grid gap-1">
               <Label>Customer Name</Label>
-              <Input
-                value={form.customer_Name}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    customer_Name: e.target.value,
-                  }))
-                }
-                disabled={!editMode}
-                readOnly={!editMode}
-              />
-            </label>
-            <label className="grid gap-1">
-              <span className="font-medium">Broker Led</span>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.broker_Led === true}
-                  onChange={() =>
+              {editMode ? (
+                <Input
+                  value={form.customer_Name}
+                  onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      broker_Led: !prev.broker_Led,
+                      customer_Name: e.target.value,
                     }))
                   }
                 />
-              </label>
-            </label>
-            <label className="grid gap-1">
-              <Label>Industry Segment</Label>
-
-              <FrostedSelect
-                value={form.industry_Segment}
-                onChange={(v) =>
-                  setForm((prev) => ({ ...prev, industry_Segment: v }))
-                }
-                // options={salesStages}
-                options={[
-                  "QSR",
-                  "Fast Casual",
-                  "Midscale",
-                  "Fine Dining",
-                  "Casual Dining",
-                  "Business & Industry",
-                  "Lodging",
-                  "Hospital",
-                  "LTC",
-                  "Senior Living",
-                  "K-12 (Education)",
-                  "College & University",
-                  "C-store",
-                  "Sports and Entertainment",
-                  "GPO - Multiple Segments",
-                  "Supermarket Prepared",
-                  "Other",
-                ]}
-                placeholder="Select Industry Segment"
-              />
+              ) : (
+                <Input value={form.customer_Name} disabled readonly />
+              )}
             </label>
             {currentSection === "product" ? (
               <label className="grid gap-1">
@@ -8292,6 +6492,52 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
             ) : (
               ""
             )}
+            <div className="flex items-center gap-1">
+              <label className="flex items-center gap-1 cursor-pointer">
+                {editMode ? (
+                  <Input
+                    type="checkbox"
+                    checked={form.broker_Led === true}
+                    onChange={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        broker_Led: !prev.broker_Led,
+                      }))
+                    }
+                  />
+                ) : (
+                  <Input
+                    type="checkbox"
+                    checked={form.broker_Led === true}
+                    disabled
+                    readonly
+                  />
+                )}
+
+                <Label>Broker Led</Label>
+              </label>
+            </div>
+            <label className="grid gap-1">
+              <Label>Industry Segment</Label>
+              {editMode ? (
+                <FrostedSelect
+                  value={form.industry_Segment}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, industry_Segment: v }))
+                  }
+                  options={salesStages}
+                  placeholder="Select Industry Segment"
+                />
+              ) : (
+                <FrostedSelect
+                  value={form.industry_Segment}
+                  placeholder="Select Industry Segment"
+                  disabled
+                  readonly
+                />
+              )}
+            </label>
+
             {currentSection === "product" ? (
               <label className="grid gap-1">
                 <Label>Sales Team</Label>
@@ -8318,10 +6564,24 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   }
                   options={salesStages}
                   placeholder="Select sales stage"
-                  disabled={!editMode}
                 />
               ) : (
                 <Input value={form.sales_Stage} disabled readOnly />
+              )}
+            </label>
+            <label className="grid gap-1">
+              <Label>Probability</Label>
+              {editMode ? (
+                <FrostedSelect
+                  value={form.probability}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, probability: v }))
+                  }
+                  options={probability}
+                  placeholder="Select Probability"
+                />
+              ) : (
+                <FrostedSelect value={form.probability} />
               )}
             </label>
             <label className="grid gap-1">
@@ -8332,17 +6592,113 @@ function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, opportunity_Type: v }))
                   }
-                  options={[
-                    "New Business",
-                    "Expansion",
-                    "Renewal",
-                    "Replacement",
-                  ]}
-                  disabled={!editMode}
+                  options={opportunityType}
+                  placeholder="Select Opportunit Type"
                 />
               ) : (
-                <Input value={form.opportunity_Type} disabled readOnly />
+                <FrostedSelect value={form.opportunity_Type} />
               )}
+            </label>
+            <label className="grid gap-1">
+              <Label>Product Category</Label>
+              {editMode ? (
+                <FrostedSelect
+                  value={form.product_Category}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, product_Category: v }))
+                  }
+                  options={productCategory}
+                  placeholder="Select Product Category"
+                />
+              ) : (
+                <FrostedSelect value={form.product_Category} />
+              )}
+            </label>
+            <label key="material" className="grid gap-1">
+              <Label>
+                Material ID{" "}
+                {isMaterialRequired && (
+                  <span className="text-red-500 text-sm ml-1">*</span>
+                )}
+              </Label>
+
+              {isLoadingMaterials ? (
+                <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
+                  Loading products...
+                </div>
+              ) : materialsError ? (
+                <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
+                  {materialsError}
+                </div>
+              ) : (
+                <div className="w-full max-w-2xl">
+                  {editMode ? (
+                    <FrostedSelectMaterialID
+                      value={form.material_ID}
+                      onChange={(v) => {
+                        setForm((prev) => ({ ...prev, material_ID: v }));
+
+                        if (v && materials?.length > 0) {
+                          const selectedMaterial = materials.find(
+                            (m) => m.MATERIAL_ID === v
+                          );
+
+                          if (selectedMaterial) {
+                            setForm((prev) => ({
+                              ...prev,
+                              product: v,
+                              material_Desc:
+                                selectedMaterial.PRODUCT?.split("||")[0] || "",
+                              material_ID: selectedMaterial.MATERIAL_ID,
+                              material_Weight: selectedMaterial.MATERIAL_WEIGHT,
+                              product_Category:
+                                selectedMaterial.PRODUCT_CATEGORY,
+                              base_UoM: selectedMaterial.BASE_UOM,
+                              material_Price:
+                                selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                              pipeline_Projected_Revenue: prev.estimated_Volume
+                                ? (
+                                    parseFloat(
+                                      selectedMaterial.MATERIAL_PROJECTED_PRICE ||
+                                        0
+                                    ) * parseFloat(prev.estimated_Volume || 0)
+                                  ).toFixed(2)
+                                : "",
+                            }));
+                          }
+                        }
+                      }}
+                      options={
+                        Array.isArray(materials)
+                          ? materials.map((m) => m.MATERIAL_ID)
+                          : []
+                      }
+                      placeholder={
+                        isMaterialRequired
+                          ? "Select Material ID (Required)"
+                          : "Select Material ID"
+                      }
+                      disabled={isLoadingMaterials}
+                    />
+                  ) : (
+                    <FrostedSelectMaterialID value={form.material_ID} />
+                  )}
+                </div>
+              )}
+
+              {isMaterialRequired && !form.material_ID && (
+                <p className="text-red-500 text-xs mt-1">
+                  * Material ID is required when probability is not 100%
+                </p>
+              )}
+            </label>
+            <label className="grid gap-1">
+              <Label>Material Desc</Label>
+              <Input
+                value={form.material_Desc}
+                placeholder="Material Description"
+                readOnly
+              />
             </label>
             <label className="grid gap-1 md:col-span-3">
               <Label>Opportunity Summary</Label>
@@ -9409,6 +7765,468 @@ function DataTablePage({ setRoute, isNight }) {
   );
 }
 
+function Opportunities({ currentUser, setRoute, isNight, visibleColumns, setVisibleColumns,  opps, setOpps,  }) {
+  const [showModal, setShowModal] = useState(false);
+  const [ownerScope, setOwnerScope] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_ownerScope") || "me";
+    } catch {
+      return "me";
+    }
+  });
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const toggleColumn = (key) => {
+    setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const scopedOpps = useMemo(
+    () =>
+      ownerScope === "me" ? opps.filter((o) => o.owner === currentUser) : opps,
+    [opps, ownerScope, currentUser]
+  );
+
+  const sortedOpportunities = useMemo(() => {
+    if (!sortConfig.key) return scopedOpps;
+
+    const normalizeValue = (item, key) => {
+      switch (key) {
+        case "salesLead":
+          return item.doleSalesLead || item.sales_Lead || "";
+        case "customerName":
+          return item.customerName || item.customer_Name || "";
+        case "estimatedVolume":
+          return item.estimatedVolume || item.estimated_Volume || "";
+        case "likelyStartDate":
+          return (
+            item.likelyStartDate ||
+            item.likely_Start_Date ||
+            item.createdAt ||
+            ""
+          );
+        default:
+          return item[key] || "";
+      }
+    };
+
+    return [...scopedOpps].sort((a, b) => {
+      const aValue = normalizeValue(a, sortConfig.key);
+      const bValue = normalizeValue(b, sortConfig.key);
+
+      // Handle numbers
+      if (!isNaN(aValue) && !isNaN(bValue)) {
+        return sortConfig.direction === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+
+      // Handle dates
+      const dateFormats = [
+        "YYYY-MM-DD",
+        "DD-MM-YYYY",
+        "YYYY/MM/DD",
+        "DD/MM/YYYY",
+        "MM/DD/YYYY",
+      ];
+
+      if (
+        dayjs(aValue, dateFormats, true).isValid() &&
+        dayjs(bValue, dateFormats, true).isValid()
+      ) {
+        const aDate = dayjs(aValue, dateFormats, true);
+        const bDate = dayjs(bValue, dateFormats, true);
+
+        return sortConfig.direction === "asc"
+          ? aDate.diff(bDate)
+          : bDate.diff(aDate);
+      }
+
+      // Handle text (case-insensitive)
+      return sortConfig.direction === "asc"
+        ? String(aValue)
+            .toLowerCase()
+            .localeCompare(String(bValue).toLowerCase())
+        : String(bValue)
+            .toLowerCase()
+            .localeCompare(String(aValue).toLowerCase());
+    });
+  }, [scopedOpps, sortConfig]);
+
+  async function performDelete() {
+    if (confirmText !== "DELETE" || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    setOpps((prev) => prev.filter((o) => !selectedIds.has(o.id)));
+    setConfirmOpen(false);
+    setConfirmText("");
+    setSelectedIds(new Set());
+    try {
+      await apiDeleteOpps(ids);
+    } catch {}
+  }
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <ChevronsUpDown size={14} />;
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
+  };
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+  return (
+    <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+      {confirmOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg.white/10 backdrop-blur-2xl backdrop-saturate-150"
+                    onClick={() => setConfirmOpen(false)}
+                  />
+                  <div
+                    className={`relative w-full max-w-md rounded-3xl ${
+                      isNight
+                        ? "bg-white/10 border-white/20"
+                        : "bg-white/20 border-white/40"
+                    } bg-clip-padding backdrop-blur-xl backdrop-saturate-150 border shadow-[0_16px_40px_rgba(0,0,0,0.20)] overflow-hidden`}
+                  >
+                    <CardHeader
+                      title="Confirm Deletion"
+                      right={
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirmOpen(false)}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    <CardBody>
+                      <p
+                        className={`text-sm ${
+                          isNight ? "text-white/80" : "text-gray-700"
+                        }`}
+                      >
+                        Type <span className="font-semibold">DELETE</span> to
+                        permanently remove{" "}
+                        <span className="font-semibold">
+                          {selectedIds.size}
+                        </span>{" "}
+                        selected opportunit
+                        {selectedIds.size === 1 ? "y" : "ies"}.
+                      </p>
+                      <input
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                        className={`mt-3 w-full rounded-2xl border px-3 py-2 focus:ring-2 outline-none ${
+                          isNight
+                            ? "bg-white/12 border-white/25 text.white focus:ring-[#F6E500]"
+                            : "bg-white/60 focus:ring-[#39B4E8]"
+                        }`}
+                      />
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirmOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={performDelete}
+                          disabled={
+                            confirmText !== "DELETE" || selectedIds.size === 0
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </Button>
+                      </div>
+                    </CardBody>
+                  </div>
+                </div>
+              )}
+      <Card>
+        <CardHeader
+          title="Opportunities"
+          right={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowModal(true)}
+                className={clsx(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition",
+                  isNight
+                    ? "bg-slate-700 hover:bg-slate-600 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                )}
+              >
+                <Settings size={16} />
+              </button>
+              <div
+                className={`rounded-2xl ${
+                  isNight
+                    ? "bg-white/10 border border-white/20"
+                    : "bg-white/40 border border-white/45"
+                } px-1 py-1 text-xs`}
+              >
+                <button
+                  onClick={() => setOwnerScope("me")}
+                  className={`px-3 py-1 rounded-xl transition text-xs ${
+                    ownerScope === "me"
+                      ? isNight
+                        ? "bg-[#F6E500] text-black"
+                        : "bg-[#00205C] text-white"
+                      : "hover:bg-white/10"
+                  }`}
+                >
+                  My
+                </button>
+                <button
+                  onClick={() => setOwnerScope("all")}
+                  className={`px-3 py-1 rounded-xl transition text-xs ${
+                    ownerScope === "all"
+                      ? isNight
+                        ? "bg-[#F6E500] text:black"
+                        : "bg-[#00205C] text-white"
+                      : "hover:bg-white/10"
+                  }`}
+                >
+                  All
+                </button>
+              </div>
+              <Button
+                variant="danger"
+                disabled={selectedIds.size === 0}
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" /> Delete ({selectedIds.size})
+              </Button>
+              <Button variant="ghost" onClick={() => setRoute("dashboard")}>
+                <XIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          }
+        />
+        <CardBody>
+          <div
+            className={`border rounded-2xl ${
+              isNight
+                ? "bg-white/8 border-white/15"
+                : "bg-white/40 border-white/50"
+            } bg-clip-padding backdrop-blur-sm`}
+            style={{ height: "1000px" }}
+          >
+            <div className="overflow-auto scroll-glass h-full">
+              <table className="min-w-full text-sm">
+                <thead className="sticky top-0 z-10">
+                  <tr
+                    className={`${
+                      isNight
+                        ? "text-white/70 bg-slate-800/90"
+                        : "text-gray-600 bg-white/90"
+                    } backdrop-blur-sm`}
+                  >
+                    {/*just hiding Opportunity ID from UI if we want to use them in future can just uncomment this/* <th className="py-2 pr-3 w-8 text-left">
+                                <input
+                                  type="checkbox"
+                                  onChange={toggleSelectAll}
+                                  checked={
+                                    scopedOpps.length > 0 &&
+                                    scopedOpps
+                                      .slice()
+                                      .sort((a, b) => b.createdAt - a.createdAt)
+                                      .every((o) => selectedIds.has(o.id))
+                                  }
+                                />
+                              </th> */}
+                    {/* <th className="py-2 pr-4 text-left">
+                                Opportunity ID
+                              </th> */}
+                    {visibleColumns.salesLead && (
+                      <th onClick={() => handleSort("salesLead")}>
+                        <div className="flex items-center gap-1">
+                          Sales Leads {getSortIcon("salesLead")}
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.customerName && (
+                      <th onClick={() => handleSort("customerName")}>
+                        <div className="flex items-center gap-1">
+                          Customer Name {getSortIcon("customerName")}
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.product && (
+                      <th onClick={() => handleSort("product")}>
+                        <div className="flex items-center gap-1">
+                          Product {getSortIcon("product")}
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.status && (
+                      <th onClick={() => handleSort("status")}>
+                        <div className="flex items-center gap-1">
+                          Status {getSortIcon("status")}
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.estimatedVolume && (
+                      <th onClick={() => handleSort("estimatedVolume")}>
+                        <div className="flex items-center gap-1">
+                          Estimated Volume {getSortIcon("estimatedVolume")}
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.likelyStartDate && (
+                      <th onClick={() => handleSort("likelyStartDate")}>
+                        <div className="flex items-center gap-1">
+                          Likely Start Date {getSortIcon("likelyStartDate")}
+                        </div>
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedOpportunities.map((o) => (
+                    <tr
+                      key={o.id}
+                      className={`border-t ${
+                        isNight
+                          ? "border-white/10 hover:bg-white/5"
+                          : "hover:bg.black/5"
+                      }`}
+                    >
+                      {/* Just hiding the Opportunity ID from UI for now in future if required we can just uncomment
+                                  <td className="py-2 pr-3 w-8">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedIds.has(o.id)}
+                                      onChange={() => toggleSelect(o.id)}
+                                    />
+                                  </td> */}
+                      {/* <td className="py-2 pr-4">
+                                    <button
+                                      onClick={() => {
+                                        setDetailId(o.id);
+                                        setRoute("details"); 
+                                      }}
+                                      className={`${
+                                        isNight
+                                          ? "text-white hover:text-[#F6E500]"
+                                          : "text-gray-900 hover:text-blue-700"
+                                      } transition-colors`}
+                                    >
+                                      #{o.id}
+                                    </button>
+                                  </td> */}
+                      {visibleColumns.salesLead && (
+                        <td className="py-2 pr-4">
+                          {o.doleSalesLead || o.sales_Lead || "-"}
+                        </td>
+                      )}
+                      {visibleColumns.customerName && (
+                        <td className="py-2 pr-4 font-medium">
+                          {o.customerName || o.customer_Name || "-"}
+                        </td>
+                      )}
+                      {visibleColumns.product && (
+                        <td className="py-2 pr-4">{o.product || "-"}</td>
+                      )}
+                      {visibleColumns.status && (
+                        <td className="py-2 pr-4">
+                          <span
+                            className="px-2 py-1 rounded-lg text-xs whitespace-nowrap"
+                            style={{
+                              background: `${
+                                STATUS_COLORS[o.status] || "#999"
+                              }22`,
+                              color: STATUS_COLORS[o.status] || "#999",
+                            }}
+                          >
+                            {o.status || o.salesStage || "-"}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.estimatedVolume && (
+                        <td className="py-2 pr-4">
+                          {o.estimatedVolume || o.estimated_Volume || "-"}
+                        </td>
+                      )}
+                      {visibleColumns.likelyStartDate && (
+                        <td className="py-2">
+                          {o.likely_Start_Date
+                            ? new Date(o.likely_Start_Date).toLocaleDateString()
+                            : o.likelyStartDate
+                            ? new Date(o.likelyStartDate).toLocaleDateString()
+                            : new Date(o.createdAt).toLocaleDateString()}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {showModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-start py-3 justify-center z-50">
+                  <div
+                    className={clsx(
+                      "w-full max-w-sm rounded-lg shadow-lg p-6",
+                      isNight
+                        ? "bg-slate-800 text-white"
+                        : "bg-white text-gray-800"
+                    )}
+                  >
+                    <h2 className="text-lg font-semibold mb-4">
+                      Select Visible Columns
+                    </h2>
+                    <div className="space-y-2">
+                      {Object.keys(visibleColumns).map((key) => (
+                        <label
+                          key={key}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns[key]}
+                            onChange={() => toggleColumn(key)}
+                          />
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end mt-6 gap-3">
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className={clsx(
+                          "px-4 py-2 rounded-md text-sm",
+                          isNight
+                            ? "bg-slate-700 hover:bg-slate-600 text-white"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        )}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </main>
+  );
+}
+
 // ---------------- mockSeed ----------------
 function seedOpps() {
   const now = new Date();
@@ -9945,6 +8763,1295 @@ function seedOpps() {
 
   console.log("Loaded opportunities from dataset:", opportunities.length);
   return opportunities;
+}
+
+export default function App() {
+  const defaultColumns = {
+    salesLead: true,
+    customerName: true,
+    product: true,
+    status: true,
+    estimatedVolume: true,
+    likelyStartDate: true,
+  };
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_user") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [isAdminUser, setIsAdminUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("oppty_is_admin") || "false");
+    } catch {
+      return false;
+    }
+  });
+  const [opps, setOpps] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [route, setRoute] = useState("dashboard");
+  const [detailId, setDetailId] = useState(null);
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_themeMode") || "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const [ownerScope, setOwnerScope] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_ownerScope") || "me";
+    } catch {
+      return "me";
+    }
+  });
+  const [windowMonths, setWindowMonths] = useState(() => {
+    try {
+      return Number(localStorage.getItem("oppty_windowMonths") || 6);
+    } catch {
+      return 6;
+    }
+  });
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    try {
+      return localStorage.getItem("oppty_avatar") || "";
+    } catch {
+      return "";
+    }
+  });
+  const scopedOpps = useMemo(
+    () =>
+      ownerScope === "me" ? opps.filter((o) => o.owner === currentUser) : opps,
+    [opps, ownerScope, currentUser]
+  );
+  const getAutoTheme = () => {
+    const hour = new Date().getHours();
+    return hour >= 7 && hour < 19 ? "sunrise" : "sunset";
+  };
+  const theme = themeMode === "auto" ? getAutoTheme() : themeMode;
+  const kpiTotal = scopedOpps.length;
+  const myOppsOnly = useMemo(
+    () => opps.filter((o) => o.owner === currentUser),
+    [opps, currentUser]
+  );
+  const kpiInStatus = useMemo(
+    () => scopedOpps.filter((o) => o.status === "In Review").length,
+    [scopedOpps]
+  );
+  const trendData = useMemo(() => {
+    const map = new Map();
+    scopedOpps.forEach((o) => {
+      const key = monthKey(o.createdAt);
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return [...map.keys()].sort().map((k) => ({
+      month: formatMonthDisplay(k),
+      monthKey: k,
+      total: map.get(k),
+    }));
+  }, [scopedOpps]);
+  const statusData = useMemo(() => {
+    const m = new Map();
+    scopedOpps.forEach((o) => m.set(o.status, (m.get(o.status) || 0) + 1));
+    return STATUSES.map((s) => ({ name: s, value: m.get(s) || 0 }));
+  }, [scopedOpps]);
+  const latestFive = useMemo(
+    () => pickLatestByCreated(scopedOpps, 5),
+    [scopedOpps]
+  );
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetchOpps();
+      setOpps(
+        (data || []).map((d, i) => ({
+          id: d.id ?? i + 1,
+          title: d.title ?? `Opp ${i + 1}`,
+          amount: Number(d.amount ?? 0),
+          status: d.status ?? STATUSES[0],
+          owner: d.owner ?? currentUser,
+          createdAt: d.createdAt ? new Date(d.createdAt) : new Date(),
+          closeDate: d.closeDate ? new Date(d.closeDate) : new Date(),
+          ...d,
+        }))
+      );
+    } catch (e) {
+      console.error("loadData() failed →", e);
+      setOpps(seedOpps());
+      setError("API unavailable. See console for details.");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+  useEffect(() => {
+    const now = new Date();
+    setSelectedDate(now);
+    try {
+      localStorage.setItem("oppty_selectedDate", now.toISOString());
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("oppty_themeMode", themeMode);
+    } catch {}
+  }, [themeMode]);
+  useEffect(() => {
+    if (themeMode === "auto") {
+      const i = setInterval(
+        () => setThemeMode((p) => (p === "auto" ? "auto" : p)),
+        60000
+      );
+      return () => clearInterval(i);
+    }
+  }, [themeMode]);
+  useEffect(() => {
+    const saved = localStorage.getItem("visibleColumns");
+    if (saved) setVisibleColumns(JSON.parse(saved));
+  }, []);
+
+  // Save preferences whenever changed
+  useEffect(() => {
+    localStorage.setItem("visibleColumns", JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+  useEffect(() => {}, [route]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("oppty_ownerScope", ownerScope);
+    } catch {}
+  }, [ownerScope]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("oppty_windowMonths", String(windowMonths));
+    } catch {}
+  }, [windowMonths]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  console.log({ opps });
+  const isNight = theme === "sunset";
+  const themeChart = isNight
+    ? {
+        chartLine: CHART_COLORS.teal,
+        axisStroke: "rgba(255,255,255,0.7)",
+        gridStroke: "rgba(255,255,255,0.12)",
+        tooltipBg: "rgba(11,23,64,0.90)",
+        tooltipBorder: "1px solid rgba(255,255,255,0.2)",
+        tooltipColor: "#fff",
+      }
+    : {
+        chartLine: CHART_COLORS.teal,
+        axisStroke: CHART_COLORS.grayAxis,
+        gridStroke: "#e5e7eb",
+        tooltipBg: "rgba(255,255,255,0.90)",
+        tooltipBorder: "1px solid rgba(0,0,0,0.06)",
+        tooltipColor: "#111",
+      };
+  const { axisStroke, gridStroke, tooltipBg, tooltipBorder, tooltipColor } =
+    themeChart;
+  const tiles = {
+    welcome: {
+      colLg: 12,
+      rows: 1,
+      render: () => (
+        <Card className="h-full">
+          <CardBody className="h-full flex items-center justify-between gap-4">
+            <WelcomeCard
+              currentUser={currentUser}
+              avatarUrl={avatarUrl}
+              setAvatarUrl={setAvatarUrl}
+              upcomingOpps={myOppsOnly || []}
+            />
+            <img
+              src="/welcome-bg2.png"
+              alt="Welcome"
+              className="h-[136px] w-auto object-contain"
+              style={{ transform: "translate(-15px, 10px)" }}
+            />
+          </CardBody>
+        </Card>
+      ),
+    },
+    kpi_total: {
+      colLg: 3,
+      rows: 1,
+      render: (handle) => (
+        <Card>
+          <CardHeader
+            title="Total Opportunities"
+            dragHandle={<span className="cursor-grab">{handle}</span>}
+          />
+          <CardBody>
+            <div className="mt-2 flex items-end gap-2">
+              <div
+                className={`text-3xl font-bold ${
+                  isNight ? "text-white" : "text-black"
+                }`}
+              >
+                {kpiTotal}
+              </div>
+              <div
+                className={`text-xs ${
+                  isNight ? "text-white/70" : "text-gray-500"
+                }`}
+              >
+                {ownerScope === "me" ? "for you" : "all"}
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      ),
+    },
+    kpi_inreview: {
+      colLg: 3,
+      rows: 1,
+      render: () => (
+        <Card>
+          <CardHeader title="In Review" />
+          <CardBody>
+            <div
+              className={`mt-2 text-3xl font-bold ${
+                isNight ? "text-white" : "text-black"
+              }`}
+            >
+              {kpiInStatus}
+            </div>
+          </CardBody>
+        </Card>
+      ),
+    },
+    kpi_current: {
+      colLg: 3,
+      rows: 1,
+      render: () => (
+        <Card>
+          <CardHeader title="Current Month" />
+          <CardBody>
+            <div className="mt-2 flex items-center gap-2">
+              <TrendingUp
+                className={`${isNight ? "text-white" : ""} h-5 w-5`}
+              />
+              <div
+                className={`text-3xl font-bold ${
+                  isNight ? "text-white" : "text-black"
+                }`}
+              >
+                {trendData.at(-1)?.total ?? 0}
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      ),
+    },
+    kpi_avg: {
+      colLg: 3,
+      rows: 1,
+      render: () => (
+        <Card>
+          <CardHeader title="Avg Deal Size" />
+          <CardBody>
+            <div
+              className={`mt-2 text-3xl font-bold ${
+                isNight ? "text-white" : "text-black"
+              }`}
+            >
+              {"$" +
+                Math.round(
+                  scopedOpps.reduce((s, o) => s + (Number(o.amount) || 0), 0) /
+                    Math.max(1, scopedOpps.length)
+                ).toLocaleString()}
+            </div>
+          </CardBody>
+        </Card>
+      ),
+    },
+    trend: {
+      colLg: 4,
+      rows: 2,
+      render: () => (
+        <Card className="h-full">
+          <CardHeader title="Trend — Opportunities by Month" />
+          <CardBody className="h-full flex flex-col">
+            <div className="flex-1 min-h-0" style={{ height: "250px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={trendData}
+                  margin={{ left: 10, right: 10, top: 10, bottom: 30 }}
+                >
+                  <defs>
+                    <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor={CHART_COLORS.blue}
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={CHART_COLORS.blue}
+                        stopOpacity={0.0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: axisStroke }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    axisLine={{ stroke: axisStroke }}
+                    tickLine={{ stroke: axisStroke }}
+                    tickMargin={6}
+                  />
+                  <YAxis
+                    width={30}
+                    allowDecimals={false}
+                    tick={{ fontSize: 12, fill: axisStroke }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: tooltipBg,
+                      border: tooltipBorder,
+                      borderRadius: 12,
+                      color: tooltipColor,
+                    }}
+                    cursor={{
+                      fill: isNight
+                        ? "rgba(255,255,255,0.05)"
+                        : "rgba(0,0,0,0.02)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke={CHART_COLORS.blue}
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                    fill="url(#colorArea)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardBody>
+        </Card>
+      ),
+    },
+    status: {
+      colLg: 4,
+      rows: 2,
+      render: () => {
+        const size = 160;
+        return (
+          <Card className="h-full">
+            <CardHeader title="Opportunity Status Mix" />
+            <CardBody>
+              <div className="flex items-center gap-4">
+                <div className="shrink-0" style={{ width: size, height: size }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={size / 2 - 35}
+                        outerRadius={size / 2 - 22}
+                        paddingAngle={3}
+                        cornerRadius={10}
+                        strokeWidth={0}
+                      >
+                        {statusData.map((entry, idx) => (
+                          <Cell
+                            key={`c-${idx}`}
+                            fill={STATUS_COLORS[entry.name] || "#e5e7eb"}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: tooltipBg,
+                          border: tooltipBorder,
+                          borderRadius: 12,
+                          color: tooltipColor,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex-1 space-y-2">
+                  {statusData.map((s) => {
+                    const pct = kpiTotal
+                      ? Math.round((Number(s.value) / Number(kpiTotal)) * 100)
+                      : 0;
+                    return (
+                      <div
+                        key={s.name}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              background: STATUS_COLORS[s.name] || "#e5e7eb",
+                            }}
+                          />
+                          <span
+                            className={`${
+                              isNight ? "text-white" : "text-gray-700"
+                            }`}
+                          >
+                            {s.name}
+                          </span>
+                        </div>
+                        <span
+                          className={`${
+                            isNight ? "text-white/70" : "text-gray-500"
+                          }`}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        );
+      },
+    },
+    calendar: {
+      colLg: 4,
+      rows: 2,
+      render: () => {
+        const dataWithRaw = scopedOpps.map((o) => ({
+          name: (o.customerName || o.title || `#${o.id}`)
+            .toString()
+            .slice(0, 18),
+          revenueRaw: Number(
+            o.pipeline_Projected_Revenue ||
+              o.pipelineProjectedRevenue ||
+              o.amount ||
+              0
+          ),
+          priceRaw: Number(o.material_Price || o.materialProjectedPrice || 0),
+        }));
+        const top = dataWithRaw
+          .filter((d) => d.revenueRaw > 0 || d.priceRaw > 0)
+          .sort((a, b) => b.revenueRaw - a.revenueRaw)
+          .slice(0, 7);
+        const maxRev = Math.max(0, ...top.map((d) => d.revenueRaw));
+        const maxPrice = Math.max(0, ...top.map((d) => d.priceRaw));
+        const exponent = 0.55;
+        const radarData = top.map((d) => ({
+          name: d.name,
+          revenue: maxRev
+            ? Math.round(100 * Math.pow(d.revenueRaw / maxRev, exponent))
+            : 0,
+          price: maxPrice
+            ? Math.round(100 * Math.pow(d.priceRaw / maxPrice, exponent))
+            : 0,
+          revenueRaw: d.revenueRaw,
+          priceRaw: d.priceRaw,
+        }));
+        const radarRevenueColor = CHART_COLORS.purple;
+        const radarPriceColor = CHART_COLORS.cyan;
+
+        const RadarTt = ({ active, payload, label }) => {
+          if (!active || !payload?.length) return null;
+          const d = payload[0].payload;
+          return (
+            <div
+              style={{
+                background: tooltipBg,
+                border: tooltipBorder,
+                borderRadius: 12,
+                padding: 8,
+                color: tooltipColor,
+              }}
+            >
+              <div className="font-medium">{label}</div>
+              <div>Revenue: ${Number(d.revenueRaw).toLocaleString()}</div>
+              {d.priceRaw > 0 && (
+                <div>Price: ${Number(d.priceRaw).toLocaleString()}</div>
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <Card className="h-full">
+            <CardHeader
+              title="Financial Impact"
+              right={
+                <TrendingUp
+                  className={`h-4 w-4 ${
+                    isNight ? "text-white/70" : "text-gray-500"
+                  }`}
+                />
+              }
+            />
+            <CardBody className="h-full flex flex-col">
+              {radarData.length === 0 ? (
+                <div
+                  className={`text-sm ${
+                    isNight ? "text-white/70" : "text-gray-600"
+                  }`}
+                >
+                  No financial data available
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0" style={{ height: "250px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart
+                      data={radarData}
+                      outerRadius="85%"
+                      margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
+                      allowDuplicatedCategory
+                    >
+                      <defs>
+                        <linearGradient
+                          id="radarRevenue"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={radarRevenueColor}
+                            stopOpacity={0.35}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={radarRevenueColor}
+                            stopOpacity={0.06}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="radarPrice"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={radarPriceColor}
+                            stopOpacity={0.25}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={radarPriceColor}
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <PolarGrid
+                        gridType="circle"
+                        radialLines={true}
+                        stroke={
+                          isNight
+                            ? "rgba(255,255,255,0.10)"
+                            : "rgba(17,24,39,0.10)"
+                        }
+                      />
+                      <PolarAngleAxis
+                        dataKey="name"
+                        tick={{
+                          fontSize: 10,
+                          fill: isNight
+                            ? "rgba(255,255,255,0.60)"
+                            : "rgba(17,24,39,0.60)",
+                        }}
+                        tickLine={false}
+                      />
+                      <PolarRadiusAxis
+                        domain={[0, 100]}
+                        tickCount={4}
+                        tick={{
+                          fontSize: 9,
+                          fill: isNight
+                            ? "rgba(255,255,255,0.45)"
+                            : "rgba(17,24,39,0.45)",
+                        }}
+                        stroke={
+                          isNight
+                            ? "rgba(255,255,255,0.10)"
+                            : "rgba(17,24,39,0.10)"
+                        }
+                      />
+                      <Radar
+                        name="Revenue"
+                        dataKey="revenue"
+                        stroke={radarRevenueColor}
+                        strokeWidth={2.6}
+                        fill="url(#radarRevenue)"
+                        style={{ mixBlendMode: "multiply" }}
+                        isAnimationActive
+                        animationDuration={600}
+                      />
+                      <Radar
+                        name="Price"
+                        dataKey="price"
+                        stroke={radarPriceColor}
+                        strokeWidth={2}
+                        strokeDasharray="3 3"
+                        fill="url(#radarPrice)"
+                        fillOpacity={0.22}
+                        style={{ mixBlendMode: "multiply" }}
+                        isAnimationActive
+                        animationDuration={600}
+                      />
+                      <Tooltip content={<RadarTt />} />
+                      <Legend
+                        verticalAlign="top"
+                        height={20}
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: 11 }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        );
+      },
+    },
+    gantt: {
+      colLg: 12,
+      rows: 4,
+      render: () => (
+        <Card>
+          <CardHeader title="Timeline — Latest 5 (Created → Close)" />
+          <CardBody>
+            <GanttMonth items={latestFive} monthDate={selectedDate} rows={2} />
+          </CardBody>
+        </Card>
+      ),
+    },
+  };
+  const headerPillCls = (theme) =>
+    theme === "sunset"
+      ? "rounded-2xl bg-white/10 border border-white/20 px-1 py-1 text-xs text-white"
+      : "rounded-2xl bg-white/40 border px-1 py-1 text-xs";
+  const selectedPill = () =>
+    "bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white shadow-md";
+  async function handleSignup(user) {
+    try {
+      await apiCreatePendingUser({
+        ...user,
+        preferredName: user.preferredName || "",
+        isRsm: false,
+        isAll: false,
+        isAdmin: false,
+      });
+      return true;
+    } catch (e) {
+      console.error("Signup error:", e);
+      return e?.message || "Signup failed";
+    }
+  }
+  async function handleLogin(email) {
+    try {
+      const user = await apiGetUserByEmail(email); // returns user or null
+      if (!user) return false;
+      const admin = !!(
+        user.isAdmin === true ||
+        user.isAdmin === 1 ||
+        user.isAdmin === "1"
+      );
+      setCurrentUser(user.email);
+      setIsAdminUser(admin);
+      try {
+        localStorage.setItem("oppty_user", user.email);
+        localStorage.setItem("oppty_is_admin", JSON.stringify(admin));
+      } catch {}
+      setRoute("dashboard");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async function addOpportunity(form) {
+    console.log({ form });
+    const payload = {
+      customerName: form.customer_Name,
+      materialId: form.material_ID,
+      title: form.title || `${form.customer_Name} - ${form.product}`,
+      amount: Number(form.pipeline_Projected_Revenue || form.amount || 0),
+      status:
+        form.sales_Stage || form.status || "Lead: No Current Product Solution",
+      owner: currentUser,
+      closeDate: form.end_Date ? new Date(form.end_Date) : new Date(),
+      opportunity_ID:
+        form.opportunity_ID || Math.max(0, ...opps.map((o) => o.id)) + 1,
+      salesLead: form.sales_Lead,
+      salesTeam: form.sales_Team,
+      salesStage: form.sales_Stage,
+      opportunityType: form.opportunity_Type,
+      opportunitySummary: form.opportunity_Summary,
+      product: form.product,
+      material_ID: form.material_ID,
+      productCategory: form.product_Category,
+      baseUoM: form.base_UoM,
+      materialWeight: form.material_Weight,
+      productSourceLocation: form.product_Source_Location,
+      likelyDistributors: form.likely_Distributors,
+      estimatedVolume: form.estimated_Volume,
+      uoM: form.uoM,
+      caseVolume: form.case_Volume_Converted,
+      opportunityVolumeInput: form.opportunity_Volume_Input,
+      days30Ship: form.days_30_Ship,
+      materialProjectedPrice: form.material_Price,
+      overridePrice: form.override_Price,
+      businessJustification: form.business_justification,
+      equivalizedPipelineLbs: form.equivalized_Pipeline_LBS,
+      pipelineProjectedRevenue: form.pipeline_Projected_Revenue,
+      likelyStartDate: form.likely_Start_Date,
+      annualOrLTO: form.annual_Or_LTO,
+      endDate: form.end_Date,
+      lastMeetingDate: form.last_Meeting_Date,
+      nextStepDescription: form.next_Step_Description,
+      winLossReasonCode: form.win_Loss_Reason_Code,
+      winLossComments: form.win_Loss_Comments,
+      culinaryNeeded: form.culinary_Needed,
+      culinarySupportDescription: form.culinary_Support_Description,
+      culinarySupportStatus: form.culinary_Support_Status,
+      brokerLed: form.broker_Led,
+      materialDesc: form.material_Desc,
+      probability: form.probability,
+      poundVolume: form.pound_Volume,
+    };
+    try {
+      const created = await apiCreateOpp(payload);
+      const createdNorm = {
+        id: created.id ?? Math.max(0, ...opps.map((o) => o.id)) + 1,
+        title: created.title ?? payload.title,
+        amount: Number(created.amount ?? payload.amount),
+        status: created.status ?? payload.status,
+        owner: created.owner ?? payload.owner,
+        createdAt: created.createdAt ? new Date(created.createdAt) : new Date(),
+        closeDate: created.closeDate
+          ? new Date(created.closeDate)
+          : new Date(payload.endDate || Date.now()),
+        customer_Name: created.customerName || created.customer_Name,
+        sales_Lead: created.salesLead || created.sales_Lead,
+        sales_Team: created.salesTeam || created.sales_Team,
+        sales_Stage: created.salesStage || created.sales_Stage,
+        opportunity_Type: created.opportunityType || created.opportunity_Type,
+        product: created.product,
+        material_ID: created.materialId || created.material_ID,
+        estimated_Volume: created.estimatedVolume || created.estimated_Volume,
+        pipeline_Projected_Revenue:
+          created.pipelineProjectedRevenue ||
+          created.pipeline_Projected_Revenue,
+        likely_Start_Date: created.likelyStartDate || created.likely_Start_Date,
+        end_Date: created.endDate || created.end_Date,
+        ...payload,
+        ...created,
+      };
+      setOpps((prev) => [createdNorm, ...prev]);
+      return createdNorm;
+    } catch {
+      const id = Math.max(0, ...opps.map((o) => o.id)) + 1;
+      const createdAt = new Date();
+      const closeDate =
+        form.end_Date ||
+        new Date(
+          createdAt.getFullYear(),
+          createdAt.getMonth(),
+          createdAt.getDate() + 14
+        );
+      const newOpp = {
+        id,
+        createdAt,
+        closeDate,
+        owner: currentUser,
+        title: payload.title,
+        amount: payload.amount,
+        status: payload.status,
+        customer_Name: payload.customerName,
+        sales_Lead: payload.salesLead,
+        sales_Team: payload.salesTeam,
+        product: payload.product,
+        material_ID: payload.materialId,
+        estimated_Volume: payload.estimatedVolume,
+        pipeline_Projected_Revenue: payload.pipelineProjectedRevenue,
+        likely_Start_Date: payload.likelyStartDate,
+        end_Date: payload.endDate,
+        ...payload,
+      };
+      setOpps((prev) => [newOpp, ...prev]);
+      return newOpp;
+    }
+  }
+  return (
+    <div>
+      <ThemeContext.Provider value={theme}>
+        <GlobalStyles />
+        {!currentUser || currentUser.trim() === "" ? (
+          <LoginPage onSubmit={handleLogin} onSignup={handleSignup} />
+        ) : (
+          <div
+            className={`min-h-screen flex ${
+              isNight
+                ? "theme-sunset text-white"
+                : "theme-sunrise text-gray-900"
+            }`}
+            style={{
+              background: isNight
+                ? `radial-gradient(1000px 700px at 15% -10%, rgba(0,20,137,0.35), transparent 60%), radial-gradient(900px 600px at 90% 110%, rgba(200,16,46,0.25), transparent 55%), linear-gradient(180deg, #0b1740 0%, #030817 100%)`
+                : `radial-gradient(1000px 700px at 12% -5%, rgba(57,180,232,0.10), transparent 60%), radial-gradient(900px 600px at 88% 105%, rgba(0,32,92,0.08), transparent 55%)`,
+            }}
+          >
+            <div className="flex-1 min-w-0 w-full">
+              <header
+                className={`sticky top-0 z-10 ${
+                  isNight ? "bg-[#0b1740]/50" : "bg-white/30"
+                } backdrop-blur-xl ${
+                  isNight ? "" : "border-b border-white/45"
+                } ${isNight ? "" : "shadow-[0_1px_0_rgba(255,255,255,0.6)]"}`}
+              >
+                <div
+                  className={`h-1 w-full ${
+                    isNight
+                      ? "bg-gradient-to-r from-[#C8102E] via-[#F6E500] to-transparent"
+                      : "bg-gradient-to-r from-[#F6E500] via-[#39B4E8] to-transparent"
+                  }`}
+                />
+                <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/vector.png"
+                      alt="Vector"
+                      className="h-16 cursor-pointer transition-transform hover:scale-105 relative top-[2px]"
+                      onClick={() => setRoute("dashboard")}
+                      title="Go to Dashboard"
+                    />
+                    <div>
+                      <div className="text-left">
+                        <h1
+                          className={`text-2xl md:text-3xl font-semibold tracking-tight ${
+                            isNight ? "text-white" : ""
+                          }`}
+                        >
+                          Vector
+                        </h1>
+                        <h2
+                          className={`text-sm md:text-base font-medium tracking-wide mt-1 ${
+                            isNight ? "text-white/80" : "text-gray-600"
+                          }`}
+                        >
+                          Your Opportunity Pipeline Hub
+                        </h2>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`${headerPillCls(theme)} relative group`}>
+                      {[
+                        {
+                          k: "auto",
+                          icon: <Clock className="h-3.5 w-3.5" />,
+                          tooltip: "Auto (7AM-7PM: Day, 7PM-7AM: Night)",
+                        },
+                        {
+                          k: "sunrise",
+                          icon: <Sun className="h-3.5 w-3.5" />,
+                          tooltip: "Sunrise theme",
+                        },
+                        {
+                          k: "sunset",
+                          icon: <Moon className="h-3.5 w-3.5" />,
+                          tooltip: "Sunset theme",
+                        },
+                      ].map((opt) => (
+                        <button
+                          key={opt.k}
+                          onClick={() => setThemeMode(opt.k)}
+                          className={`p-1.5 rounded-xl inline-flex items-center justify-center transition ${
+                            themeMode === opt.k
+                              ? selectedPill(theme)
+                              : "hover:bg-white/10"
+                          } group/btn relative`}
+                        >
+                          {opt.icon}
+                          <div
+                            className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
+                              isNight
+                                ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
+                                : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
+                            } shadow-lg z-50`}
+                          >
+                            {opt.tooltip}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {route === "dashboard" && (
+                      <>
+                        <div
+                          className={`${headerPillCls(theme)} relative group`}
+                        >
+                          {[
+                            {
+                              k: "me",
+                              label: "My",
+                              tooltip: "My Opportunities",
+                            },
+                            {
+                              k: "all",
+                              label: "All",
+                              tooltip: "All Opportunities",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.k}
+                              onClick={() => setOwnerScope(opt.k)}
+                              className={`px-3 py-1 rounded-xl transition text-xs ${
+                                ownerScope === opt.k
+                                  ? selectedPill(theme)
+                                  : "hover:bg-white/10"
+                              } group/btn relative`}
+                            >
+                              {opt.label}
+                              <div
+                                className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
+                                  isNight
+                                    ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
+                                    : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
+                                } shadow-lg z-50`}
+                              >
+                                {opt.tooltip}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {route === "dashboard" && (
+                      <div className={`${headerPillCls(theme)} relative group`}>
+                        {[
+                          { value: 3, label: "3M", tooltip: "3 Months" },
+                          { value: 6, label: "6M", tooltip: "6 Months" },
+                          { value: 12, label: "12M", tooltip: "12 Months" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setWindowMonths(opt.value)}
+                            className={`px-3 py-1 rounded-xl transition text-xs ${
+                              windowMonths === opt.value
+                                ? selectedPill(theme)
+                                : "hover:bg-white/10"
+                            } group/btn relative`}
+                          >
+                            {opt.label}
+                            <div
+                              className={`pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity ${
+                                isNight
+                                  ? "bg-white/15 border border-white/25 text-white backdrop-blur-xl"
+                                  : "bg-white/70 border border-white/50 text-gray-900 backdrop-blur-xl"
+                              } shadow-lg z-50`}
+                            >
+                              {opt.tooltip}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {route !== "add" && (
+                      <>
+                        <Button onClick={() => setRoute("add")}>
+                          <Plus className="h-4 w-4" />{" "}
+                          <span className="hidden sm:inline">
+                            Add Opportunity
+                          </span>
+                        </Button>
+                        <Button onClick={() => setSearchModalOpen(true)}>
+                          <Search className="h-4 w-4" /> Search
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {error && (
+                  <div
+                    className={`max-w-6xl mx-auto px-6 pb-2 text-xs ${
+                      isNight ? "text-amber-200" : "text-amber-700"
+                    }`}
+                  >
+                    {error}
+                  </div>
+                )}
+              </header>
+
+              {route === "dashboard" && (
+                <main className="max-w-6xl mx-auto px-6 py-6">
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1">
+                      {tiles.welcome.render()}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      {tiles.kpi_total.render()}
+                      {tiles.kpi_inreview.render()}
+                      {tiles.kpi_current.render()}
+                      {tiles.kpi_avg.render()}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {tiles.trend.render()}
+                      {tiles.calendar.render()}
+                      {tiles.status.render()}
+                    </div>
+                    <div className="grid grid-cols-1">
+                      {tiles.gantt.render()}
+                    </div>
+                  </div>
+                  {loading && (
+                    <div
+                      className={`text-xs mt-4 ${
+                        isNight ? "text-white/70" : "text-gray-600"
+                      }`}
+                    >
+                      Loading…
+                    </div>
+                  )}
+                </main>
+              )}
+
+              {route === "opps" && (
+                <Opportunities
+                currentUser={currentUser}
+                  setRoute={setRoute}
+                  isNight={isNight}
+                  visibleColumns={visibleColumns}
+                  setVisibleColumns={setVisibleColumns}
+                  opps={opps}
+                  setOpps={setOpps}
+                />
+                
+              )}
+
+              {route === "admin-page" && (
+                <AdminPage setRoute={setRoute} isNight={isNight} />
+              )}
+              {route === "data-tables-page" && (
+                <DataTablePage setRoute={setRoute} isNight={isNight} />
+              )}
+
+              {
+                route === "masterdata" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <UserRegistrationTable currentUser={currentUser} />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "approvals" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <OverridePriceApprovalRequestsTable
+                      currentUser={currentUser}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "sales-stage" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <SalesStageDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "product-category" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <ProductCategoryDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "probability" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <ProbabilityDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "opportunity-type" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <OpportunityTypeDataTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+              {
+                route === "win-lose-codes" && (
+                  // (isAdminUser ? (
+                  <main className="max-w-6xl mx-auto px-6 py-6 grid gap-6">
+                    <WinLoseCodesTable
+                      currentUser={currentUser}
+                      setRoute={setRoute}
+                    />
+                  </main>
+                )
+                // ) : (
+                //   <div
+                //     className={`${
+                //       isNight ? "text-white/70" : "text-gray-600"
+                //     } p-6`}
+                //   >
+                //     Not authorized
+                //   </div>
+                // ))
+              }
+
+              {route === "analytics" && (
+                <main className="max-w-7xl mx-auto">
+                  <AnalyticsPage opps={opps} currentUser={currentUser} />
+                </main>
+              )}
+
+              {route === "details" && (
+                <OpportunityDetailsPage
+                  opp={opps.find((o) => o.id === detailId)}
+                  onBack={() => setRoute("opps")}
+                  onSave={(updatedOpp) => {
+                    setOpps((prev) =>
+                      prev.map((o) => (o.id === updatedOpp.id ? updatedOpp : o))
+                    );
+                  }}
+                />
+              )}
+              {route === "add" && (
+                <AddOpportunityPage
+                  onCancel={() => setRoute("dashboard")}
+                  onSave={async (form) => {
+                    await addOpportunity(form);
+                    setRoute("dashboard");
+                  }}
+                  currentUser={currentUser}
+                />
+              )}
+
+              <SearchModal
+                isOpen={searchModalOpen}
+                onClose={() => setSearchModalOpen(false)}
+                opps={opps}
+                onViewDetails={(oppId) => {
+                  setDetailId(oppId);
+                  setRoute("details");
+                  setSearchModalOpen(false);
+                }}
+              />
+              <FloatingNav
+                goOpps={() => setRoute("opps")}
+                onGoDashboard={() => setRoute("dashboard")}
+                onSearch={() => setSearchModalOpen(true)}
+                onGoMasterData={() => setRoute("masterdata")}
+                onGoAnalytics={() => setRoute("analytics")}
+                onGoApprovals={() => setRoute("approvals")}
+                onGoAdmin={() => setRoute("admin-page")}
+                onSignOut={() => {
+                  try {
+                    localStorage.removeItem("oppty_user");
+                    localStorage.removeItem("oppty_is_admin");
+                  } catch {}
+                  setCurrentUser("");
+                  setIsAdminUser(false);
+                  setRoute("dashboard");
+                }}
+                isAdminUser={isAdminUser}
+              />
+            </div>
+          </div>
+        )}
+      </ThemeContext.Provider>
+    </div>
+  );
 }
 
 // ---------------- Lightweight runtime self-checks ("tests") ----------------
