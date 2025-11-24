@@ -1,7 +1,15 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { ThemeContext } from "../App";
-import { apiFetchIndustrySegement, apiFetchMaterials, apiFetchOpportunityTypes, apiFetchProbability, apiFetchProductCategory, apiFetchSalesStage, apiFetchWinLoseCodes } from "../api";
-import { toISODate } from "../utils";
+import {
+  apiFetchIndustrySegement,
+  apiFetchMaterials,
+  apiFetchOpportunityTypes,
+  apiFetchProbability,
+  apiFetchProductCategory,
+  apiFetchSalesStage,
+  apiFetchWinLoseCodes,
+} from "../api";
+import { getLastUpdated, toISODate } from "../utils";
 import { Card } from "../ui/common/Card";
 import { CardBody } from "../ui/common/CardBody";
 import { Button } from "../ui/common/Button";
@@ -12,6 +20,8 @@ import { FrostedSelect } from "../ui/common/FrostedSelect";
 import { FrostedSelectMaterialID } from "../ui/common/FrostedSelectMaterialID";
 import { Textarea } from "../ui/common/Textarea";
 import { FrostedDate } from "../ui/common/FrostedDate";
+import { ConfirmationModal } from "./ConfirmationModal";
+import { QuantityModal } from "./QuantityModal";
 
 export function OpportunityDetailsPage({ opp, onBack, onSave }) {
   const theme = useContext(ThemeContext);
@@ -28,7 +38,10 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
   const [opportunityType, setOpportunityType] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [winLoseCode, setWinLoseCode] = useState("");
-  // const [quantityModal, setQuantityModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [pendingValue, setPendingValue] = useState("");
+  const [errors, setErrors] = useState({});
+  const [quantityModal, setQuantityModal] = useState(false);
 
   const isMaterialRequired = form.probability !== "0%";
   const startDate = form.likely_Start_Date;
@@ -126,6 +139,16 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
     loadIndustrySegment();
   }, []);
 
+  const handleOverrideChange = () => {
+    const override = parseFloat(form.override_Price);
+    const projected = parseFloat(form.material_Price);
+    setPendingValue(override);
+
+    if (override < projected && form.business_justification) {
+      setShowModal((prev) => !prev);
+    }
+  };
+
   const handleAnnual_LTO = (e) => {
     const startDate = typeof e === "string" ? e : e?.target?.value;
     if (!startDate) return;
@@ -142,6 +165,13 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
       end_Date: prev.annual_Or_LTO === "Annual" ? formattedEnd : "",
     }));
   };
+
+  const handleTotalUpdate = (newTotal) => {
+    setForm((prev) => ({
+      ...prev,
+      estimated_Volume: newTotal,  
+    }));       
+};
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -356,31 +386,27 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
 
           <div className="text-right px-3 py-2 rounded-lg transition-colors">
             <h3 className="text-lg font-semibold leading-tight">
-              Opportunity ID: <span className="text-blue-600">#123</span>
+              Opportunity ID: <span className="text-blue-600">{opp.id}</span>
             </h3>
 
-            <h4 className="text-xs mt-1 opacity-80">
-              Last updated: Sep 12, 2025 · 3:45 PM
-            </h4>
+            <h4 className="text-xs mt-1 opacity-80">{getLastUpdated()}</h4>
           </div>
         </div>
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <label className="grid gap-1">
               <Label>Customer Name</Label>
-              {editMode ? (
-                <Input
-                  value={form.customer_Name}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      customer_Name: e.target.value,
-                    }))
-                  }
-                />
-              ) : (
-                <Input value={form.customer_Name} disabled readonly />
-              )}
+              <Input
+                value={form.customer_Name}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    customer_Name: e.target.value,
+                  }))
+                }
+                disabled={!editMode}
+                readOnly={!editMode}
+              />
             </label>
             {currentSection === "product" ? (
               <label className="grid gap-1">
@@ -400,48 +426,33 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
             )}
             <div className="flex items-center gap-1">
               <label className="flex items-center gap-1 cursor-pointer">
-                {editMode ? (
-                  <Input
-                    type="checkbox"
-                    checked={form.broker_Led === true}
-                    onChange={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        broker_Led: !prev.broker_Led,
-                      }))
-                    }
-                  />
-                ) : (
-                  <Input
-                    type="checkbox"
-                    checked={form.broker_Led === true}
-                    disabled
-                    readonly
-                  />
-                )}
-
+                <Input
+                  type="checkbox"
+                  checked={form.broker_Led === true}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      broker_Led: !prev.broker_Led,
+                    }))
+                  }
+                  disabled={!editMode}
+                  readOnly={!editMode}
+                />
                 <Label>Broker Led</Label>
               </label>
             </div>
             <label className="grid gap-1">
               <Label>Industry Segment</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.industry_Segment}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, industry_Segment: v }))
-                  }
-                  options={industrySegment}
-                  placeholder="Select Industry Segment"
-                />
-              ) : (
-                <FrostedSelect
-                  value={form.industry_Segment}
-                  placeholder="Select Industry Segment"
-                  disabled
-                  readonly
-                />
-              )}
+              <FrostedSelect
+                value={form.industry_Segment}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, industry_Segment: v }))
+                }
+                options={industrySegment}
+                placeholder="Select Industry Segment"
+                disabled={!editMode}
+                readOnly={!editMode}
+              />
             </label>
 
             {currentSection === "product" ? (
@@ -462,63 +473,55 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
 
             <label className="grid gap-1">
               <Label>Sales Stage</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.sales_Stage}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, sales_Stage: v }))
-                  }
-                  options={salesStages}
-                  placeholder="Select sales stage"
-                />
-              ) : (
-                <Input value={form.sales_Stage} disabled readOnly />
-              )}
+              <FrostedSelect
+                value={form.sales_Stage}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, sales_Stage: v }))
+                }
+                options={salesStages}
+                placeholder="Select sales stage"
+                disabled={!editMode}
+                readOnly={!editMode}
+              />
             </label>
             <label className="grid gap-1">
               <Label>Probability</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.probability}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, probability: v }))
-                  }
-                  options={probability}
-                  placeholder="Select Probability"
-                />
-              ) : (
-                <FrostedSelect value={form.probability} />
-              )}
+              <FrostedSelect
+                value={form.probability}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, probability: v }))
+                }
+                options={probability}
+                placeholder="Select Probability"
+                readOnly={!editMode}
+                disabled={!editMode}
+              />
             </label>
             <label className="grid gap-1">
               <Label>Opportunity Type</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.opportunity_Type}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, opportunity_Type: v }))
-                  }
-                  options={opportunityType}
-                  placeholder="Select Opportunit Type"
-                />
-              ) : (
-                <FrostedSelect value={form.opportunity_Type} />
-              )}
+              <FrostedSelect
+                value={form.opportunity_Type}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, opportunity_Type: v }))
+                }
+                options={opportunityType}
+                placeholder="Select Opportunit Type"
+                readOnly={!editMode}
+                disabled={!editMode}
+              />
             </label>
             <label className="grid gap-1">
               <Label>Product Category</Label>
-              {editMode ? (
-                <FrostedSelect
-                  value={form.product_Category}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, product_Category: v }))
-                  }
-                  options={productCategory}
-                  placeholder="Select Product Category"
-                />
-              ) : (
-                <FrostedSelect value={form.product_Category} />
-              )}
+              <FrostedSelect
+                value={form.product_Category}
+                onChange={(v) =>
+                  setForm((prev) => ({ ...prev, product_Category: v }))
+                }
+                options={productCategory}
+                placeholder="Select Product Category"
+                readOnly={!editMode}
+                disabled={!editMode}
+              />
             </label>
             <label key="material" className="grid gap-1">
               <Label>
@@ -538,57 +541,53 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                 </div>
               ) : (
                 <div className="w-full max-w-2xl">
-                  {editMode ? (
-                    <FrostedSelectMaterialID
-                      value={form.material_ID}
-                      onChange={(v) => {
-                        setForm((prev) => ({ ...prev, material_ID: v }));
+                  <FrostedSelectMaterialID
+                    value={form.material_ID}
+                    onChange={(v) => {
+                      setForm((prev) => ({ ...prev, material_ID: v }));
 
-                        if (v && materials?.length > 0) {
-                          const selectedMaterial = materials.find(
-                            (m) => m.MATERIAL_ID === v
-                          );
+                      if (v && materials?.length > 0) {
+                        const selectedMaterial = materials.find(
+                          (m) => m.MATERIAL_ID === v
+                        );
 
-                          if (selectedMaterial) {
-                            setForm((prev) => ({
-                              ...prev,
-                              product: v,
-                              material_Desc:
-                                selectedMaterial.PRODUCT?.split("||")[0] || "",
-                              material_ID: selectedMaterial.MATERIAL_ID,
-                              material_Weight: selectedMaterial.MATERIAL_WEIGHT,
-                              product_Category:
-                                selectedMaterial.PRODUCT_CATEGORY,
-                              base_UoM: selectedMaterial.BASE_UOM,
-                              material_Price:
-                                selectedMaterial.MATERIAL_PROJECTED_PRICE,
-                              pipeline_Projected_Revenue: prev.estimated_Volume
-                                ? (
-                                    parseFloat(
-                                      selectedMaterial.MATERIAL_PROJECTED_PRICE ||
-                                        0
-                                    ) * parseFloat(prev.estimated_Volume || 0)
-                                  ).toFixed(2)
-                                : "",
-                            }));
-                          }
+                        if (selectedMaterial) {
+                          setForm((prev) => ({
+                            ...prev,
+                            product: v,
+                            material_Desc:
+                              selectedMaterial.PRODUCT?.split("||")[0] || "",
+                            material_ID: selectedMaterial.MATERIAL_ID,
+                            material_Weight: selectedMaterial.MATERIAL_WEIGHT,
+                            product_Category: selectedMaterial.PRODUCT_CATEGORY,
+                            base_UoM: selectedMaterial.BASE_UOM,
+                            material_Price:
+                              selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                            pipeline_Projected_Revenue: prev.estimated_Volume
+                              ? (
+                                  parseFloat(
+                                    selectedMaterial.MATERIAL_PROJECTED_PRICE ||
+                                      0
+                                  ) * parseFloat(prev.estimated_Volume || 0)
+                                ).toFixed(2)
+                              : "",
+                          }));
                         }
-                      }}
-                      options={
-                        Array.isArray(materials)
-                          ? materials.map((m) => m.MATERIAL_ID)
-                          : []
                       }
-                      placeholder={
-                        isMaterialRequired
-                          ? "Select Material ID (Required)"
-                          : "Select Material ID"
-                      }
-                      disabled={isLoadingMaterials}
-                    />
-                  ) : (
-                    <FrostedSelectMaterialID value={form.material_ID} />
-                  )}
+                    }}
+                    options={
+                      Array.isArray(materials)
+                        ? materials.map((m) => m.MATERIAL_ID)
+                        : []
+                    }
+                    placeholder={
+                      isMaterialRequired
+                        ? "Select Material ID (Required)"
+                        : "Select Material ID"
+                    }
+                    disabled={isLoadingMaterials || !editMode}
+                    readOnly={!editMode}
+                  />
                 </div>
               )}
 
@@ -604,6 +603,34 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                 value={form.material_Desc}
                 placeholder="Material Description"
                 readOnly
+                disabled
+              />
+            </label>
+            <label className="grid gap-1">
+              <Label>Volume</Label>
+              <Input
+                type="number"
+                value={form.estimated_Volume}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    estimated_Volume: e.target.value,
+                  }))
+                }
+                placeholder="Enter volume"
+                readOnly={!editMode}
+                disabled={!editMode}
+              />
+            </label>
+            <label className="grid gap-1">
+              <Label>UoM</Label>
+              <FrostedSelect
+                value={form.base_UoM}
+                onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
+                options={["Case", "LBS"]}
+                placeholder="Select UOM"
+                disabled={!editMode}
+                readOnly={!editMode}
               />
             </label>
             <label className="grid gap-1 md:col-span-3">
@@ -634,154 +661,68 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
         />
         <CardBody>
           {currentSection === "product" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Product</Label>
-                {editMode ? (
-                  isLoadingMaterials ? (
-                    <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
-                      Loading products...
-                    </div>
-                  ) : materialsError ? (
-                    <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
-                      {materialsError}
-                    </div>
-                  ) : (
-                    <FrostedSelect
-                      value={form.product}
-                      onChange={(v) => {
-                        setForm((prev) => ({ ...prev, product: v }));
-                        if (v && materials.length > 0) {
-                          const selectedMaterial = materials.find(
-                            (m) => m.PRODUCT === v
-                          );
-                          if (selectedMaterial) {
-                            setForm((prev) => ({
-                              ...prev,
-                              product: v,
-                              material_ID: selectedMaterial.MATERIAL_ID,
-                              material_Weight: selectedMaterial.MATERIAL_WEIGHT,
-                              product_Category:
-                                selectedMaterial.PRODUCT_CATEGORY,
-                              base_UoM: selectedMaterial.BASE_UOM,
-                              material_Price: selectedMaterial.material_Price,
-                              pipeline_Projected_Revenue: prev.estimated_Volume
-                                ? (
-                                    parseFloat(
-                                      selectedMaterial.material_Price
-                                    ) * parseFloat(prev.estimated_Volume)
-                                  ).toFixed(2)
-                                : prev.pipeline_Projected_Revenue,
-                            }));
-                          }
-                        }
-                      }}
-                      options={productList}
-                      disabled={!editMode || isLoadingMaterials}
-                    />
-                  )
-                ) : (
-                  <Input value={form.product} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>Material ID</Label>
-                <Input
-                  value={form.material_ID}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      material_ID: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Product Category</Label>
-                {editMode ? (
-                  <FrostedSelect
-                    value={form.product_Category}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, product_Category: v }))
-                    }
-                    options={[
-                      "",
-                      "Snacking",
-                      "Beverage",
-                      "Pantry",
-                      "Frozen",
-                      "Other",
-                    ]}
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.product_Category} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>Base UoM</Label>
-                {editMode ? (
-                  <FrostedSelect
-                    value={form.base_UoM}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, base_UoM: v }))
-                    }
-                    options={["Case", "Pound"]}
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.base_UoM} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>Material Weight</Label>
-                <Input
-                  type="number"
-                  value={form.material_Weight}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      material_Weight: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Product Source Location</Label>
-                <Input
-                  value={form.product_Source_Location}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      product_Source_Location: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Likely Distributors</Label>
-                <Input
-                  value={form.likely_Distributors}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      likely_Distributors: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                />
-              </label>
-            </div>
-          )}
-
-          {currentSection === "volume" && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <label className="grid gap-1">
+                          <Label>Material ID</Label>
+                          <Input
+                            value={form.material_ID}
+                            placeholder="Material ID"
+                            readOnly
+                            disabled
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <Label>Material Description</Label>
+                          <Input
+                            value={form.material_Desc}
+                            placeholder="Material Description"
+                            readOnly
+                            disabled
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <Label>Category</Label>
+                          <Input
+                            value={form.product_Category}
+                            placeholder="Category"
+                            readOnly
+                            disabled
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <Label>Case Weight</Label>
+                          <Input
+                            type="number"
+                            value={form.material_Weight}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                material_Weight: e.target.value,
+                              }))
+                            }
+                            placeholder="Case Weight"
+                            readOnly
+                            disabled
+                          />
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={form.culinary_Needed === true}
+                              onChange={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  culinary_Needed: !prev.culinary_Needed,
+                                }))
+                              }
+                            />
+                            <Label>Culinary Needed</Label>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+          {currentSection === "volume_pricing" && (
             <div className="grid md:grid-cols-2 gap-4">
               <label className="grid gap-1">
                 <Label>Estimated Volume</Label>
@@ -799,20 +740,21 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Unit of Measure</Label>
+                <Label>Base UOM</Label>
                 {editMode ? (
                   <FrostedSelect
                     value={form.uoM}
                     onChange={(v) => setForm((prev) => ({ ...prev, uoM: v }))}
-                    options={["Case", "Pallet", "Each", "Pound", "Kilogram"]}
+                    options={["Case", "LBS"]}
                     disabled={!editMode}
+                    readOnly={!editMode}
                   />
                 ) : (
                   <Input value={form.uoM} disabled readOnly />
                 )}
               </label>
               <label className="grid gap-1">
-                <Label>Case Volume (Converted)</Label>
+                <Label>Case Volume</Label>
                 <Input
                   type="number"
                   value={form.case_Volume_Converted}
@@ -827,46 +769,23 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                 />
               </label>
               <label className="grid gap-1">
-                <Label>Opportunity Volume Input</Label>
+                <Label>Pound Volume</Label>
                 <Input
                   type="number"
-                  value={form.opportunity_Volume_Input}
+                  value={form.pound_Volume}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      opportunity_Volume_Input: e.target.value,
+                      pound_Volume: e.target.value,
                     }))
                   }
+                  placeholder="0.00"
                   disabled={!editMode}
                   readOnly={!editMode}
                 />
               </label>
               <label className="grid gap-1">
-                <Label>30 Days Ship</Label>
-                {editMode ? (
-                  <FrostedSelect
-                    value={form.days_30_Ship}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, days_30_Ship: v }))
-                    }
-                    options={["Y", "N"]}
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input
-                    value={form.days_30_Ship === "Y" ? "Yes" : "No"}
-                    disabled
-                    readOnly
-                  />
-                )}
-              </label>
-            </div>
-          )}
-
-          {currentSection === "pricing" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Material Projected Price</Label>
+                <Label>Material Price</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
                     $
@@ -881,124 +800,217 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                       }))
                     }
                     className="pl-6"
-                    disabled={!editMode}
-                    readOnly={!editMode}
+                    placeholder="0.00"
+                    readOnly
+                    disabled
                   />
                 </div>
               </label>
               <label className="grid gap-1">
-                <Label>Equivalized Pipeline LBS</Label>
-                <Input
-                  type="number"
-                  value={form.equivalized_Pipeline_LBS}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      equivalized_Pipeline_LBS: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                />
-              </label>
-              <label className="grid gap-1">
-                <Label>Pipeline Projected Revenue</Label>
+                <Label>Override Price</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70">
                     $
                   </span>
                   <Input
                     type="number"
-                    value={form.pipeline_Projected_Revenue}
+                    value={form.override_Price}
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        pipeline_Projected_Revenue: e.target.value,
+                        override_Price: e.target.value,
                       }))
                     }
                     className="pl-6"
-                    disabled={!editMode}
+                    placeholder="0.00"
                     readOnly={!editMode}
+                    disabled={!editMode}
                   />
+                </div>
+              </label>
+              {!isNaN(Number(form.override_Price)) &&
+                !isNaN(Number(form.material_Price)) &&
+                Number(form.override_Price) > 0 &&
+                Number(form.override_Price) < Number(form.material_Price) && (
+                  <label className="grid gap-1 md:col-span-2">
+                    <Label>Business Justification</Label>
+                    <Textarea
+                      value={form.business_justification}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          business_justification: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your reason"
+                      rows={3}
+                      disabled={!editMode}
+                      readOnly={!editMode}
+                    />
+                  </label>
+                )}
+              <label className="grid gap-1">
+                <Label>Topline Revenue</Label>
+                <Input
+                  type="number"
+                  value={form.topline_Revenue}
+                  placeholder="$0.00"
+                  readOnly={!editMode}
+                  disabled={!editMode}
+                />
+              </label>
+            </div>
+          )}
+
+          <ConfirmationModal
+            isOpen={showModal}
+            title="Approval Required"
+            message="Entered price is less than the projected price. This requires approval from an approver."
+            onConfirm={() => {
+              handleOverrideChange();
+              setShowModal(false);
+              goToNextSection();
+            }}
+            onCancel={() => {
+              setShowModal(false);
+            }}
+          />
+
+{currentSection === "location_timing" && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <label className="grid gap-1">
+                <Label>Ship DC</Label>
+                <FrostedSelect
+                  value={form.ship_DC}
+                  onChange={(v) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      ship_DC: v,
+                    }));
+                  }}
+                  options={["India", "USA", "Japan"]}
+                  placeholder="Select DC Location"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Likely Distributors</Label>
+                <Input
+                  value={form.likely_Distributors}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      likely_Distributors: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="grid gap-1">
+                <Label>Annual or LTO</Label>
+                <FrostedSelect
+                  value={form.annual_Or_LTO}
+                  onChange={(v) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      annual_Or_LTO: v,
+
+                      end_Date: v === "Annual" ? "" : prev.end_Date,
+                    }));
+
+                    // Re-run date logic if we switch annual_Or_LTO from Annual to LTO
+                    if (form.likely_Start_Date) {
+                      handleAnnual_LTO({
+                        target: { value: form.likely_Start_Date },
+                      });
+                    }
+
+                    setErrors((prev) => ({ ...prev, end_Date: "" }));
+                  }}
+                  options={["Annual", "LTO"]}
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Likely Start Date</Label>
+                <FrostedDate
+                  value={form.likely_Start_Date}
+                  onChange={handleAnnual_LTO}
+                  placeholder="Select Start Date"
+                />
+              </label>
+
+              <label className="grid gap-1">
+                <div className="flex items-center gap-1">
+                  <Label>End Date</Label>
+                  {form?.annual_Or_LTO === "LTO" && (
+                    <span className="text-red-500">*</span>
+                  )}
+                </div>
+                <FrostedDate
+                  value={form.end_Date}
+                  onChange={(v) => {
+                    setForm((prev) => ({ ...prev, end_Date: v }));
+                    setErrors((prev) => ({ ...prev, end_Date: "" }));
+                  }}
+                  required={form?.annual_Or_LTO === "LTO"}
+                  placeholder="Select End Date"
+                  error={errors.end_Date}
+                />
+
+                {errors.end_Date && (
+                  <span className="text-red-500 text-sm">
+                    {errors.end_Date}
+                  </span>
+                )}
+              </label>
+
+              <label className="grid gap-1">
+                <Label>Date of Last Meeting</Label>
+                <FrostedDate
+                  value={form.last_Meeting_Date}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
+                  }
+                  placeholder="Select meeting date"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Estimated Close Date</Label>
+                <FrostedDate
+                  value={form.estimated_Close_Date}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, estimated_Close_Date: v }))
+                  }
+                  placeholder="Select closing date"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Period Rolling (Quantity)</Label>
+                <div className="relative w-full">
+                  <Input
+                    type="number"
+                    value={form.rollingQuantity}
+                    disabled
+                    className="w-full border rounded px-3 py-2 bg-gray-100 text-center"
+                  />
+
+                  <button
+                    onClick={() => setQuantityModal(true)}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 underline text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    View Quantity
+                  </button>
                 </div>
               </label>
             </div>
           )}
 
-          {currentSection === "timing" && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="grid gap-1">
-                <Label>Likely Start Date</Label>
-                {editMode ? (
-                  <FrostedDate
-                    value={form.likely_Start_Date}
-                    onChange={(e) => handleAnnual_LTO(e)}
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.likely_Start_Date} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>End Date</Label>
-                {editMode ? (
-                  <FrostedDate
-                    value={form.end_Date}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, end_Date: v }))
-                    }
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.end_Date} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>Annual or LTO</Label>
-                {editMode ? (
-                  <FrostedSelect
-                    value={form.annual_Or_LTO}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, annual_Or_LTO: v }))
-                    }
-                    options={["Annual", "LTO"]}
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.annual_Or_LTO} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1">
-                <Label>Date of Last Meeting</Label>
-                {editMode ? (
-                  <FrostedDate
-                    value={form.last_Meeting_Date}
-                    onChange={(v) =>
-                      setForm((prev) => ({ ...prev, last_Meeting_Date: v }))
-                    }
-                    disabled={!editMode}
-                  />
-                ) : (
-                  <Input value={form.last_Meeting_Date} disabled readOnly />
-                )}
-              </label>
-              <label className="grid gap-1 md:col-span-2">
-                <Label>Next Step Description</Label>
-                <Textarea
-                  value={form.next_Step_Description}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      next_Step_Description: e.target.value,
-                    }))
-                  }
-                  disabled={!editMode}
-                  readOnly={!editMode}
-                  rows={3}
-                />
-              </label>
-            </div>
-          )}
+          <QuantityModal
+                      open={quantityModal}
+                      onClose={() => setQuantityModal(false)}
+                      start_date={startDate}
+                      volume={volume}
+                      onTotalUpdate={handleTotalUpdate}
+                    />
 
           {currentSection === "outcome" && (
             <div className="grid grid-cols-1 gap-4">
@@ -1093,6 +1105,73 @@ export function OpportunityDetailsPage({ opp, onBack, onSave }) {
                   </label>
                 </>
               )}
+            </div>
+          )}
+
+          {currentSection === "customerDetails" && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <label className="grid gap-1">
+                <Label>Contact Name</Label>
+                <Input
+                  value={form.contact_Name}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Name: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Name"
+                  disabled={!editMode}
+                  readOnly={!!editMode}
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Contact Title</Label>
+                <Input
+                  value={form.contact_Title}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Title: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Title"
+                  disabled={!editMode}
+                  readOnly={!!editMode}
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>Contact Email</Label>
+                <Input
+                  value={form.contact_Email}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Email: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Email"
+                  disabled={!editMode}
+                  readOnly={!!editMode}
+                />
+              </label>
+
+              <label className="grid gap-1">
+                <Label>Contact Phone</Label>
+                <Input
+                  value={form.contact_Phone}
+                  type="number"
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contact_Phone: e.target.value,
+                    }))
+                  }
+                  placeholder="Contact Phone"
+                  disabled={!editMode}
+                  readOnly={!!editMode}
+                />
+              </label>
             </div>
           )}
         </CardBody>

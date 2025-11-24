@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { Card } from "../ui/common/Card";
 import { CardBody } from "../ui/common/CardBody";
-import { ClipboardCheck, DatabaseZap, UserPlus } from "lucide-react";
+import { ClipboardCheck, UserPlus } from "lucide-react";
 
 export function AdminPage({ setRoute, isNight }) {
     return (
@@ -87,45 +87,6 @@ export function AdminPage({ setRoute, isNight }) {
                 )}
               >
                 Review and approve user requests and submissions.
-              </p>
-            </CardBody>
-          </Card>
-          <Card
-            className={clsx(
-              "cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg",
-              isNight
-                ? "bg-slate-800/80 border border-white/15 hover:bg-slate-700"
-                : "bg-white/60 border border-white/50 hover:bg-white"
-            )}
-            onClick={() => setRoute("data-tables-page")}
-          >
-            <CardBody className="flex flex-col items-center justify-center py-10">
-              <div
-                className={clsx(
-                  "p-4 rounded-full mb-4 flex items-center justify-center",
-                  isNight ? "bg-[#F6E500]/20" : "bg-[#00205C]/10"
-                )}
-              >
-                <DatabaseZap
-                  size={36}
-                  className={isNight ? "text-[#F6E500]" : "text-[#00205C]"}
-                />
-              </div>
-              <h2
-                className={clsx(
-                  "text-lg font-semibold",
-                  isNight ? "text-white" : "text-gray-800"
-                )}
-              >
-                Data Tables
-              </h2>
-              <p
-                className={clsx(
-                  "text-sm mt-2 text-center max-w-xs",
-                  isNight ? "text-white/60" : "text-gray-600"
-                )}
-              >
-                Sales Stages, Product Category, Probability ......
               </p>
             </CardBody>
           </Card>

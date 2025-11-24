@@ -1,4 +1,6 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 export function pickLatestByCreated(arr, n = 5) {
   return (arr || [])
@@ -55,4 +57,8 @@ export function formatDateToYYYYMMDD(dateStr) {
 
 export function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
+}
+
+export function getLastUpdated(date = dayjs()) {
+  return `Last updated: ${dayjs(date).format("MMM D, YYYY · h:mm A")}`;
 }

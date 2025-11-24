@@ -183,6 +183,13 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     }));
   };
 
+  const handleTotalUpdate = (newTotal) => {
+    setForm((prev) => ({
+      ...prev,
+      estimated_Volume: newTotal,  
+    }));       
+};
+
   const sections = [
     { key: "product", label: "Product", icon: "📦" },
     { key: "volume_pricing", label: "Volume & Pricing", icon: "📊" },
@@ -398,30 +405,6 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
       </div>
 
       <Card noClip>
-        <div
-          className={`relative flex justify-between items-start p-4 border-b rounded-t-lg
-    ${
-      isNight
-        ? "bg-white/10 border-white/25 text-white placeholder-white/50 focus:ring-[#F6E500] disabled:bg-white/5 disabled:text-white/50"
-        : "bg-white/60 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-[#39B4E8] disabled:bg-gray-100 disabled:text-gray-500"
-    }`}
-        >
-          <CardHeader
-            title="Core Details"
-            subtitle="Essential opportunity information"
-          />
-
-          <div className="text-right px-3 py-2 rounded-lg transition-colors">
-            <h3 className="text-lg font-semibold leading-tight">
-              Opportunity ID: <span className="text-blue-600">#123</span>
-            </h3>
-
-            <h4 className="text-xs mt-1 opacity-80">
-              Last updated: Sep 12, 2025 · 3:45 PM
-            </h4>
-          </div>
-        </div>
-
         <CardBody>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <label className="grid gap-1">
@@ -1013,6 +996,7 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
             onClose={() => setQuantityModal(false)}
             start_date={startDate}
             volume={volume}
+            onTotalUpdate={handleTotalUpdate}
           />
           {/*Outcome section */}
 
