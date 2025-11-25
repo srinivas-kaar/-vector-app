@@ -1,6 +1,14 @@
 import { useContext, useEffect, useState } from "react";
 import { ThemeContext } from "../App";
-import { apiFetchIndustrySegement, apiFetchMaterials, apiFetchOpportunityTypes, apiFetchProbability, apiFetchProductCategory, apiFetchSalesStage, apiFetchWinLoseCodes } from "../api";
+import {
+  apiFetchIndustrySegement,
+  apiFetchMaterials,
+  apiFetchOpportunityTypes,
+  apiFetchProbability,
+  apiFetchProductCategory,
+  apiFetchSalesStage,
+  apiFetchWinLoseCodes,
+} from "../api";
 import { CardHeader } from "../ui/common/CardHeader";
 import { Label } from "../ui/common/Label";
 import { CardBody } from "../ui/common/CardBody";
@@ -15,6 +23,8 @@ import { QuantityModal } from "./QuantityModal";
 import { Button } from "../ui/common/Button";
 
 export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
+  let capitalizedSalesLead = "UNKNOWN";
+  let salesTeam;
   const theme = useContext(ThemeContext);
   const isNight = theme === "sunset";
   const [currentSection, setCurrentSection] = useState("product");
@@ -33,6 +43,62 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const [winLoseCode, setWinLoseCode] = useState("");
   const [quantityModal, setQuantityModal] = useState(false);
   const [industrySegment, setIndustrySegment] = useState("");
+
+  const [form, setForm] = useState({
+    // Core Details
+    customer_Name: "",
+    sales_Lead: capitalizedSalesLead,
+    sales_Team: salesTeam,
+    sales_Stage: "",
+    broker_Led: false,
+    industry_Segment: "",
+    probability: "0%",
+    opportunity_Type: "",
+    material_ID: "",
+    product_Category: "",
+    material_Desc: "",
+    estimated_Volume: "",
+    uoM: "Case",
+    opportunity_Summary: "",
+
+    // Product & Material
+    base_UoM: "Case",
+    material_Weight: "",
+    culinary_Needed: false,
+
+    // Volume & Pricing
+    case_Volume: "",
+    pound_Volume: "",
+    material_Price: "",
+    override_Price: "",
+    business_justification: "",
+    topline_Revenue: "",
+    period_Rolling: "",
+
+    // Location & Timing
+    ship_DC: "",
+    likely_Distributors: "",
+    annual_Or_LTO: "Annual",
+    likely_Start_Date: "",
+    end_Date: "",
+    last_Meeting_Date: "",
+    estimated_Close_Date: "",
+
+    // Outcome & Notes
+    win_Loss_Reason_Code: "",
+    win_Loss_Comments: "",
+
+    // Support & Enablement
+    culinary_Support_Description: "",
+    culinary_Support_Status: "",
+
+    // Customer Details
+    contact_Name: "",
+    contact_Title: "",
+    contact_Email: "",
+    contact_Phone: "",
+    isApproved: false,
+  });
 
   useEffect(() => {
     async function loadSalesStages() {
@@ -140,9 +206,6 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     Nithin: "Admin User",
   };
 
-  let capitalizedSalesLead = "UNKNOWN";
-
-  let salesTeam;
   if (currentUser || typeof currentUser === "string") {
     const defaultSalesLead = currentUser.split(".")[0] || "";
     capitalizedSalesLead =
@@ -186,9 +249,9 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
   const handleTotalUpdate = (newTotal) => {
     setForm((prev) => ({
       ...prev,
-      estimated_Volume: newTotal,  
-    }));       
-};
+      estimated_Volume: newTotal,
+    }));
+  };
 
   const sections = [
     { key: "product", label: "Product", icon: "📦" },
@@ -221,7 +284,6 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
       try {
         setIsLoadingMaterials(true);
         console.log("=== FETCHING MATERIALS ===");
-
         const data = await apiFetchMaterials();
         console.log("Materials data received:", data);
 
@@ -240,61 +302,7 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
     fetchMaterials();
   }, []);
 
-  const [form, setForm] = useState({
-    // Core Details
-    customer_Name: "",
-    sales_Lead: capitalizedSalesLead,
-    sales_Team: salesTeam,
-    sales_Stage: "Lead: No Current Product Solution",
-    broker_Led: false,
-    industry_Segment: "",
-    probability: "0%",
-    opportunity_Type: "",
-    material_ID: "",
-    product_Category: "",
-    material_Desc: "",
-    estimated_Volume: "",
-    uoM: "Case",
-    opportunity_Summary: "",
-
-    // Product & Material
-    base_UoM: "Case",
-    material_Weight: "",
-    culinary_Needed: false,
-
-    // Volume & Pricing
-    case_Volume: "",
-    pound_Volume: "",
-    material_Price: "",
-    override_Price: "",
-    business_justification: "",
-    topline_Revenue: "",
-    period_Rolling: "",
-
-    // Location & Timing
-    ship_DC: "",
-    likely_Distributors: "",
-    annual_Or_LTO: "Annual",
-    likely_Start_Date: "",
-    end_Date: "",
-    last_Meeting_Date: "",
-    estimated_Close_Date: "",
-
-    // Outcome & Notes
-    win_Loss_Reason_Code: "",
-    win_Loss_Comments: "",
-
-    // Support & Enablement
-    culinary_Support_Description: "",
-    culinary_Support_Status: "",
-
-    // Customer Details
-    contact_Name: "",
-    contact_Title: "",
-    contact_Email: "",
-    contact_Phone: "",
-    isApproved: false,
-  });
+  console.log({ form });
   const handleConfirmExit = () => {
     setExitConfirmOpen(false);
     onCancel();
@@ -313,7 +321,7 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
       alert("Customer Name is required");
       return;
     }
-    if (!form.material_ID) {
+    if (form.probability !== "0%" && !form.material_ID) {
       alert("Material ID is required - please select a product first");
       return;
     }
@@ -433,7 +441,7 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 />
               </label>
             ) : (
-              ""
+              <div className="hidden md:block" />
             )}
 
             <div className="flex items-center gap-1">
@@ -477,7 +485,7 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 />
               </label>
             ) : (
-              ""
+              <div className="hidden md:block" />
             )}
 
             <label className="grid gap-1">
@@ -525,110 +533,117 @@ export function AddOpportunityPage({ onCancel, onSave, currentUser }) {
                 placeholder="Select Product Category"
               />
             </label>
-            <label key="material" className="grid gap-1">
-              <Label>
-                Material ID{" "}
-                {isMaterialRequired && (
-                  <span className="text-red-500 text-sm ml-1">*</span>
-                )}
-              </Label>
+            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label key="material" className="grid gap-1">
+                <Label>
+                  Material ID{" "}
+                  {isMaterialRequired && (
+                    <span className="text-red-500 text-sm ml-1">*</span>
+                  )}
+                </Label>
 
-              {isLoadingMaterials ? (
-                <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
-                  Loading products...
-                </div>
-              ) : materialsError ? (
-                <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
-                  {materialsError}
-                </div>
-              ) : (
-                <div className="w-full max-w-2xl">
-                  <FrostedSelectMaterialID
-                    value={form.material_ID}
-                    onChange={(v) => {
-                      setForm((prev) => ({ ...prev, material_ID: v }));
+                {isLoadingMaterials ? (
+                  <div className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-gray-500">
+                    Loading products...
+                  </div>
+                ) : materialsError ? (
+                  <div className="px-3 py-2 rounded-xl border border-red-300 bg-red-50 text-red-600">
+                    {materialsError}
+                  </div>
+                ) : (
+                  <div className="w-full max-w-2xl">
+                    <FrostedSelectMaterialID
+                      value={form.material_ID}
+                      onChange={(v) => {
+                        setForm((prev) => ({ ...prev, material_ID: v }));
 
-                      if (v && materials?.length > 0) {
-                        const selectedMaterial = materials.find(
-                          (m) => m.MATERIAL_ID === v
-                        );
+                        if (v && materials?.length > 0) {
+                          const selectedMaterial = materials.find(
+                            (m) => m.MATERIAL_ID === v
+                          );
 
-                        if (selectedMaterial) {
-                          setForm((prev) => ({
-                            ...prev,
-                            product: v,
-                            material_Desc:
-                              selectedMaterial.PRODUCT?.split("||")[0] || "",
-                            material_ID: selectedMaterial.MATERIAL_ID,
-                            material_Weight: selectedMaterial.MATERIAL_WEIGHT,
-                            product_Category: selectedMaterial.PRODUCT_CATEGORY,
-                            base_UoM: selectedMaterial.BASE_UOM,
-                            material_Price:
-                              selectedMaterial.MATERIAL_PROJECTED_PRICE,
-                            pipeline_Projected_Revenue: prev.estimated_Volume
-                              ? (
-                                  parseFloat(
-                                    selectedMaterial.MATERIAL_PROJECTED_PRICE ||
-                                      0
-                                  ) * parseFloat(prev.estimated_Volume || 0)
-                                ).toFixed(2)
-                              : "",
-                          }));
+                          if (selectedMaterial) {
+                            setForm((prev) => ({
+                              ...prev,
+                              product: v,
+                              material_Desc:
+                                selectedMaterial.PRODUCT?.split("||")[0] || "",
+                              material_ID: selectedMaterial.MATERIAL_ID,
+                              material_Weight: selectedMaterial.MATERIAL_WEIGHT,
+                              product_Category:
+                                selectedMaterial.PRODUCT_CATEGORY,
+                              base_UoM: selectedMaterial.BASE_UOM,
+                              material_Price:
+                                selectedMaterial.MATERIAL_PROJECTED_PRICE,
+                              pipeline_Projected_Revenue: prev.estimated_Volume
+                                ? (
+                                    parseFloat(
+                                      selectedMaterial.MATERIAL_PROJECTED_PRICE ||
+                                        0
+                                    ) * parseFloat(prev.estimated_Volume || 0)
+                                  ).toFixed(2)
+                                : "",
+                            }));
+                          }
                         }
+                      }}
+                      options={
+                        Array.isArray(materials)
+                          ? materials.map((m) => m.MATERIAL_ID)
+                          : []
                       }
-                    }}
-                    options={
-                      Array.isArray(materials)
-                        ? materials.map((m) => m.MATERIAL_ID)
-                        : []
-                    }
-                    placeholder={
-                      isMaterialRequired
-                        ? "Select Material ID (Required)"
-                        : "Select Material ID"
-                    }
-                    disabled={isLoadingMaterials}
-                  />
-                </div>
-              )}
+                      placeholder={
+                        isMaterialRequired
+                          ? "Select Material ID (Required)"
+                          : "Select Material ID"
+                      }
+                      disabled={isLoadingMaterials}
+                    />
+                  </div>
+                )}
 
-              {isMaterialRequired && !form.material_ID && (
-                <p className="text-red-500 text-xs mt-1">
-                  * Material ID is required when probability is not 100%
-                </p>
-              )}
-            </label>
-            <label className="grid gap-1">
-              <Label>Material Desc</Label>
-              <Input
-                value={form.material_Desc}
-                placeholder="Material Description"
-                readOnly
-              />
-            </label>
-            <label className="grid gap-1">
-              <Label>Volume</Label>
-              <Input
-                type="number"
-                value={form.estimated_Volume}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    estimated_Volume: e.target.value,
-                  }))
-                }
-                placeholder="Enter volume"
-              />
-            </label>
-            <label className="grid gap-1">
-              <Label>UoM</Label>
-              <FrostedSelect
-                value={form.base_UoM}
-                onChange={(v) => setForm((prev) => ({ ...prev, base_UoM: v }))}
-                options={["Case", "LBS"]}
-                placeholder="Select UOM"
-              />
-            </label>
+                {isMaterialRequired && !form.material_ID && (
+                  <p className="text-red-500 text-xs mt-1">
+                    * Material ID is required when probability is not 100%
+                  </p>
+                )}
+              </label>
+              <label className="grid gap-1">
+                <Label>Material Desc</Label>
+                <Input
+                  value={form.material_Desc}
+                  placeholder="Material Description"
+                  readOnly
+                />
+              </label>
+            </div>
+            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="grid gap-1">
+                <Label>Volume</Label>
+                <Input
+                  type="number"
+                  value={form.estimated_Volume}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      estimated_Volume: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter volume"
+                />
+              </label>
+              <label className="grid gap-1">
+                <Label>UoM</Label>
+                <FrostedSelect
+                  value={form.base_UoM}
+                  onChange={(v) =>
+                    setForm((prev) => ({ ...prev, base_UoM: v }))
+                  }
+                  options={["Case", "LBS"]}
+                  placeholder="Select UOM"
+                />
+              </label>
+            </div>
             <label className="grid gap-1 md:col-span-3">
               <Label>Opportunity Summary</Label>
               <Textarea

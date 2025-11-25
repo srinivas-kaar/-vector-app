@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "./config";
 
 export async function apiFetchOpps() {
-  const url = `${API_BASE_URL}/opportunities`;
+  const url = `${API_BASE_URL}/opportunities/details `;
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -15,6 +15,7 @@ export async function apiFetchOpps() {
     if (!res.ok)
       throw new Error(`GET ${url} failed: ${res.status} ${await res.text()}`);
     const data = await res.json();
+    console.log({data})
     return data.map((record) => ({
       id: record.OPPORTUNITY_ID || record.id,
       title: record.CUSTOMER_NAME
@@ -60,6 +61,7 @@ export async function apiFetchMaterials() {
 }
 
 export async function apiCreateOpp(body) {
+  console.log({body})
   try {
     const payload = {
       TITLE:
@@ -171,6 +173,19 @@ export async function apiCreateOpp(body) {
       BROKER_LED: body.broker_Led || body.brokerLed || "",
       MATERIAL_DESC: body.material_Desc || body.materialDesc || "",
       WIN_PROBABILITY: body.win,
+      CUSTOMERID: 1,
+      CUSTOMERNAME: body.customerName,
+      INDUSTRYSEGMENT: body.industrySegment,
+      CUSTOMERCONTACTNAME: body.customerName,
+      CONTACTCONTACTTITLE: body.customerTitle,
+      CUSTOMERCONTACTEMAIL: body.customerEmail,
+      CUSTOMERCONTACTPHONE:  body.customerPhone,
+      SUMMARYID: 1,
+      OPPORTUNITYSUMMARYDESCRIPTION: body.opportunitySummary,
+      LASTUPDATEDDATE: new Date().toISOString(),
+      PRODUCTID: body.materialID,
+      
+
     };
 
     const res = await fetch(`${API_BASE_URL}/opportunities`, {

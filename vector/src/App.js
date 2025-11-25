@@ -256,7 +256,7 @@ export default function App() {
       render: (handle) => (
         <Card>
           <CardHeader
-            title="Total Opportunities"
+            title="Total Open"
             dragHandle={<span className="cursor-grab">{handle}</span>}
           />
           <CardBody>
@@ -285,7 +285,7 @@ export default function App() {
       rows: 1,
       render: () => (
         <Card>
-          <CardHeader title="In Review" />
+          <CardHeader title="Past Due" />
           <CardBody>
             <div
               className={`mt-2 text-3xl font-bold ${
@@ -303,7 +303,7 @@ export default function App() {
       rows: 1,
       render: () => (
         <Card>
-          <CardHeader title="Current Month" />
+          <CardHeader title="Recent wins" />
           <CardBody>
             <div className="mt-2 flex items-center gap-2">
               <TrendingUp
@@ -326,7 +326,7 @@ export default function App() {
       rows: 1,
       render: () => (
         <Card>
-          <CardHeader title="Avg Deal Size" />
+          <CardHeader title="Recent Losses" />
           <CardBody>
             <div
               className={`mt-2 text-3xl font-bold ${
@@ -805,7 +805,12 @@ export default function App() {
       materialDesc: form.material_Desc,
       probability: form.probability,
       poundVolume: form.pound_Volume,
+      contactEmail: form.contact_Email,
+      contactName: form.contact_Name,
+      contact_Phone: form.contact_Phone,
+      contact_Title: form.contact_Title
     };
+    console.log(payload)
     try {
       const created = await apiCreateOpp(payload);
       const createdNorm = {
